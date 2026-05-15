@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { GoogleButton } from '@/components/auth/google-button'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -39,6 +40,17 @@ export default function LoginPage() {
         <p className="text-sm text-muted-foreground mt-1">Welcome back to Filametry.</p>
       </div>
 
+      {/* Google */}
+      <GoogleButton label="Sign in with Google" />
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Email + password */}
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Email</Label>

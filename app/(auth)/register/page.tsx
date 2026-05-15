@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { GoogleButton } from '@/components/auth/google-button'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -48,6 +49,17 @@ export default function RegisterPage() {
         <p className="text-sm text-muted-foreground mt-1">7 days free. No credit card required.</p>
       </div>
 
+      {/* Google — easiest path */}
+      <GoogleButton label="Sign up with Google" />
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Email + password */}
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Full name</Label>
@@ -95,7 +107,7 @@ export default function RegisterPage() {
           disabled={loading}
           className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2.5 rounded-md text-sm font-medium transition-colors"
         >
-          {loading ? 'Creating account…' : 'Create account — it\'s free'}
+          {loading ? 'Creating account…' : "Create account — it's free"}
         </button>
       </form>
 
