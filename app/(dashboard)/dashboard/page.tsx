@@ -1,5 +1,8 @@
-import { Calculator, Layers, Package, ClipboardList } from 'lucide-react'
+import { Calculator, Layers, Package, ClipboardList, Printer } from 'lucide-react'
 import Link from 'next/link'
+import { getProfile } from '@/lib/actions/billing'
+import { getPrinterCount } from '@/lib/actions/printers'
+import { TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
 
 const CARDS = [
   {
@@ -36,13 +39,49 @@ const CARDS = [
   },
 ]
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const profile      = await getProfile()
+  const printerCount = await getPrinterCount()
+  const printerLimit: number = profile?.printer_limit ?? TRIAL_PRINTER_LIMIT
+  const displayLimit = printerLimit === 9999 ? '∞' : String(printerLimit)
+  const pct = printerLimit === 9999 ? 0 : Math.min(100, Math.round((printerCount / printerLimit) * 100))
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Welcome to Filametry. What would you like to do today?</p>
       </div>
+
+      {/* Printer usage widget */}
+      <Link
+        href="/printers"
+        className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 mb-6 hover:border-orange-500/40 transition-colors group"
+      >
+        <div className="p-2.5 rounded-lg bg-orange-500/10">
+          <Printer className="size-5 text-orange-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-sm font-medium group-hover:text-orange-500 transition-colors">
+              Registered Printers
+            </p>
+            <span className="text-sm font-semibold tabular-nums">
+              {printerCount} / {displayLimit}
+            </span>
+          </div>
+          {printerLimit !== 9999 && (
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-orange-400' : 'bg-orange-500'
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          )}
+        </div>
+      </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {CARDS.map(({ href, icon: Icon, title, description, color, bg }) => (

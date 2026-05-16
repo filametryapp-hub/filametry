@@ -2,8 +2,9 @@
 
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
+import { getPlanById, TRIAL_PRINTER_LIMIT, isTrialActive, trialDaysLeft } from '@/lib/stripe/plans'
 
-export async function createCheckoutSession(interval: 'month' | 'year') {
+export async function createCheckoutSession(priceId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -13,10 +14,6 @@ export async function createCheckoutSession(interval: 'month' | 'year') {
     .select('stripe_customer_id')
     .eq('id', user.id)
     .single()
-
-  const priceId = interval === 'month'
-    ? process.env.STRIPE_PRICE_PRO_MONTHLY!
-    : process.env.STRIPE_PRICE_PRO_YEARLY!
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -68,4 +65,23 @@ export async function getProfile() {
     .single()
 
   return data
+}
+
+export async function getUserPlan() {
+  const profile = await getProfile()
+  if (!profile) return null
+
+  const planDef = getPlanById(profile.plan) ?? null
+  const onTrial = profile.plan === 'trial' && isTrialActive(profile.trial_ends_at)
+  const daysLeft = trialDaysLeft(profile.trial_ends_at)
+  const printerLimit: number = profile.printer_limit ?? TRIAL_PRINTER_LIMIT
+
+  return {
+    planId: profile.plan as string,
+    planDef,
+    onTrial,
+    daysLeft,
+    printerLimit,
+    isActive: profile.plan !== 'cancelled' && (profile.plan !== 'trial' || onTrial),
+  }
 }

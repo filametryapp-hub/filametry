@@ -1,4 +1,5 @@
 import { stripe } from '@/lib/stripe'
+import { getPlanByPriceId, TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
 import { createClient } from '@supabase/supabase-js'
 import { headers } from 'next/headers'
 import type Stripe from 'stripe'
@@ -11,10 +12,16 @@ function adminClient() {
   )
 }
 
+function printerLimitForPriceId(priceId: string): number {
+  const plan = getPlanByPriceId(priceId)
+  if (!plan) return TRIAL_PRINTER_LIMIT
+  return plan.printerLimit === Infinity ? 9999 : plan.printerLimit
+}
+
 export async function POST(req: Request) {
-  const body      = await req.text()
+  const body        = await req.text()
   const headersList = await headers()
-  const signature = headersList.get('stripe-signature')!
+  const signature   = headersList.get('stripe-signature')!
 
   let event: Stripe.Event
   try {
@@ -31,10 +38,17 @@ export async function POST(req: Request) {
       const userId  = session.metadata?.user_id
       if (!userId) break
 
+      // Retrieve the subscription to get the price ID
+      const subscriptionId = session.subscription as string
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      const priceId = subscription.items.data[0]?.price.id ?? ''
+      const plan = getPlanByPriceId(priceId)
+
       await supabase.from('profiles').update({
-        plan: 'pro',
+        plan: plan?.id ?? 'starter',
+        printer_limit: printerLimitForPriceId(priceId),
         stripe_customer_id:     session.customer as string,
-        stripe_subscription_id: session.subscription as string,
+        stripe_subscription_id: subscriptionId,
       }).eq('id', userId)
       break
     }
@@ -44,8 +58,16 @@ export async function POST(req: Request) {
       const userId = sub.metadata?.user_id
       if (!userId) break
 
-      const plan = sub.status === 'active' ? 'pro' : 'trial'
-      await supabase.from('profiles').update({ plan }).eq('id', userId)
+      if (sub.status === 'active') {
+        const priceId = sub.items.data[0]?.price.id ?? ''
+        const plan    = getPlanByPriceId(priceId)
+        await supabase.from('profiles').update({
+          plan: plan?.id ?? 'starter',
+          printer_limit: printerLimitForPriceId(priceId),
+        }).eq('id', userId)
+      } else {
+        await supabase.from('profiles').update({ plan: 'trial' }).eq('id', userId)
+      }
       break
     }
 
@@ -56,6 +78,7 @@ export async function POST(req: Request) {
 
       await supabase.from('profiles').update({
         plan: 'cancelled',
+        printer_limit: TRIAL_PRINTER_LIMIT,
         stripe_subscription_id: null,
       }).eq('id', userId)
       break

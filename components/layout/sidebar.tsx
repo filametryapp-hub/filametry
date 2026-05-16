@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard } from 'lucide-react'
+import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/dashboard',      label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/precificacao',   label: 'Pricing',        icon: Calculator },
   { href: '/filamentos',     label: 'Filaments',      icon: Layers },
+  { href: '/printers',       label: 'Printers',       icon: Printer },
   { href: '/produtos',       label: 'Products',       icon: Package },
   { href: '/pedidos',        label: 'Orders',         icon: ClipboardList },
 ]
