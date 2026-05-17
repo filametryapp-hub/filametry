@@ -44,7 +44,8 @@ export async function proxy(request: NextRequest) {
                       pathname.startsWith('/expenses') ||
                       pathname.startsWith('/cash-flow') ||
                       pathname.startsWith('/billing') ||
-                      pathname.startsWith('/printers')
+                      pathname.startsWith('/printers') ||
+                      pathname.startsWith('/settings')
 
   if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))

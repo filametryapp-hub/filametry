@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp } from 'lucide-react'
+import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/suppliers',    label: 'Suppliers',  icon: Truck },
   { href: '/expenses',     label: 'Expenses',   icon: Receipt },
   { href: '/cash-flow',    label: 'Cash Flow',  icon: TrendingUp },
+  { href: '/settings',     label: 'Settings',   icon: Settings },
 ]
 
 export function Sidebar() {
