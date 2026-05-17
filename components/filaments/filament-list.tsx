@@ -5,8 +5,10 @@ import { Plus, Layers, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
 import { getFilaments, upsertFilament, deleteFilament } from '@/lib/actions/filaments'
+import { useT } from '@/lib/i18n'
 import {
   type FilamentSpool,
+  type MaterialCategory,
   costPerGram,
   remainingPct,
   remainingValue,
@@ -17,7 +19,7 @@ function fromRow(row: Record<string, unknown>): FilamentSpool {
   return {
     id:          String(row.id),
     brand:       String(row.brand),
-    material:    String(row.material),
+    material:    String(row.material ?? ''),
     color:       String(row.color),
     colorHex:    String(row.color_hex ?? '#ff6b35'),
     weightG:     Number(row.weight_g),
@@ -25,6 +27,8 @@ function fromRow(row: Record<string, unknown>): FilamentSpool {
     priceUSD:    Number(row.price_usd),
     purchasedAt: row.purchased_at ? String(row.purchased_at) : undefined,
     notes:       row.notes ? String(row.notes) : undefined,
+    category:    (row.category as MaterialCategory) ?? 'Filament',
+    unit:        (row.unit as import('@/lib/filament-types').MaterialUnit) ?? 'g',
   }
 }
 
@@ -79,7 +83,7 @@ function SpoolCard({ spool, onEdit, onDelete }: {
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Remaining</span>
-          <span className="font-mono">{spool.remainingG}g / {spool.weightG}g</span>
+          <span className="font-mono">{spool.remainingG}{spool.unit ?? 'g'} / {spool.weightG}{spool.unit ?? 'g'}</span>
         </div>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
           <div
@@ -92,7 +96,7 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
         <div>
-          <p className="text-xs text-muted-foreground">Cost/g</p>
+          <p className="text-xs text-muted-foreground">Cost/{spool.unit ?? 'g'}</p>
           <p className="text-sm font-mono font-semibold">{fmt(costPerGram(spool))}</p>
         </div>
         <div>
@@ -105,6 +109,8 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 }
 
 export function FilamentList() {
+  const { t } = useT()
+  const m = t.materials
   const [spools, setSpools]   = useState<FilamentSpool[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm]   = useState(false)
@@ -140,6 +146,8 @@ export function FilamentList() {
         price_usd:    data.priceUSD,
         purchased_at: data.purchasedAt,
         notes:        data.notes,
+        category:     data.category ?? 'Filament',
+        unit:         data.unit ?? 'g',
       })
       await load()
     } finally {
@@ -167,9 +175,9 @@ export function FilamentList() {
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Spools',          value: spools.length.toString() },
-          { label: 'Total remaining', value: `${totalWeight.toLocaleString()}g` },
-          { label: 'Inventory value', value: fmt(totalValue) },
+          { label: m.items,          value: spools.length.toString() },
+          { label: m.totalRemaining, value: `${totalWeight.toLocaleString()}` },
+          { label: m.inventoryValue, value: fmt(totalValue) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -180,12 +188,12 @@ export function FilamentList() {
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{spools.length} spool{spools.length !== 1 ? 's' : ''} in inventory</p>
+        <p className="text-sm text-muted-foreground">{m.itemsInStock(spools.length)}</p>
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >
-          <Plus className="size-4" /> Add spool
+          <Plus className="size-4" /> {m.addItem}
         </button>
       </div>
 
@@ -193,7 +201,7 @@ export function FilamentList() {
       {spools.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Layers className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-muted-foreground">No spools yet. Add your first filament.</p>
+          <p className="text-sm text-muted-foreground">{m.noItems}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

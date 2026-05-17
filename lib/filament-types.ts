@@ -1,14 +1,19 @@
+export type MaterialCategory = 'Filament' | 'Tool' | 'Packaging' | 'Accessory' | 'Other'
+export type MaterialUnit = 'g' | 'kg' | 'units' | 'm' | 'ml'
+
 export interface FilamentSpool {
   id: string
   brand: string
-  material: string       // PLA, PETG, ABS, TPU, ASA, PA, PC, etc.
-  color: string
+  material: string       // PLA, PETG, ABS, TPU, etc. (for filaments)
+  color: string          // name/color or item name
   colorHex: string
-  weightG: number        // total spool weight (usually 1000)
-  remainingG: number     // how much is left
-  priceUSD: number       // what you paid for the full spool
+  weightG: number        // total quantity
+  remainingG: number     // remaining quantity
+  priceUSD: number       // purchase price
   purchasedAt?: string   // ISO date
   notes?: string
+  category?: MaterialCategory
+  unit?: MaterialUnit
 }
 
 export const MATERIALS = [

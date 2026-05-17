@@ -25,6 +25,8 @@ export async function upsertFilament(filament: {
   price_usd: number
   purchased_at?: string
   notes?: string
+  category?: string
+  unit?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

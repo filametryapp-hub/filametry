@@ -2,27 +2,35 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings } from 'lucide-react'
+import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-
-const NAV = [
-  { href: '/dashboard',    label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/precificacao', label: 'Pricing',    icon: Calculator },
-  { href: '/filamentos',   label: 'Filaments',  icon: Layers },
-  { href: '/printers',     label: 'Printers',   icon: Printer },
-  { href: '/produtos',     label: 'Products',   icon: Package },
-  { href: '/pedidos',      label: 'Orders',     icon: ClipboardList },
-  { href: '/clients',      label: 'Clients',    icon: Users },
-  { href: '/suppliers',    label: 'Suppliers',  icon: Truck },
-  { href: '/expenses',     label: 'Expenses',   icon: Receipt },
-  { href: '/cash-flow',    label: 'Cash Flow',  icon: TrendingUp },
-  { href: '/settings',     label: 'Settings',   icon: Settings },
-]
+import { useT, type Lang } from '@/lib/i18n'
 
 export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
+  const { t, lang, setLang } = useT()
+
+  const NAV = [
+    { href: '/dashboard',    label: t.nav.dashboard,  icon: LayoutDashboard },
+    { href: '/precificacao', label: t.nav.pricing,    icon: Calculator },
+    { href: '/filamentos',   label: t.nav.materials,  icon: Layers },
+    { href: '/printers',     label: t.nav.equipment,  icon: Printer },
+    { href: '/produtos',     label: t.nav.products,   icon: Package },
+    { href: '/pedidos',      label: t.nav.orders,     icon: ClipboardList },
+    { href: '/clients',      label: t.nav.clients,    icon: Users },
+    { href: '/suppliers',    label: t.nav.suppliers,  icon: Truck },
+    { href: '/expenses',     label: t.nav.expenses,   icon: Receipt },
+    { href: '/cash-flow',    label: t.nav.cashFlow,   icon: TrendingUp },
+    { href: '/settings',     label: t.nav.settings,   icon: Settings },
+  ]
+
+  const LANGS: { code: Lang; flag: string }[] = [
+    { code: 'en', flag: '🇺🇸' },
+    { code: 'pt', flag: '🇧🇷' },
+    { code: 'es', flag: '🇪🇸' },
+  ]
 
   async function signOut() {
     const supabase = createClient()
@@ -42,7 +50,7 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -62,6 +70,28 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t border-border space-y-1">
+        {/* Language switcher */}
+        <div className="flex items-center gap-1 px-3 py-2">
+          <Globe className="size-3.5 text-muted-foreground shrink-0" />
+          <div className="flex gap-1 ml-1">
+            {LANGS.map(({ code, flag }) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                title={t.lang[code]}
+                className={cn(
+                  'text-sm px-1.5 py-0.5 rounded transition-colors',
+                  lang === code
+                    ? 'bg-orange-500/10 text-orange-500 font-medium'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {flag}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Link
           href="/billing"
           className={cn(
@@ -72,14 +102,14 @@ export function Sidebar() {
           )}
         >
           <CreditCard className="size-4 shrink-0" />
-          Billing
+          {t.nav.billing}
         </Link>
         <button
           onClick={signOut}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <LogOut className="size-4 shrink-0" />
-          Sign out
+          {t.nav.signOut}
         </button>
       </div>
     </aside>
