@@ -5,6 +5,8 @@ import { X, Plus, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type Order, type OrderItem, orderTotal } from '@/lib/product-types'
+import { useT } from '@/lib/i18n'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 interface Props {
   onSave: (order: Order) => void
@@ -18,11 +20,8 @@ const BLANK_ITEM: OrderItem = {
   unitPrice: 0,
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
 export function OrderForm({ onSave, onClose }: Props) {
+  const { t, fmtCurrency } = useT()
   const [clientName,  setClientName]  = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [notes,       setNotes]       = useState('')
@@ -66,7 +65,7 @@ export function OrderForm({ onSave, onClose }: Props) {
         className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-background shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">New order</h2>
+          <h2 className="text-lg font-semibold">{t.orders.newOrder}</h2>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="size-5" />
           </button>
@@ -75,12 +74,12 @@ export function OrderForm({ onSave, onClose }: Props) {
         {/* Client */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Client name *</Label>
+            <Label className="text-xs text-muted-foreground">{t.orders.clientName} *</Label>
             <Input value={clientName} onChange={e => setClientName(e.target.value)}
               placeholder="John Smith" required />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Email (optional)</Label>
+            <Label className="text-xs text-muted-foreground">{t.orders.clientEmail}</Label>
             <Input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)}
               placeholder="john@email.com" />
           </div>
@@ -89,10 +88,10 @@ export function OrderForm({ onSave, onClose }: Props) {
         {/* Items */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Items</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t.orders.items}</Label>
             <button type="button" onClick={addItem}
               className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1 transition-colors">
-              <Plus className="size-3" /> Add item
+              <Plus className="size-3" /> {t.orders.addItem}
             </button>
           </div>
 
@@ -119,18 +118,16 @@ export function OrderForm({ onSave, onClose }: Props) {
               </div>
               {/* Unit price */}
               <div className="col-span-3">
-                <Input
-                  type="number" min={0} step={0.5}
+                <CurrencyInput
                   value={item.unitPrice}
-                  onChange={e => updateItem(i, 'unitPrice', +e.target.value)}
-                  placeholder="$0.00"
-                  className="h-8 text-sm"
+                  onChange={v => updateItem(i, 'unitPrice', v)}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               {/* Subtotal */}
               <div className="col-span-1 text-right">
                 <span className="text-xs font-mono text-muted-foreground">
-                  {fmt(item.quantity * item.unitPrice)}
+                  {fmtCurrency(item.quantity * item.unitPrice)}
                 </span>
               </div>
               {/* Remove */}
@@ -147,14 +144,14 @@ export function OrderForm({ onSave, onClose }: Props) {
 
           {/* Total */}
           <div className="flex justify-between items-center pt-2 border-t border-border">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-mono font-bold text-orange-500">{fmt(total)}</span>
+            <span className="text-sm text-muted-foreground">{t.common.total}</span>
+            <span className="font-mono font-bold text-orange-500">{fmtCurrency(total)}</span>
           </div>
         </div>
 
         {/* Notes */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
+          <Label className="text-xs text-muted-foreground">{t.orders.notes}</Label>
           <Input value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Deadline, special instructions…" />
         </div>
@@ -162,11 +159,11 @@ export function OrderForm({ onSave, onClose }: Props) {
         <div className="flex gap-3">
           <button type="button" onClick={onClose}
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button type="submit"
             className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-medium transition-colors">
-            Create order
+            {t.orders.createOrder}
           </button>
         </div>
       </form>

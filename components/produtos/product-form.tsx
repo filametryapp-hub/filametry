@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MATERIALS } from '@/lib/filament-types'
 import type { Product } from '@/lib/product-types'
+import { useT } from '@/lib/i18n'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 interface Props {
   initial: Product | null
@@ -27,6 +29,7 @@ const BLANK: Omit<Product, 'id' | 'createdAt'> = {
 }
 
 export function ProductForm({ initial, onSave, onClose, saving }: Props) {
+  const { t, fmtCurrency } = useT()
   const [form, setForm] = useState(
     initial
       ? { ...initial }
@@ -56,7 +59,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
         className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-background shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{initial ? 'Edit product' : 'Add product'}</h2>
+          <h2 className="text-lg font-semibold">{initial ? t.common.edit : t.products.addProduct}</h2>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="size-5" />
           </button>
@@ -72,14 +75,14 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
           {/* Description */}
           <div className="col-span-2 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Description</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.description}</Label>
             <Input value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="Short product description" />
           </div>
 
           {/* Material */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Material</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.material}</Label>
             <select
               value={form.material}
               onChange={e => set('material', e.target.value)}
@@ -91,37 +94,43 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
           {/* Tags */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Tags (comma separated)</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.tags}</Label>
             <Input value={tagInput} onChange={e => setTagInput(e.target.value)}
               placeholder="desk, organizer, gift" />
           </div>
 
           {/* Weight */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Weight (g)</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.weightG}</Label>
             <Input type="number" min={0.1} step={1} value={form.weightG}
               onChange={e => set('weightG', +e.target.value)} />
           </div>
 
           {/* Print hours */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Print time (h)</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.printHours}</Label>
             <Input type="number" min={0.1} step={0.25} value={form.printHours}
               onChange={e => set('printHours', +e.target.value)} />
           </div>
 
           {/* Cost */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Production cost ($)</Label>
-            <Input type="number" min={0} step={0.01} value={form.costUSD}
-              onChange={e => set('costUSD', +e.target.value)} />
+            <Label className="text-xs text-muted-foreground">{t.products.costUSD}</Label>
+            <CurrencyInput
+              value={form.costUSD}
+              onChange={v => set('costUSD', v)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
 
           {/* Price */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Sale price ($)</Label>
-            <Input type="number" min={0} step={0.5} value={form.priceUSD}
-              onChange={e => set('priceUSD', +e.target.value)} />
+            <Label className="text-xs text-muted-foreground">{t.products.priceUSD}</Label>
+            <CurrencyInput
+              value={form.priceUSD}
+              onChange={v => set('priceUSD', v)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
         </div>
 
@@ -130,7 +139,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
           <div className="rounded-lg bg-muted/50 px-4 py-2.5 grid grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">Profit</p>
-              <p className="font-mono text-green-400">${(form.priceUSD - form.costUSD).toFixed(2)}</p>
+              <p className="font-mono text-green-400">{fmtCurrency(form.priceUSD - form.costUSD)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Margin</p>
@@ -138,7 +147,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">$/g</p>
-              <p className="font-mono">${form.weightG ? (form.priceUSD / form.weightG).toFixed(3) : '—'}</p>
+              <p className="font-mono">{form.weightG ? fmtCurrency(form.priceUSD / form.weightG) : '—'}</p>
             </div>
           </div>
         )}
@@ -146,11 +155,11 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
         <div className="flex gap-3">
           <button type="button" onClick={onClose}
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button type="submit" disabled={saving}
             className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
-            {saving ? 'Saving…' : initial ? 'Save changes' : 'Add product'}
+            {saving ? t.common.saving : initial ? t.common.save : t.products.addProduct}
           </button>
         </div>
       </form>

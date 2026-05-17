@@ -9,6 +9,8 @@ import {
 import { getPartners } from '@/lib/actions/company'
 import { getProfile } from '@/lib/actions/billing'
 import { TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
+import { useT } from '@/lib/i18n'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 type Partner = { id: string; name: string; percentage: number }
 type Payment = { id: string; payer_name: string; amount_paid: number; paid_at: string; notes?: string | null }
@@ -20,10 +22,6 @@ type PrinterRow = {
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-}
-
 function costPerHour(p: PrinterRow) {
   if (!p.purchase_value || !p.lifespan_hours) return 0
   return p.purchase_value / p.lifespan_hours
@@ -31,6 +29,7 @@ function costPerHour(p: PrinterRow) {
 
 // ── Debt summary per printer ───────────────────────────────────
 function DebtSummary({ printer, partners }: { printer: PrinterRow; partners: Partner[] }) {
+  const { fmtCurrency } = useT()
   if (!partners.length || !printer.purchase_value) return null
 
   const payments = printer.equipment_payments ?? []
@@ -47,12 +46,12 @@ function DebtSummary({ printer, partners }: { printer: PrinterRow; partners: Par
         <div key={d.name} className="flex items-center justify-between text-xs">
           <span className="font-medium">{d.name}</span>
           <div className="flex items-center gap-3">
-            <span className="text-muted-foreground">expected {fmt(d.expected)}</span>
-            <span className="text-muted-foreground">paid {fmt(d.paid)}</span>
+            <span className="text-muted-foreground">expected {fmtCurrency(d.expected)}</span>
+            <span className="text-muted-foreground">paid {fmtCurrency(d.paid)}</span>
             <span className={`font-semibold flex items-center gap-1 ${d.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {d.balance >= 0
-                ? <><CheckCircle2 className="size-3" /> owed {fmt(d.balance)}</>
-                : <><AlertCircle className="size-3" /> owes {fmt(Math.abs(d.balance))}</>}
+                ? <><CheckCircle2 className="size-3" /> owed {fmtCurrency(d.balance)}</>
+                : <><AlertCircle className="size-3" /> owes {fmtCurrency(Math.abs(d.balance))}</>}
             </span>
           </div>
         </div>
@@ -69,9 +68,10 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
   onPaymentAdded: (payment: { payer_name: string; amount_paid: number; paid_at: string }) => void
   onPaymentDeleted: (paymentId: string) => void
 }) {
+  const { fmtCurrency } = useT()
   const [expanded, setExpanded] = useState(false)
   const [addingPay, setAddingPay] = useState(false)
-  const [payForm, setPayForm] = useState({ payer_name: partners[0]?.name ?? '', amount_paid: '', paid_at: new Date().toISOString().slice(0, 10) })
+  const [payForm, setPayForm] = useState({ payer_name: partners[0]?.name ?? '', amount_paid: 0, paid_at: new Date().toISOString().slice(0, 10) })
   const [savingPay, setSavingPay] = useState(false)
   const [payError, setPayError] = useState('')
 
@@ -86,11 +86,11 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
       await addEquipmentPayment({
         printer_id:  printer.id,
         payer_name:  payForm.payer_name,
-        amount_paid: parseFloat(payForm.amount_paid),
+        amount_paid: payForm.amount_paid,
         paid_at:     payForm.paid_at,
       })
-      onPaymentAdded({ payer_name: payForm.payer_name, amount_paid: parseFloat(payForm.amount_paid), paid_at: payForm.paid_at })
-      setPayForm(f => ({ ...f, amount_paid: '' }))
+      onPaymentAdded({ payer_name: payForm.payer_name, amount_paid: payForm.amount_paid, paid_at: payForm.paid_at })
+      setPayForm(f => ({ ...f, amount_paid: 0 }))
       setAddingPay(false)
     } catch (e) {
       setPayError(e instanceof Error ? e.message : 'Failed to add payment.')
@@ -114,12 +114,12 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
         <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
           {printer.purchase_value > 0 && (
             <span className="flex items-center gap-1">
-              <DollarSign className="size-3" /> {fmt(printer.purchase_value)}
+              <DollarSign className="size-3" /> {fmtCurrency(printer.purchase_value)}
             </span>
           )}
           {cph > 0 && (
             <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
-              <TrendingDown className="size-3" /> {fmt(cph)}/h
+              <TrendingDown className="size-3" /> {fmtCurrency(cph)}/h
             </span>
           )}
           {printer.lifespan_hours > 0 && (
@@ -151,7 +151,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-lg bg-muted/40 p-3">
               <p className="text-xs text-muted-foreground mb-1">Purchase value</p>
-              <p className="text-sm font-semibold">{printer.purchase_value > 0 ? fmt(printer.purchase_value) : '—'}</p>
+              <p className="text-sm font-semibold">{printer.purchase_value > 0 ? fmtCurrency(printer.purchase_value) : '—'}</p>
             </div>
             <div className="rounded-lg bg-muted/40 p-3">
               <p className="text-xs text-muted-foreground mb-1">Lifespan</p>
@@ -159,7 +159,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
             </div>
             <div className="rounded-lg bg-orange-500/10 p-3">
               <p className="text-xs text-orange-400/80 mb-1">Cost per hour</p>
-              <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmt(cph) : '—'}</p>
+              <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
             </div>
           </div>
 
@@ -173,7 +173,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payments</p>
-                <span className="text-xs font-mono text-muted-foreground">Total paid: {fmt(totalPaid)}</span>
+                <span className="text-xs font-mono text-muted-foreground">Total paid: {fmtCurrency(totalPaid)}</span>
               </div>
               <div className="rounded-lg border border-border divide-y divide-border">
                 {(printer.equipment_payments ?? []).map(pay => (
@@ -183,7 +183,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
                       <span className="text-muted-foreground ml-2">{pay.paid_at}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-semibold">{fmt(Number(pay.amount_paid))}</span>
+                      <span className="font-mono font-semibold">{fmtCurrency(Number(pay.amount_paid))}</span>
                       <button
                         onClick={() => { deleteEquipmentPayment(pay.id); onPaymentDeleted(pay.id) }}
                         className="text-muted-foreground hover:text-red-400 transition-colors"
@@ -221,8 +221,11 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
                   <input className={INPUT + ' text-xs py-1.5'} placeholder="Payer name" value={payForm.payer_name}
                     onChange={e => setPayForm(f => ({ ...f, payer_name: e.target.value }))} />
                 )}
-                <input className={INPUT + ' text-xs py-1.5'} type="number" placeholder="Amount $" value={payForm.amount_paid}
-                  onChange={e => setPayForm(f => ({ ...f, amount_paid: e.target.value }))} min="0" step="0.01" />
+                <CurrencyInput
+                  value={payForm.amount_paid}
+                  onChange={v => setPayForm(f => ({ ...f, amount_paid: v }))}
+                  className={INPUT + ' text-xs py-1.5'}
+                />
                 <input className={INPUT + ' text-xs py-1.5'} type="date" value={payForm.paid_at}
                   onChange={e => setPayForm(f => ({ ...f, paid_at: e.target.value }))} />
               </div>
@@ -244,12 +247,13 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
 
 // ── Add printer form ───────────────────────────────────────────
 function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; atLimit: boolean }) {
+  const { fmtCurrency, currencySymbol } = useT()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: '', brand: '', model: '', watts: 120,
-    purchase_value: '', purchase_date: '', lifespan_hours: 5000,
+    purchase_value: 0, purchase_date: '', lifespan_hours: 5000,
   })
 
   if (atLimit) {
@@ -275,12 +279,12 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
         brand:          form.brand,
         model:          form.model,
         watts:          form.watts,
-        purchase_value: form.purchase_value ? parseFloat(form.purchase_value) : 0,
+        purchase_value: form.purchase_value,
         purchase_date:  form.purchase_date || undefined,
         lifespan_hours: form.lifespan_hours,
       })
       onAdd({ ...printer, equipment_payments: [] } as PrinterRow)
-      setForm({ name: '', brand: '', model: '', watts: 120, purchase_value: '', purchase_date: '', lifespan_hours: 5000 })
+      setForm({ name: '', brand: '', model: '', watts: 120, purchase_value: 0, purchase_date: '', lifespan_hours: 5000 })
       setOpen(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to add printer.')
@@ -329,9 +333,12 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
         <p className="text-xs font-medium text-orange-400">Equipment value (for amortization)</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground">Purchase value ($)</label>
-            <input className={INPUT + ' mt-1'} type="number" min={0} step={0.01} value={form.purchase_value}
-              onChange={e => setForm(f => ({ ...f, purchase_value: e.target.value }))} placeholder="e.g. 599.00" />
+            <label className="text-xs text-muted-foreground">Purchase value ({currencySymbol})</label>
+            <CurrencyInput
+              value={form.purchase_value}
+              onChange={v => setForm(f => ({ ...f, purchase_value: v }))}
+              className={INPUT + ' mt-1'}
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Expected lifespan (hours)</label>
@@ -339,9 +346,9 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
               onChange={e => setForm(f => ({ ...f, lifespan_hours: +e.target.value }))} />
           </div>
         </div>
-        {form.purchase_value && form.lifespan_hours ? (
+        {form.purchase_value > 0 && form.lifespan_hours ? (
           <p className="text-xs text-orange-400 font-mono">
-            → Cost per hour: {fmt(parseFloat(form.purchase_value || '0') / form.lifespan_hours)}
+            → Cost per hour: {fmtCurrency(form.purchase_value / form.lifespan_hours)}
           </p>
         ) : null}
       </div>
@@ -361,6 +368,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 
 // ── Main page ──────────────────────────────────────────────────
 export default function PrintersPage() {
+  const { fmtCurrency } = useT()
   const [printers, setPrinters] = useState<PrinterRow[]>([])
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading]   = useState(true)
@@ -421,7 +429,7 @@ export default function PrintersPage() {
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">Fleet value</p>
-            <p className="text-xl font-bold mt-0.5">{fmt(totalValue)}</p>
+            <p className="text-xl font-bold mt-0.5">{fmtCurrency(totalValue)}</p>
           </div>
           <div className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">Printers</p>
@@ -429,7 +437,7 @@ export default function PrintersPage() {
           </div>
           <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-4">
             <p className="text-xs text-orange-400/80">Total cost/hour</p>
-            <p className="text-xl font-bold mt-0.5 text-orange-500">{fmt(totalCph)}</p>
+            <p className="text-xl font-bold mt-0.5 text-orange-500">{fmtCurrency(totalCph)}</p>
           </div>
         </div>
       )}
