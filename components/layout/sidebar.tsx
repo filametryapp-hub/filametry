@@ -7,16 +7,16 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
-  { href: '/dashboard',      label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/precificacao',   label: 'Pricing',        icon: Calculator },
-  { href: '/filamentos',     label: 'Filaments',      icon: Layers },
-  { href: '/printers',       label: 'Printers',       icon: Printer },
-  { href: '/produtos',       label: 'Products',       icon: Package },
-  { href: '/pedidos',        label: 'Orders',         icon: ClipboardList },
-  { href: '/clients',        label: 'Clients',        icon: Users },
-  { href: '/suppliers',      label: 'Suppliers',      icon: Truck },
-  { href: '/expenses',       label: 'Expenses',       icon: Receipt },
-  { href: '/cash-flow',      label: 'Cash Flow',      icon: TrendingUp },
+  { href: '/dashboard',   label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/pricing',     label: 'Pricing',    icon: Calculator },
+  { href: '/filaments',   label: 'Filaments',  icon: Layers },
+  { href: '/printers',    label: 'Printers',   icon: Printer },
+  { href: '/products',    label: 'Products',   icon: Package },
+  { href: '/orders',      label: 'Orders',     icon: ClipboardList },
+  { href: '/clients',     label: 'Clients',    icon: Users },
+  { href: '/suppliers',   label: 'Suppliers',  icon: Truck },
+  { href: '/expenses',    label: 'Expenses',   icon: Receipt },
+  { href: '/cash-flow',   label: 'Cash Flow',  icon: TrendingUp },
 ]
 
 export function Sidebar() {
