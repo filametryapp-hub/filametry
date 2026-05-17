@@ -386,6 +386,7 @@ export function FilamentList() {
       {/* Form modal */}
       {showForm && (
         <FilamentForm
+          key={editing?.id ?? 'new'}
           initial={editing}
           onSave={save}
           onClose={() => { setShowForm(false); setEditing(null) }}
