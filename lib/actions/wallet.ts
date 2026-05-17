@@ -84,6 +84,66 @@ export async function deleteDistribution(id: string) {
   revalidatePath('/wallet')
 }
 
+// ── Asset Debt Summary ────────────────────────────────────────
+// Calculates how much each partner SHOULD have paid (% of total assets)
+// vs how much they ACTUALLY paid, showing the debt between partners.
+export async function getAssetDebtSummary() {
+  const { supabase, companyId } = await getCtx()
+
+  // 1. Partners with percentages
+  const { data: partners } = await supabase
+    .from('company_partners')
+    .select('name, percentage')
+    .eq('company_id', companyId)
+
+  if (!partners || partners.length === 0) return { totalAssets: 0, partners: [] }
+
+  // 2. Total asset value
+  const { data: printers } = await supabase.from('user_printers').select('id, purchase_value')
+  const totalPrinterValue = (printers ?? []).reduce((s, p) => s + Number(p.purchase_value ?? 0), 0)
+
+  const { data: materials } = await supabase.from('filaments').select('id, price_usd')
+  const totalMaterialValue = (materials ?? []).reduce((s, m) => s + Number(m.price_usd ?? 0), 0)
+
+  const totalAssets = totalPrinterValue + totalMaterialValue
+
+  // 3. Actual payments per partner name
+  const printerIds = (printers ?? []).map((p: { id: string }) => p.id)
+  const { data: equipPay } = printerIds.length > 0
+    ? await supabase.from('equipment_payments').select('payer_name, amount_paid').in('printer_id', printerIds)
+    : { data: [] }
+
+  const materialIds = (materials ?? []).map((m: { id: string }) => m.id)
+  let matPay: { payer_name: string; amount_paid: number }[] = []
+  try {
+    const { data } = materialIds.length > 0
+      ? await supabase.from('material_payments').select('payer_name, amount_paid').in('material_id', materialIds)
+      : { data: [] }
+    matPay = data ?? []
+  } catch { matPay = [] }
+
+  const paidMap: Record<string, number> = {}
+  for (const p of (equipPay ?? [])) {
+    paidMap[p.payer_name] = (paidMap[p.payer_name] ?? 0) + Number(p.amount_paid)
+  }
+  for (const p of matPay) {
+    paidMap[p.payer_name] = (paidMap[p.payer_name] ?? 0) + Number(p.amount_paid)
+  }
+
+  // 4. Per-partner: expected vs actual → balance
+  return {
+    totalAssets,
+    partners: partners.map(partner => {
+      const expectedShare = totalAssets * (partner.percentage / 100)
+      const actualPaid   = paidMap[partner.name] ?? 0
+      // balance > 0 → paid more than expected (others owe them)
+      // balance < 0 → paid less than expected (they owe others)
+      const balance = actualPaid - expectedShare
+      return { name: partner.name, percentage: partner.percentage, expectedShare, actualPaid, balance }
+    }),
+  }
+}
+
 export async function getCompanyWalletSummary() {
   const { supabase, companyId } = await getCtx()
 

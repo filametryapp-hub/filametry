@@ -196,6 +196,15 @@ const en = {
     failedToAdd: 'Failed to add distribution.',
     notesOptional: 'Notes (optional)',
     share: 'share',
+    assetDebts: 'Partner Investment Debts',
+    totalAssets: 'Total asset value',
+    expectedShare: 'Expected',
+    actualPaid: 'Paid',
+    difference: 'Difference',
+    settledUp: 'Settled ✓',
+    partnerOwes: 'Owes',
+    partnerIsOwed: 'Is owed',
+    assetDebtsSubtitle: 'Based on each partner\'s % share of total assets (equipment + materials).',
   },
 }
 
@@ -381,6 +390,15 @@ const pt: typeof en = {
     failedToAdd: 'Falha ao adicionar distribuição.',
     notesOptional: 'Observações (opcional)',
     share: 'participação',
+    assetDebts: 'Dívidas entre Sócios',
+    totalAssets: 'Valor total dos ativos',
+    expectedShare: 'Esperado',
+    actualPaid: 'Pago',
+    difference: 'Diferença',
+    settledUp: 'Quitado ✓',
+    partnerOwes: 'Deve',
+    partnerIsOwed: 'Tem a receber',
+    assetDebtsSubtitle: 'Baseado na % de participação de cada sócio no total de ativos (equipamentos + materiais).',
   },
 }
 
@@ -566,6 +584,15 @@ const es: typeof en = {
     failedToAdd: 'Error al agregar distribución.',
     notesOptional: 'Notas (opcional)',
     share: 'participación',
+    assetDebts: 'Deudas entre Socios',
+    totalAssets: 'Valor total de activos',
+    expectedShare: 'Esperado',
+    actualPaid: 'Pagado',
+    difference: 'Diferencia',
+    settledUp: 'Saldado ✓',
+    partnerOwes: 'Debe',
+    partnerIsOwed: 'Tiene a cobrar',
+    assetDebtsSubtitle: 'Basado en el % de participación de cada socio en el total de activos (equipos + materiales).',
   },
 }
 
