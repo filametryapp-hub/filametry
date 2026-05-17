@@ -8,9 +8,8 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Info } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
-import { PrinterSelect } from './printer-select'
+import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import type { SlicerData } from '@/lib/parse-gcode'
-import type { Printer } from '@/lib/printers'
 
 interface Field {
   id: string
@@ -29,7 +28,7 @@ const FIELDS: Field[] = [
   { id: 'printHours',    label: 'Print time',            unit: 'h',    default: 3,     min: 0.1,  step: 0.25, tip: 'Total print time in hours.' },
   { id: 'printerWatts',  label: 'Printer power',         unit: 'W',    default: 120,   min: 10,   step: 5,    tip: 'Average wattage. Bambu A1 ≈ 120W during printing.' },
   { id: 'electricityCost',label: 'Electricity cost',     unit: '$/kWh',default: 0.15,  min: 0.01, step: 0.01, tip: 'Your electricity rate per kilowatt-hour.' },
-  { id: 'hourlyRate',    label: 'Machine/time rate',     unit: '$/h',  default: 2,     min: 0,    step: 0.5,  tip: 'Depreciation + maintenance cost per print hour.' },
+  { id: 'hourlyRate',    label: 'Equipment amortization', unit: '$/h',  default: 2,     min: 0,    step: 0.001,  tip: 'Auto-filled from equipment value ÷ lifespan when you select a registered printer. You can override manually.' },
   { id: 'failureRate',   label: 'Failure / waste',       unit: '%',    default: 10,    min: 0,    step: 1,    tip: 'Add a buffer for failed prints and material waste.' },
   { id: 'marginPct',     label: 'Profit margin',         unit: '%',    default: 40,    min: 0,    step: 5,    tip: 'Your desired profit margin on top of all costs.' },
 ]
@@ -118,8 +117,9 @@ function CostRow({ label, value, total, accent = false }: { label: string; value
 
 export function PricingCalculator() {
   const defaults = Object.fromEntries(FIELDS.map(f => [f.id, f.default]))
-  const [values, setValues] = useState<Values>(defaults)
-  const [printerId, setPrinterId] = useState('bambu-a1')
+  const [values, setValues]     = useState<Values>(defaults)
+  const [printerId, setPrinterId] = useState('')
+  const [amortLabel, setAmortLabel] = useState<string | null>(null)
 
   const set = (id: string) => (v: number) => setValues(prev => ({ ...prev, [id]: v }))
 
@@ -128,7 +128,6 @@ export function PricingCalculator() {
       ...prev,
       ...(data.weightG    !== undefined ? { weightG:       data.weightG }    : {}),
       ...(data.printHours !== undefined ? { printHours:    data.printHours } : {}),
-      // If slicer provides filament cost, back-calculate spool price using current spool weight
       ...(data.filamentCostUSD !== undefined && data.weightG ? {
         spoolPriceUSD: parseFloat(
           ((data.filamentCostUSD / data.weightG) * prev.spoolWeightG).toFixed(2)
@@ -137,9 +136,14 @@ export function PricingCalculator() {
     }))
   }, [])
 
-  const handlePrinter = useCallback((printer: Printer) => {
+  const handlePrinter = useCallback((printer: SelectedPrinter) => {
     setPrinterId(printer.id)
-    setValues(prev => ({ ...prev, printerWatts: printer.watts }))
+    setValues(prev => ({
+      ...prev,
+      printerWatts: printer.watts,
+      ...(printer.hourlyRate != null ? { hourlyRate: parseFloat(printer.hourlyRate.toFixed(4)) } : {}),
+    }))
+    setAmortLabel(printer.hourlyRate != null ? printer.label : null)
   }, [])
 
   const result = useMemo(() => calculate(values), [values])
@@ -188,10 +192,18 @@ export function PricingCalculator() {
           <CardHeader className="pb-3 pt-4 px-5">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Margin & Overhead</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-5 grid grid-cols-3 gap-4">
-            {extraFields.map(f => (
-              <NumInput key={f.id} field={f} value={values[f.id]} onChange={set(f.id)} />
-            ))}
+          <CardContent className="px-5 pb-5 space-y-3">
+            <div className="grid grid-cols-3 gap-4">
+              {extraFields.map(f => (
+                <NumInput key={f.id} field={f} value={values[f.id]} onChange={set(f.id)} />
+              ))}
+            </div>
+            {amortLabel && (
+              <p className="text-xs text-orange-400/80 flex items-center gap-1">
+                <span className="inline-block size-1.5 rounded-full bg-orange-400" />
+                Amortization auto-filled from: <span className="font-medium">{amortLabel}</span>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

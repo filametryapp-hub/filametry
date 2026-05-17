@@ -11,13 +11,16 @@ export type PrinterData = {
   watts: number
   build_volume_mm?: { x: number; y: number; z: number } | null
   is_default?: boolean
+  purchase_value?: number
+  purchase_date?: string
+  lifespan_hours?: number
 }
 
 export async function getUserPrinters() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('user_printers')
-    .select('*')
+    .select('*, equipment_payments(*)')
     .order('created_at', { ascending: true })
 
   if (error) throw error
@@ -39,7 +42,6 @@ export async function addPrinter(data: PrinterData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // Get the user's printer limit from their profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('printer_limit')
@@ -55,12 +57,15 @@ export async function addPrinter(data: PrinterData) {
     )
   }
 
-  const { error } = await supabase
+  const { data: printer, error } = await supabase
     .from('user_printers')
     .insert({ ...data, user_id: user.id })
+    .select()
+    .single()
 
   if (error) throw error
   revalidatePath('/printers')
+  return printer
 }
 
 export async function updatePrinter(id: string, data: Partial<PrinterData>) {
@@ -81,6 +86,28 @@ export async function deletePrinter(id: string) {
     .delete()
     .eq('id', id)
 
+  if (error) throw error
+  revalidatePath('/printers')
+}
+
+// ── Equipment Payments ────────────────────────────────────────
+
+export async function addEquipmentPayment(data: {
+  printer_id: string
+  payer_name: string
+  amount_paid: number
+  paid_at?: string
+  notes?: string
+}) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('equipment_payments').insert(data)
+  if (error) throw error
+  revalidatePath('/printers')
+}
+
+export async function deleteEquipmentPayment(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('equipment_payments').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/printers')
 }
