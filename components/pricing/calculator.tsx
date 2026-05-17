@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Info, Plus, X, Layers } from 'lucide-react'
+import { Info, Plus, X, Layers, RotateCcw } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import type { SlicerData } from '@/lib/parse-gcode'
@@ -245,14 +245,18 @@ export function PricingCalculator() {
   const { t } = useT()
   const pr = t.pricing
 
-  const [shared, setShared]     = useState<SharedValues>(DEFAULT_SHARED)
-  const [batches, setBatches]   = useState<Batch[]>([newBatch(0)])
-  const [printerId, setPrinterId] = useState('')
+  const [shared, setShared]         = useState<SharedValues>(DEFAULT_SHARED)
+  const [batches, setBatches]       = useState<Batch[]>([newBatch(0)])
+  const [printerId, setPrinterId]   = useState('')
   const [amortLabel, setAmortLabel] = useState<string | null>(null)
+  const [priceOverride, setPriceOverride] = useState<number | null>(null)
+  const [priceInput, setPriceInput]       = useState('')
 
-  // Shared field setter
-  const setSharedField = (id: keyof SharedValues) => (v: number) =>
+  // Shared field setter — changing marginPct clears any price override
+  const setSharedField = (id: keyof SharedValues) => (v: number) => {
     setShared(prev => ({ ...prev, [id]: v }))
+    if (id === 'marginPct') setPriceOverride(null)
+  }
 
   // Printer selection
   const handlePrinter = useCallback((printer: SelectedPrinter) => {
@@ -276,6 +280,14 @@ export function PricingCalculator() {
   }, [])
 
   const result = useMemo(() => calculate(batches, shared), [batches, shared])
+
+  // Derived values from price override
+  const finalPrice    = priceOverride ?? result.salePrice
+  const finalProfit   = finalPrice - result.subtotal
+  const effectivePct  = finalPrice > 0
+    ? Math.max(-999, (finalProfit / finalPrice) * 100)
+    : 0
+  const isOverridden  = priceOverride !== null
 
   const spoolFields = SHARED_FIELDS.slice(0, 2)   // spoolPrice, spoolWeight
   const energyFields = SHARED_FIELDS.slice(2, 4)  // printerWatts, electricityCost
@@ -402,16 +414,80 @@ export function PricingCalculator() {
                 <span>{fmt(result.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{pr.profit} ({shared.marginPct}%)</span>
-                <span className="text-green-400">{fmt(result.profit)}</span>
+                <span className={`${isOverridden ? 'text-orange-400' : 'text-muted-foreground'}`}>
+                  {pr.profit}{' '}
+                  <span className={`font-semibold ${effectivePct < 0 ? 'text-red-400' : isOverridden ? 'text-orange-400' : ''}`}>
+                    ({effectivePct.toFixed(1)}%)
+                  </span>
+                  {isOverridden && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      · {pr.effectiveMargin}
+                    </span>
+                  )}
+                </span>
+                <span className={`font-medium ${finalProfit < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {fmt(finalProfit)}
+                </span>
               </div>
 
               <Separator />
 
-              {/* Sale price hero */}
-              <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 text-center">
-                <p className="text-xs text-orange-400 mb-1 font-mono uppercase tracking-wider">{pr.suggestedPrice}</p>
-                <p className="text-4xl font-bold text-orange-500">{fmt(result.salePrice)}</p>
+              {/* Sale price hero — editable */}
+              <div className={`rounded-xl border p-4 text-center transition-colors ${
+                isOverridden
+                  ? 'bg-orange-500/15 border-orange-500/40'
+                  : 'bg-orange-500/10 border-orange-500/20'
+              }`}>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <p className="text-xs text-orange-400 font-mono uppercase tracking-wider">
+                    {isOverridden ? pr.customPrice : pr.suggestedPrice}
+                  </p>
+                  {isOverridden && (
+                    <button
+                      onClick={() => { setPriceOverride(null); setPriceInput('') }}
+                      title={pr.resetPrice}
+                      className="text-orange-400/60 hover:text-orange-400 transition-colors"
+                    >
+                      <RotateCcw className="size-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="relative flex items-center justify-center">
+                  <span className="text-2xl font-bold text-orange-500 mr-1">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={isOverridden ? priceInput : result.salePrice.toFixed(2)}
+                    onFocus={e => {
+                      const val = (priceOverride ?? result.salePrice).toFixed(2)
+                      setPriceInput(val)
+                      e.target.select()
+                    }}
+                    onChange={e => {
+                      const raw = e.target.value
+                      setPriceInput(raw)
+                      const n = parseFloat(raw)
+                      if (!isNaN(n) && n >= 0) setPriceOverride(n)
+                    }}
+                    onBlur={e => {
+                      const n = parseFloat(e.target.value)
+                      if (isNaN(n) || n <= 0) {
+                        setPriceOverride(null)
+                        setPriceInput('')
+                      } else {
+                        setPriceOverride(n)
+                        setPriceInput(n.toFixed(2))
+                      }
+                    }}
+                    className="text-4xl font-bold text-orange-500 bg-transparent border-none outline-none w-40 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                {isOverridden && (
+                  <p className="text-xs text-orange-400/60 mt-1">
+                    {pr.calculatedPrice}: {fmt(result.salePrice)}
+                  </p>
+                )}
               </div>
 
               {/* Stats badges */}
@@ -420,10 +496,10 @@ export function PricingCalculator() {
                   {fmt(shared.spoolPriceUSD / shared.spoolWeightG)}/g
                 </Badge>
                 <Badge variant="secondary" className="text-xs font-mono">
-                  {fmt(result.salePrice / (result.totalWeight || 1))}/g sold
+                  {fmt(finalPrice / (result.totalWeight || 1))}/g sold
                 </Badge>
                 <Badge variant="secondary" className="text-xs font-mono">
-                  ROI ×{result.subtotal > 0 ? (result.salePrice / result.subtotal).toFixed(2) : '—'}
+                  ROI ×{result.subtotal > 0 ? (finalPrice / result.subtotal).toFixed(2) : '—'}
                 </Badge>
               </div>
 
