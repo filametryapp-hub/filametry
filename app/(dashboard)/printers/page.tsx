@@ -368,15 +368,20 @@ export default function PrintersPage() {
 
   useEffect(() => {
     async function load() {
-      const [rows, plist, profile] = await Promise.all([
-        getUserPrinters(),
-        getPartners(),
-        getProfile(),
-      ])
-      setPrinters((rows ?? []) as PrinterRow[])
-      setPartners((plist ?? []) as Partner[])
-      setLimit(profile?.printer_limit ?? TRIAL_PRINTER_LIMIT)
-      setLoading(false)
+      try {
+        const [rows, plist, profile] = await Promise.all([
+          getUserPrinters(),
+          getPartners(),
+          getProfile(),
+        ])
+        setPrinters((rows ?? []) as PrinterRow[])
+        setPartners((plist ?? []) as Partner[])
+        setLimit(profile?.printer_limit ?? TRIAL_PRINTER_LIMIT)
+      } catch {
+        // silently fail — page will show empty state
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])

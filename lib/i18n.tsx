@@ -11,7 +11,7 @@ const en = {
     dashboard: 'Dashboard', pricing: 'Pricing', materials: 'Materials',
     equipment: 'Equipment', products: 'Products', orders: 'Orders',
     clients: 'Clients', suppliers: 'Suppliers', expenses: 'Expenses',
-    cashFlow: 'Cash Flow', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
+    cashFlow: 'Cash Flow', wallet: 'Wallet', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
   },
   common: {
     save: 'Save changes', saving: 'Saving…', saved: 'Saved!',
@@ -163,7 +163,7 @@ const pt: typeof en = {
     dashboard: 'Painel', pricing: 'Precificação', materials: 'Materiais',
     equipment: 'Equipamentos', products: 'Produtos', orders: 'Pedidos',
     clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Despesas',
-    cashFlow: 'Fluxo de Caixa', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
+    cashFlow: 'Fluxo de Caixa', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
   },
   common: {
     save: 'Salvar alterações', saving: 'Salvando…', saved: 'Salvo!',
@@ -315,7 +315,7 @@ const es: typeof en = {
     dashboard: 'Panel', pricing: 'Precios', materials: 'Materiales',
     equipment: 'Equipos', products: 'Productos', orders: 'Pedidos',
     clients: 'Clientes', suppliers: 'Proveedores', expenses: 'Gastos',
-    cashFlow: 'Flujo de Caja', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',
+    cashFlow: 'Flujo de Caja', wallet: 'Billetera', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',
   },
   common: {
     save: 'Guardar cambios', saving: 'Guardando…', saved: '¡Guardado!',

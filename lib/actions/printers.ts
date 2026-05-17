@@ -18,13 +18,21 @@ export type PrinterData = {
 
 export async function getUserPrinters() {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('user_printers')
-    .select('*, equipment_payments(*)')
-    .order('created_at', { ascending: true })
-
-  if (error) throw error
-  return data
+  try {
+    const { data, error } = await supabase
+      .from('user_printers')
+      .select('*, equipment_payments(*)')
+      .order('created_at', { ascending: true })
+    if (error) {
+      // equipment_payments table may not exist yet — fall back
+      const { data: simple } = await supabase
+        .from('user_printers').select('*').order('created_at', { ascending: true })
+      return (simple ?? []).map((p: Record<string, unknown>) => ({ ...p, equipment_payments: [] }))
+    }
+    return data
+  } catch {
+    return []
+  }
 }
 
 export async function getPrinterCount(): Promise<number> {

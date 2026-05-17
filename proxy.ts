@@ -45,6 +45,7 @@ export async function proxy(request: NextRequest) {
                       pathname.startsWith('/cash-flow') ||
                       pathname.startsWith('/billing') ||
                       pathname.startsWith('/printers') ||
+                      pathname.startsWith('/wallet') ||
                       pathname.startsWith('/settings')
 
   if (!user && isDashboard) {
