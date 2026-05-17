@@ -93,7 +93,7 @@ export default function OnboardingPage() {
       })
 
       if ('error' in result) {
-        setError(result.error)
+        setError(String(result.error))
         setLoading(false)
         return
       }
