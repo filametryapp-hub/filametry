@@ -29,7 +29,8 @@ function costPerHour(p: PrinterRow) {
 
 // ── Debt summary per printer ───────────────────────────────────
 function DebtSummary({ printer, partners }: { printer: PrinterRow; partners: Partner[] }) {
-  const { fmtCurrency } = useT()
+  const { t, fmtCurrency } = useT()
+  const eq = t.equipment
   if (!partners.length || !printer.purchase_value) return null
 
   const payments = printer.equipment_payments ?? []
@@ -41,17 +42,17 @@ function DebtSummary({ printer, partners }: { printer: PrinterRow; partners: Par
 
   return (
     <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Partnership share</p>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{eq.partnershipShare}</p>
       {debts.map(d => (
         <div key={d.name} className="flex items-center justify-between text-xs">
           <span className="font-medium">{d.name}</span>
           <div className="flex items-center gap-3">
-            <span className="text-muted-foreground">expected {fmtCurrency(d.expected)}</span>
-            <span className="text-muted-foreground">paid {fmtCurrency(d.paid)}</span>
+            <span className="text-muted-foreground">{eq.expected} {fmtCurrency(d.expected)}</span>
+            <span className="text-muted-foreground">{eq.paid} {fmtCurrency(d.paid)}</span>
             <span className={`font-semibold flex items-center gap-1 ${d.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {d.balance >= 0
-                ? <><CheckCircle2 className="size-3" /> owed {fmtCurrency(d.balance)}</>
-                : <><AlertCircle className="size-3" /> owes {fmtCurrency(Math.abs(d.balance))}</>}
+                ? <><CheckCircle2 className="size-3" /> {eq.isOwed} {fmtCurrency(d.balance)}</>
+                : <><AlertCircle className="size-3" /> {eq.owes} {fmtCurrency(Math.abs(d.balance))}</>}
             </span>
           </div>
         </div>
@@ -68,7 +69,8 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
   onPaymentAdded: (payment: { payer_name: string; amount_paid: number; paid_at: string }) => void
   onPaymentDeleted: (paymentId: string) => void
 }) {
-  const { fmtCurrency } = useT()
+  const { t, fmtCurrency } = useT()
+  const eq = t.equipment
   const [expanded, setExpanded] = useState(false)
   const [addingPay, setAddingPay] = useState(false)
   const [payForm, setPayForm] = useState({ payer_name: partners[0]?.name ?? '', amount_paid: 0, paid_at: new Date().toISOString().slice(0, 10) })
@@ -79,7 +81,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
   const totalPaid = (printer.equipment_payments ?? []).reduce((s, p) => s + Number(p.amount_paid), 0)
 
   async function handleAddPayment() {
-    if (!payForm.payer_name || !payForm.amount_paid) { setPayError('Name and amount required.'); return }
+    if (!payForm.payer_name || !payForm.amount_paid) { setPayError(`${eq.payerName} and ${eq.amount} required.`); return }
     setSavingPay(true)
     setPayError('')
     try {
@@ -93,7 +95,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
       setPayForm(f => ({ ...f, amount_paid: 0 }))
       setAddingPay(false)
     } catch (e) {
-      setPayError(e instanceof Error ? e.message : 'Failed to add payment.')
+      setPayError(e instanceof Error ? e.message : t.common.error)
     } finally {
       setSavingPay(false)
     }
@@ -150,15 +152,15 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
           {/* Stats grid */}
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground mb-1">Purchase value</p>
+              <p className="text-xs text-muted-foreground mb-1">{eq.purchaseValue}</p>
               <p className="text-sm font-semibold">{printer.purchase_value > 0 ? fmtCurrency(printer.purchase_value) : '—'}</p>
             </div>
             <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground mb-1">Lifespan</p>
+              <p className="text-xs text-muted-foreground mb-1">{eq.lifespan}</p>
               <p className="text-sm font-semibold">{printer.lifespan_hours.toLocaleString()}h</p>
             </div>
             <div className="rounded-lg bg-orange-500/10 p-3">
-              <p className="text-xs text-orange-400/80 mb-1">Cost per hour</p>
+              <p className="text-xs text-orange-400/80 mb-1">{eq.costPerHour}</p>
               <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
             </div>
           </div>
@@ -172,8 +174,8 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
           {(printer.equipment_payments ?? []).length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payments</p>
-                <span className="text-xs font-mono text-muted-foreground">Total paid: {fmtCurrency(totalPaid)}</span>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{eq.payments}</p>
+                <span className="text-xs font-mono text-muted-foreground">{eq.totalPaid}: {fmtCurrency(totalPaid)}</span>
               </div>
               <div className="rounded-lg border border-border divide-y divide-border">
                 {(printer.equipment_payments ?? []).map(pay => (
@@ -203,11 +205,11 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
               onClick={() => setAddingPay(true)}
               className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 transition-colors"
             >
-              <Plus className="size-3.5" /> Record payment
+              <Plus className="size-3.5" /> {eq.recordPayment}
             </button>
           ) : (
             <div className="rounded-lg border border-border p-3 space-y-3">
-              <p className="text-xs font-medium">Record payment</p>
+              <p className="text-xs font-medium">{eq.recordPayment}</p>
               <div className="grid grid-cols-3 gap-2">
                 {partners.length > 0 ? (
                   <select
@@ -218,7 +220,7 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
                     {partners.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                   </select>
                 ) : (
-                  <input className={INPUT + ' text-xs py-1.5'} placeholder="Payer name" value={payForm.payer_name}
+                  <input className={INPUT + ' text-xs py-1.5'} placeholder={eq.payerName} value={payForm.payer_name}
                     onChange={e => setPayForm(f => ({ ...f, payer_name: e.target.value }))} />
                 )}
                 <CurrencyInput
@@ -231,10 +233,10 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
               </div>
               {payError && <p className="text-xs text-red-400">{payError}</p>}
               <div className="flex gap-2">
-                <button onClick={() => setAddingPay(false)} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">Cancel</button>
+                <button onClick={() => setAddingPay(false)} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">{t.common.cancel}</button>
                 <button onClick={handleAddPayment} disabled={savingPay}
                   className="text-xs px-3 py-1.5 rounded-md bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 transition-colors">
-                  {savingPay ? 'Saving…' : 'Add payment'}
+                  {savingPay ? t.common.saving : eq.addPayment}
                 </button>
               </div>
             </div>
@@ -247,7 +249,8 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
 
 // ── Add printer form ───────────────────────────────────────────
 function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; atLimit: boolean }) {
-  const { fmtCurrency, currencySymbol } = useT()
+  const { t, fmtCurrency, currencySymbol } = useT()
+  const eq = t.equipment
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -260,17 +263,17 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
     return (
       <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-2">
         <Printer className="size-8 text-muted-foreground mx-auto" />
-        <p className="text-sm font-medium">Printer limit reached</p>
-        <p className="text-xs text-muted-foreground">Upgrade your plan to register more printers.</p>
+        <p className="text-sm font-medium">{eq.atLimit}</p>
+        <p className="text-xs text-muted-foreground">{eq.upgradeToAdd}</p>
         <a href="/billing" className="inline-flex items-center gap-1.5 text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors mt-1">
-          <Zap className="size-3" /> Upgrade plan
+          <Zap className="size-3" /> {eq.upgradePlan}
         </a>
       </div>
     )
   }
 
   async function handleAdd() {
-    if (!form.name || !form.brand || !form.model) { setError('Name, brand and model are required.'); return }
+    if (!form.name || !form.brand || !form.model) { setError(`${eq.nickname}, ${eq.brand} and ${eq.model} are required.`); return }
     setSaving(true)
     setError('')
     try {
@@ -287,7 +290,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
       setForm({ name: '', brand: '', model: '', watts: 120, purchase_value: 0, purchase_date: '', lifespan_hours: 5000 })
       setOpen(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to add printer.')
+      setError(e instanceof Error ? e.message : t.common.error)
     } finally {
       setSaving(false)
     }
@@ -297,43 +300,43 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
     return (
       <button onClick={() => setOpen(true)}
         className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-5 text-sm text-muted-foreground hover:border-orange-500/50 hover:text-orange-500 transition-colors">
-        <Plus className="size-4" /> Add printer
+        <Plus className="size-4" /> {eq.addPrinter}
       </button>
     )
   }
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-      <h3 className="font-semibold text-sm">Add printer / equipment</h3>
+      <h3 className="font-semibold text-sm">{eq.addPrinter}</h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <label className="text-xs text-muted-foreground">Nickname *</label>
+          <label className="text-xs text-muted-foreground">{eq.nickname} *</label>
           <input className={INPUT + ' mt-1'} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Bambu A1 #1" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Brand *</label>
+          <label className="text-xs text-muted-foreground">{eq.brand} *</label>
           <input className={INPUT + ' mt-1'} value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Bambu Lab" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Model *</label>
+          <label className="text-xs text-muted-foreground">{eq.model} *</label>
           <input className={INPUT + ' mt-1'} value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder="A1" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Power (W)</label>
+          <label className="text-xs text-muted-foreground">{eq.power}</label>
           <input className={INPUT + ' mt-1'} type="number" min={1} value={form.watts} onChange={e => setForm(f => ({ ...f, watts: +e.target.value }))} />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Purchase date</label>
+          <label className="text-xs text-muted-foreground">{eq.purchaseDate}</label>
           <input className={INPUT + ' mt-1'} type="date" value={form.purchase_date} onChange={e => setForm(f => ({ ...f, purchase_date: e.target.value }))} />
         </div>
       </div>
 
       <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-3">
-        <p className="text-xs font-medium text-orange-400">Equipment value (for amortization)</p>
+        <p className="text-xs font-medium text-orange-400">{eq.equipValue}</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground">Purchase value ({currencySymbol})</label>
+            <label className="text-xs text-muted-foreground">{eq.purchaseValue} ({currencySymbol})</label>
             <CurrencyInput
               value={form.purchase_value}
               onChange={v => setForm(f => ({ ...f, purchase_value: v }))}
@@ -341,25 +344,28 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Expected lifespan (hours)</label>
+            <label className="text-xs text-muted-foreground">{eq.expectedLifespan}</label>
             <input className={INPUT + ' mt-1'} type="number" min={100} step={100} value={form.lifespan_hours}
               onChange={e => setForm(f => ({ ...f, lifespan_hours: +e.target.value }))} />
           </div>
         </div>
         {form.purchase_value > 0 && form.lifespan_hours ? (
           <p className="text-xs text-orange-400 font-mono">
-            → Cost per hour: {fmtCurrency(form.purchase_value / form.lifespan_hours)}
+            → {eq.costPerHour}: {fmtCurrency(form.purchase_value / form.lifespan_hours)}
           </p>
         ) : null}
+        {form.purchase_value > 0 && (
+          <p className="text-xs text-green-400 mt-1">✓ A purchase expense will be recorded automatically.</p>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="flex gap-3">
-        <button onClick={() => setOpen(false)} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+        <button onClick={() => setOpen(false)} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
         <button onClick={handleAdd} disabled={saving}
           className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 transition-colors">
-          {saving ? 'Adding…' : 'Add printer'}
+          {saving ? t.common.adding : eq.addPrinter}
         </button>
       </div>
     </div>
@@ -368,7 +374,8 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 
 // ── Main page ──────────────────────────────────────────────────
 export default function PrintersPage() {
-  const { fmtCurrency } = useT()
+  const { t, fmtCurrency } = useT()
+  const eq = t.equipment
   const [printers, setPrinters] = useState<PrinterRow[]>([])
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading]   = useState(true)
@@ -416,8 +423,8 @@ export default function PrintersPage() {
     <div className="max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Equipment</h1>
-          <p className="text-muted-foreground mt-1">Manage printers and track equipment investment.</p>
+          <h1 className="text-2xl font-bold">{eq.title}</h1>
+          <p className="text-muted-foreground mt-1">{eq.subtitle}</p>
         </div>
         <span className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full font-medium shrink-0">
           {printers.length} / {displayLimit}
@@ -428,15 +435,15 @@ export default function PrintersPage() {
       {printers.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <p className="text-xs text-muted-foreground">Fleet value</p>
+            <p className="text-xs text-muted-foreground">{eq.fleetValue}</p>
             <p className="text-xl font-bold mt-0.5">{fmtCurrency(totalValue)}</p>
           </div>
           <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <p className="text-xs text-muted-foreground">Printers</p>
+            <p className="text-xs text-muted-foreground">{eq.printers}</p>
             <p className="text-xl font-bold mt-0.5">{printers.length}</p>
           </div>
           <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-4">
-            <p className="text-xs text-orange-400/80">Total cost/hour</p>
+            <p className="text-xs text-orange-400/80">{eq.totalCostHour}</p>
             <p className="text-xl font-bold mt-0.5 text-orange-500">{fmtCurrency(totalCph)}</p>
           </div>
         </div>

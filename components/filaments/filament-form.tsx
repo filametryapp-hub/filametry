@@ -193,6 +193,13 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
           </div>
         )}
 
+        {form.priceUSD > 0 && !initial && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-[10px]">✓</span>
+            A purchase expense will be recorded automatically.
+          </p>
+        )}
+
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose}
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">

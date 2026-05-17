@@ -10,6 +10,7 @@ import { Info } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import type { SlicerData } from '@/lib/parse-gcode'
+import { useT } from '@/lib/i18n'
 
 interface Field {
   id: string
@@ -116,6 +117,8 @@ function CostRow({ label, value, total, accent = false }: { label: string; value
 }
 
 export function PricingCalculator() {
+  const { t } = useT()
+  const pr = t.pricing
   const defaults = Object.fromEntries(FIELDS.map(f => [f.id, f.default]))
   const [values, setValues]     = useState<Values>(defaults)
   const [printerId, setPrinterId] = useState('')
@@ -163,7 +166,7 @@ export function PricingCalculator() {
         {/* Filament */}
         <Card>
           <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Filament</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.filament}</CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5 grid grid-cols-3 gap-4">
             {inputFields.map(f => (
@@ -175,7 +178,7 @@ export function PricingCalculator() {
         {/* Time & Energy */}
         <Card>
           <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Time & Energy</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.timeEnergy}</CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-4">
             <PrinterSelect value={printerId} onChange={handlePrinter} />
@@ -190,7 +193,7 @@ export function PricingCalculator() {
         {/* Margins */}
         <Card>
           <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Margin & Overhead</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.marginOverhead}</CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
             <div className="grid grid-cols-3 gap-4">
@@ -201,7 +204,7 @@ export function PricingCalculator() {
             {amortLabel && (
               <p className="text-xs text-orange-400/80 flex items-center gap-1">
                 <span className="inline-block size-1.5 rounded-full bg-orange-400" />
-                Amortization auto-filled from: <span className="font-medium">{amortLabel}</span>
+                {pr.amortFrom} <span className="font-medium">{amortLabel}</span>
               </p>
             )}
           </CardContent>
@@ -212,21 +215,21 @@ export function PricingCalculator() {
       <div className="lg:col-span-2">
         <Card className="sticky top-4">
           <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Cost Breakdown</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.costBreakdown}</CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
-            <CostRow label="Material"       value={result.material} total={result.subtotal} />
-            <CostRow label="Energy"         value={result.energy}   total={result.subtotal} />
-            <CostRow label="Machine / time" value={result.machine}  total={result.subtotal} />
+            <CostRow label={pr.filament}      value={result.material} total={result.subtotal} />
+            <CostRow label={pr.timeEnergy}    value={result.energy}   total={result.subtotal} />
+            <CostRow label={pr.equipAmort}    value={result.machine}  total={result.subtotal} />
 
             <Separator />
 
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total cost</span>
+              <span className="text-muted-foreground">{pr.totalCost}</span>
               <span>{fmt(result.subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Profit ({values.marginPct}%)</span>
+              <span className="text-muted-foreground">{pr.profit} ({values.marginPct}%)</span>
               <span className="text-green-400">{fmt(result.profit)}</span>
             </div>
 
@@ -234,7 +237,7 @@ export function PricingCalculator() {
 
             {/* Sale price hero */}
             <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 text-center">
-              <p className="text-xs text-orange-400 mb-1 font-mono uppercase tracking-wider">Suggested sale price</p>
+              <p className="text-xs text-orange-400 mb-1 font-mono uppercase tracking-wider">{pr.suggestedPrice}</p>
               <p className="text-4xl font-bold text-orange-500">{fmt(result.salePrice)}</p>
             </div>
 

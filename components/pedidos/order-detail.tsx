@@ -5,10 +5,10 @@ import { Separator } from '@/components/ui/separator'
 import {
   type Order,
   type OrderStatus,
-  STATUS_LABELS,
   STATUS_COLORS,
   orderTotal,
 } from '@/lib/product-types'
+import { useT } from '@/lib/i18n'
 
 interface Props {
   order: Order
@@ -19,19 +19,19 @@ interface Props {
 
 const FLOW: OrderStatus[] = ['draft', 'sent', 'accepted', 'printing', 'done']
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
 function StatusBadge({ status }: { status: OrderStatus }) {
+  const { t } = useT()
+  const statusLabel = t.orders.status[status as keyof typeof t.orders.status] ?? status
   return (
     <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[status]}`}>
-      {STATUS_LABELS[status]}
+      {statusLabel}
     </span>
   )
 }
 
 export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props) {
+  const { t, fmtCurrency } = useT()
+  const or = t.orders
   const total      = orderTotal(order)
   const currentIdx = FLOW.indexOf(order.status)
 
@@ -76,17 +76,17 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
 
         {/* Items */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Items</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">{or.items}</p>
           {order.items.map((item, i) => (
             <div key={i} className="flex items-center justify-between text-sm">
               <span>{item.quantity}× {item.productName}</span>
-              <span className="font-mono">{fmt(item.quantity * item.unitPrice)}</span>
+              <span className="font-mono">{fmtCurrency(item.quantity * item.unitPrice)}</span>
             </div>
           ))}
           <Separator />
           <div className="flex justify-between text-sm font-semibold">
-            <span>Total</span>
-            <span className="font-mono text-orange-500">{fmt(total)}</span>
+            <span>{t.common.total}</span>
+            <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
           </div>
         </div>
 
@@ -103,14 +103,14 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
             onClick={onDelete}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"
           >
-            <Trash2 className="size-3.5" /> Delete
+            <Trash2 className="size-3.5" /> {t.common.delete}
           </button>
         </div>
 
         {/* Status actions */}
         {order.status !== 'done' && order.status !== 'cancelled' && (
           <div className="space-y-2 pt-1 border-t border-border">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Move to</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">{or.moveTo}</p>
             <div className="flex flex-wrap gap-2">
               {FLOW.filter((_, i) => i > currentIdx).map(s => (
                 <button
@@ -118,14 +118,14 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
                   onClick={() => onStatusChange(s)}
                   className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-border hover:border-orange-500/50 hover:text-orange-400 transition-colors"
                 >
-                  {STATUS_LABELS[s]} <ChevronRight className="size-3" />
+                  {or.status[s as keyof typeof or.status]} <ChevronRight className="size-3" />
                 </button>
               ))}
               <button
                 onClick={() => onStatusChange('cancelled')}
                 className="text-xs px-3 py-1.5 rounded-full border border-border hover:border-red-500/50 hover:text-red-400 transition-colors"
               >
-                Cancel order
+                {or.cancelOrder}
               </button>
             </div>
           </div>

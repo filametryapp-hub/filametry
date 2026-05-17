@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
+import { createExpense } from './expenses'
 
 export type PrinterData = {
   name: string
@@ -72,7 +73,24 @@ export async function addPrinter(data: PrinterData) {
     .single()
 
   if (error) throw error
+
+  // Auto-create expense for new equipment purchase
+  if ((data.purchase_value ?? 0) > 0) {
+    try {
+      await createExpense({
+        category: 'equipment',
+        description: `${data.brand} ${data.model} — ${data.name}`,
+        amount: data.purchase_value!,
+        paid_at: data.purchase_date ?? new Date().toISOString().slice(0, 10),
+      })
+    } catch {
+      // expense creation failure must not break printer save
+    }
+  }
+
   revalidatePath('/printers')
+  revalidatePath('/expenses')
+  revalidatePath('/cash-flow')
   return printer
 }
 

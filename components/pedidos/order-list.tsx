@@ -8,10 +8,10 @@ import { getOrders, createOrder, updateOrderStatus, deleteOrder } from '@/lib/ac
 import {
   type Order,
   type OrderItem,
-  STATUS_LABELS,
   STATUS_COLORS,
   orderTotal,
 } from '@/lib/product-types'
+import { useT } from '@/lib/i18n'
 
 // Map DB row → Order
 function fromRow(row: Record<string, unknown>): Order {
@@ -36,19 +36,19 @@ function fromRow(row: Record<string, unknown>): Order {
   }
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
 function StatusBadge({ status }: { status: Order['status'] }) {
+  const { t } = useT()
+  const statusLabel = t.orders.status[status as keyof typeof t.orders.status] ?? status
   return (
     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[status]}`}>
-      {STATUS_LABELS[status]}
+      {statusLabel}
     </span>
   )
 }
 
 export function OrderList() {
+  const { t, fmtCurrency } = useT()
+  const or = t.orders
   const [orders, setOrders]       = useState<Order[]>([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
@@ -121,9 +121,9 @@ export function OrderList() {
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total orders',   value: orders.length.toString() },
-          { label: 'Revenue (done)', value: fmt(totalRevenue) },
-          { label: 'In progress',    value: pending.toString() },
+          { label: or.totalOrders,   value: orders.length.toString() },
+          { label: or.revenueDone,   value: fmtCurrency(totalRevenue) },
+          { label: or.inProgress,    value: pending.toString() },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -144,7 +144,7 @@ export function OrderList() {
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
               }`}
             >
-              {s === 'all' ? 'All' : STATUS_LABELS[s as Order['status']]}
+              {s === 'all' ? or.status.all : or.status[s as keyof typeof or.status]}
             </button>
           ))}
         </div>
@@ -152,14 +152,14 @@ export function OrderList() {
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
         >
-          <Plus className="size-4" /> New order
+          <Plus className="size-4" /> {or.newOrder}
         </button>
       </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-muted-foreground">No orders here yet.</p>
+          <p className="text-sm text-muted-foreground">{or.noOrders}</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
@@ -185,7 +185,7 @@ export function OrderList() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-mono font-semibold text-sm">{fmt(total)}</p>
+                  <p className="font-mono font-semibold text-sm">{fmtCurrency(total)}</p>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground shrink-0" />
               </button>

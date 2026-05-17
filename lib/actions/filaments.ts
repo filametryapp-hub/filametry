@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createExpense } from './expenses'
 
 export async function getFilaments() {
   const supabase = await createClient()
@@ -41,12 +42,32 @@ export async function upsertFilament(filament: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  const isNew = !filament.id || filament.id === ''
+
   const { error } = await supabase
     .from('filaments')
     .upsert({ ...filament, user_id: user.id }, { onConflict: 'id' })
 
   if (error) throw error
+
+  // Auto-create expense only for new items
+  if (isNew && filament.price_usd > 0) {
+    try {
+      const description = `${filament.brand} ${filament.color}${filament.material ? ` (${filament.material})` : ''}`
+      await createExpense({
+        category: 'material',
+        description,
+        amount: filament.price_usd,
+        paid_at: filament.purchased_at ?? new Date().toISOString().slice(0, 10),
+      })
+    } catch {
+      // expense creation failure must not break material save
+    }
+  }
+
   revalidatePath('/filamentos')
+  revalidatePath('/expenses')
+  revalidatePath('/cash-flow')
 }
 
 export async function deleteFilament(id: string) {
