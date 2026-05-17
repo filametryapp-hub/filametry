@@ -48,7 +48,7 @@ export async function createCompany(data: {
     .select()
     .single()
 
-  if (companyError) throw companyError
+  if (companyError) throw new Error(`Company insert failed: ${companyError.message} (code: ${companyError.code})`)
 
   // Add owner as company_users entry
   const { error: cuError } = await supabase
@@ -62,7 +62,7 @@ export async function createCompany(data: {
       status: 'active',
     })
 
-  if (cuError) throw cuError
+  if (cuError) throw new Error(`Company user insert failed: ${cuError.message} (code: ${cuError.code})`)
 
   // Update profile.company_id
   const { error: profileError } = await supabase
@@ -70,7 +70,7 @@ export async function createCompany(data: {
     .update({ company_id: company.id })
     .eq('id', user.id)
 
-  if (profileError) throw profileError
+  if (profileError) throw new Error(`Profile update failed: ${profileError.message} (code: ${profileError.code})`)
 
   revalidatePath('/dashboard')
   return company
