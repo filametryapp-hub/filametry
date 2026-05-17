@@ -4,6 +4,16 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 
 export type Lang = 'en' | 'pt' | 'es'
 
+export const CURRENCIES = [
+  { code: 'BRL', symbol: 'R$', locale: 'pt-BR', label: 'Real (R$)' },
+  { code: 'USD', symbol: '$',  locale: 'en-US', label: 'Dollar ($)' },
+  { code: 'EUR', symbol: '€',  locale: 'de-DE', label: 'Euro (€)' },
+  { code: 'ARS', symbol: '$',  locale: 'es-AR', label: 'Peso AR ($)' },
+  { code: 'MXN', symbol: '$',  locale: 'es-MX', label: 'Peso MX ($)' },
+  { code: 'CLP', symbol: '$',  locale: 'es-CL', label: 'Peso CL ($)' },
+] as const
+export type CurrencyCode = (typeof CURRENCIES)[number]['code']
+
 // ── English ───────────────────────────────────────────────────
 const en = {
   lang: { en: 'English', pt: 'Português', es: 'Español' },
@@ -42,7 +52,7 @@ const en = {
     itemsInStock: (n: number) => `${n} item${n !== 1 ? 's' : ''} in stock`,
     category: 'Category', brand: 'Brand', itemName: 'Name / Color',
     material: 'Material', unit: 'Unit', totalQty: 'Total qty',
-    remainingQty: 'Remaining', purchasePrice: 'Purchase price ($)',
+    remainingQty: 'Remaining', purchasePrice: 'Purchase price',
     purchaseDate: 'Purchase date', costPerUnit: 'Cost/unit', valueLeft: 'Value left',
     remaining: 'Remaining', addSpool: 'Add item', editItem: 'Edit item',
     costPreview: 'Cost per unit',
@@ -132,6 +142,7 @@ const en = {
     businessEmail: 'Business email', isPartnership: 'This is a partnership business',
     addPartner: 'Add partner', partnerName: 'Full name *',
     partnerEmail: 'Email (optional)', partnerShare: '% share',
+    preferences: 'Preferences', currency: 'Currency', currencyDesc: 'Used for all monetary values across the app.',
   },
   onboarding: {
     stepCompany: 'Company Info', stepPartnership: 'Partnership', stepDone: 'Done',
@@ -194,7 +205,7 @@ const pt: typeof en = {
     itemsInStock: (n: number) => `${n} item${n !== 1 ? 'ns' : ''} em estoque`,
     category: 'Categoria', brand: 'Marca', itemName: 'Nome / Cor',
     material: 'Material', unit: 'Unidade', totalQty: 'Qtd total',
-    remainingQty: 'Restante', purchasePrice: 'Preço de compra (R$)',
+    remainingQty: 'Restante', purchasePrice: 'Preço de compra',
     purchaseDate: 'Data de compra', costPerUnit: 'Custo/unidade', valueLeft: 'Valor restante',
     remaining: 'Restante', addSpool: 'Adicionar item', editItem: 'Editar item',
     costPreview: 'Custo por unidade',
@@ -284,6 +295,7 @@ const pt: typeof en = {
     businessEmail: 'E-mail comercial', isPartnership: 'Esta é uma empresa com sócios',
     addPartner: 'Adicionar sócio', partnerName: 'Nome completo *',
     partnerEmail: 'E-mail (opcional)', partnerShare: '% participação',
+    preferences: 'Preferências', currency: 'Moeda', currencyDesc: 'Usada em todos os valores monetários do sistema.',
   },
   onboarding: {
     stepCompany: 'Empresa', stepPartnership: 'Sociedade', stepDone: 'Pronto',
@@ -346,7 +358,7 @@ const es: typeof en = {
     itemsInStock: (n: number) => `${n} item${n !== 1 ? 's' : ''} en stock`,
     category: 'Categoría', brand: 'Marca', itemName: 'Nombre / Color',
     material: 'Material', unit: 'Unidad', totalQty: 'Cant. total',
-    remainingQty: 'Restante', purchasePrice: 'Precio de compra ($)',
+    remainingQty: 'Restante', purchasePrice: 'Precio de compra',
     purchaseDate: 'Fecha de compra', costPerUnit: 'Costo/unidad', valueLeft: 'Valor restante',
     remaining: 'Restante', addSpool: 'Agregar item', editItem: 'Editar item',
     costPreview: 'Costo por unidad',
@@ -436,6 +448,7 @@ const es: typeof en = {
     businessEmail: 'Correo empresarial', isPartnership: 'Esta es una empresa con socios',
     addPartner: 'Agregar socio', partnerName: 'Nombre completo *',
     partnerEmail: 'Correo (opcional)', partnerShare: '% participación',
+    preferences: 'Preferencias', currency: 'Moneda', currencyDesc: 'Usada en todos los valores monetarios del sistema.',
   },
   onboarding: {
     stepCompany: 'Empresa', stepPartnership: 'Sociedad', stepDone: 'Listo',
@@ -464,16 +477,30 @@ export type Dict = typeof en
 export const dicts: Record<Lang, Dict> = { en, pt, es }
 
 // ── Context ───────────────────────────────────────────────────
-const I18nContext = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: Dict }>({
+const I18nContext = createContext<{
+  lang: Lang; setLang: (l: Lang) => void; t: Dict
+  currency: CurrencyCode; setCurrency: (c: CurrencyCode) => void
+  fmtCurrency: (n: number) => string
+  currencySymbol: string
+}>({
   lang: 'en', setLang: () => {}, t: en,
+  currency: 'BRL', setCurrency: () => {},
+  fmtCurrency: (n) => `R$ ${n.toFixed(2)}`,
+  currencySymbol: 'R$',
 })
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>('en')
+  const [currency, setCurrencyState] = useState<CurrencyCode>('BRL')
 
   useEffect(() => {
-    const stored = localStorage.getItem('filametry_lang') as Lang | null
-    if (stored && dicts[stored]) setLangState(stored)
+    const storedLang = localStorage.getItem('filametry_lang') as Lang | null
+    if (storedLang && dicts[storedLang]) setLangState(storedLang)
+
+    const storedCurrency = localStorage.getItem('filametry_currency') as CurrencyCode | null
+    if (storedCurrency && CURRENCIES.some(c => c.code === storedCurrency)) {
+      setCurrencyState(storedCurrency)
+    }
   }, [])
 
   function setLang(l: Lang) {
@@ -481,8 +508,28 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('filametry_lang', l)
   }
 
+  function setCurrency(c: CurrencyCode) {
+    setCurrencyState(c)
+    localStorage.setItem('filametry_currency', c)
+  }
+
+  const currencyDef = CURRENCIES.find(c => c.code === currency) ?? CURRENCIES[0]
+
+  function fmtCurrency(n: number) {
+    return new Intl.NumberFormat(currencyDef.locale, {
+      style: 'currency',
+      currency: currencyDef.code,
+      minimumFractionDigits: 2,
+    }).format(n)
+  }
+
   return (
-    <I18nContext.Provider value={{ lang, setLang, t: dicts[lang] }}>
+    <I18nContext.Provider value={{
+      lang, setLang, t: dicts[lang],
+      currency, setCurrency,
+      fmtCurrency,
+      currencySymbol: currencyDef.symbol,
+    }}>
       {children}
     </I18nContext.Provider>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Building2, Users, Plus, Trash2, Save, CheckCircle2 } from 'lucide-react'
+import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign } from 'lucide-react'
 import {
   getCompany,
   updateCompany,
@@ -9,6 +9,7 @@ import {
   addPartner,
   removePartner,
 } from '@/lib/actions/company'
+import { useT, CURRENCIES, type CurrencyCode } from '@/lib/i18n'
 
 type Company = {
   id: string
@@ -43,6 +44,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function SettingsPage() {
+  const { t, currency, setCurrency } = useT()
   const [, startTransition] = useTransition()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -166,6 +168,37 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage your company information and partners.</p>
       </div>
+
+      {/* Preferences */}
+      <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-orange-500/10">
+            <DollarSign className="size-4 text-orange-500" />
+          </div>
+          <div>
+            <h2 className="font-semibold">{t.settings.preferences}</h2>
+            <p className="text-xs text-muted-foreground">{t.settings.currencyDesc}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.settings.currency}</label>
+          <div className="flex flex-wrap gap-2">
+            {CURRENCIES.map(c => (
+              <button
+                key={c.code}
+                onClick={() => setCurrency(c.code as CurrencyCode)}
+                className={`text-sm px-4 py-1.5 rounded-full border transition-colors ${
+                  currency === c.code
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-500 font-medium'
+                    : 'border-border text-muted-foreground hover:border-orange-500/40'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Company Info */}
       <section className="rounded-2xl border border-border bg-card p-6 space-y-5">

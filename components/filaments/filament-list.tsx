@@ -55,11 +55,8 @@ function pctColor(pct: number) {
   return 'bg-red-500'
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-}
-
 function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefresh: () => void }) {
+  const { fmtCurrency } = useT()
   const totalPaid   = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
   const cost        = spool.price_usd_raw
   const balance     = totalPaid - cost
@@ -102,16 +99,16 @@ function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefres
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-muted/40 px-3 py-2">
           <p className="text-xs text-muted-foreground">Item cost</p>
-          <p className="text-sm font-mono font-semibold">{fmt(cost)}</p>
+          <p className="text-sm font-mono font-semibold">{fmtCurrency(cost)}</p>
         </div>
         <div className="rounded-lg bg-muted/40 px-3 py-2">
           <p className="text-xs text-muted-foreground">Total paid</p>
-          <p className="text-sm font-mono font-semibold">{fmt(totalPaid)}</p>
+          <p className="text-sm font-mono font-semibold">{fmtCurrency(totalPaid)}</p>
         </div>
         <div className={`rounded-lg px-3 py-2 ${balance >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
           <p className="text-xs text-muted-foreground">Balance</p>
           <p className={`text-sm font-mono font-semibold ${balance >= 0 ? 'text-green-500' : 'text-red-400'}`}>
-            {balance >= 0 ? '+' : ''}{fmt(balance)}
+            {balance >= 0 ? '+' : ''}{fmtCurrency(balance)}
           </p>
         </div>
       </div>
@@ -127,7 +124,7 @@ function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefres
                 {p.notes && <span className="text-muted-foreground ml-2">· {p.notes}</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-orange-400">{fmt(Number(p.amount_paid))}</span>
+                <span className="font-mono text-orange-400">{fmtCurrency(Number(p.amount_paid))}</span>
                 <button
                   onClick={() => remove(p.id)}
                   className="p-0.5 rounded text-muted-foreground hover:text-red-400 transition-colors"
@@ -154,7 +151,7 @@ function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefres
             type="number"
             value={amount}
             onChange={e => setAmount(e.target.value)}
-            placeholder="Amount (USD)"
+            placeholder="Amount"
             min={0}
             step={0.01}
             className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
@@ -191,6 +188,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
   onDelete: () => void
   onRefresh: () => void
 }) {
+  const { fmtCurrency } = useT()
   const pct      = remainingPct(spool)
   const [expanded, setExpanded] = useState(false)
   const totalPaid = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
@@ -246,11 +244,11 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
         <div>
           <p className="text-xs text-muted-foreground">Cost/{spool.unit ?? 'g'}</p>
-          <p className="text-sm font-mono font-semibold">{fmt(costPerGram(spool))}</p>
+          <p className="text-sm font-mono font-semibold">{fmtCurrency(costPerGram(spool))}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Value left</p>
-          <p className="text-sm font-mono font-semibold">{fmt(remainingValue(spool))}</p>
+          <p className="text-sm font-mono font-semibold">{fmtCurrency(remainingValue(spool))}</p>
         </div>
       </div>
 
@@ -264,7 +262,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
           Payments
           {spool.material_payments.length > 0 && (
             <span className="bg-orange-500/10 text-orange-500 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
-              {spool.material_payments.length} · {fmt(totalPaid)}
+              {spool.material_payments.length} · {fmtCurrency(totalPaid)}
             </span>
           )}
         </span>
@@ -277,7 +275,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
 }
 
 export function FilamentList() {
-  const { t } = useT()
+  const { t, fmtCurrency } = useT()
   const m = t.materials
   const [spools, setSpools]     = useState<SpoolWithPayments[]>([])
   const [loading, setLoading]   = useState(true)
@@ -345,7 +343,7 @@ export function FilamentList() {
         {[
           { label: m.items,          value: spools.length.toString() },
           { label: m.totalRemaining, value: `${totalWeight.toLocaleString()}` },
-          { label: m.inventoryValue, value: fmt(totalValue) },
+          { label: m.inventoryValue, value: fmtCurrency(totalValue) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">{label}</p>

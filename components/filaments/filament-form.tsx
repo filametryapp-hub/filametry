@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { type FilamentSpool, MATERIALS, type MaterialCategory, type MaterialUnit } from '@/lib/filament-types'
 import { useT } from '@/lib/i18n'
 
@@ -32,7 +33,7 @@ const BLANK: Omit<FilamentSpool, 'id'> = {
 }
 
 export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
-  const { t } = useT()
+  const { t, fmtCurrency, currencySymbol } = useT()
   const m = t.materials
 
   const [form, setForm] = useState<Omit<FilamentSpool, 'id'>>(
@@ -158,9 +159,13 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
 
           {/* Price */}
           <div className="space-y-1.5">
-            <Label htmlFor="priceUSD" className="text-xs text-muted-foreground">{m.purchasePrice}</Label>
-            <Input id="priceUSD" type="number" min={0} step={0.5}
-              value={form.priceUSD} onChange={e => set('priceUSD', +e.target.value)} />
+            <Label htmlFor="priceUSD" className="text-xs text-muted-foreground">{m.purchasePrice} ({currencySymbol})</Label>
+            <CurrencyInput
+              id="priceUSD"
+              value={form.priceUSD}
+              onChange={v => set('priceUSD', v)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
 
           {/* Date */}
@@ -183,7 +188,7 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
           <div className="rounded-lg bg-muted/50 px-4 py-2.5 flex justify-between text-sm">
             <span className="text-muted-foreground">{m.costPreview}</span>
             <span className="font-mono font-semibold text-orange-500">
-              ${(form.priceUSD / form.weightG).toFixed(4)}/{form.unit ?? 'g'}
+              {fmtCurrency(form.priceUSD / form.weightG)}/{form.unit ?? 'g'}
             </span>
           </div>
         )}
