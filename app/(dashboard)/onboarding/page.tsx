@@ -232,33 +232,38 @@ export default function OnboardingPage() {
                     </span>
                   </div>
                   {partners.map((p, i) => (
-                    <div key={i} className="flex gap-2 items-start">
+                    <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Partner {i + 1}</span>
+                        {partners.length > 1 && (
+                          <button onClick={() => removePartnerRow(i)} className="text-muted-foreground hover:text-red-400 transition-colors">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
                       <input
-                        className={`${INPUT} flex-1`}
-                        placeholder="Name"
+                        className={INPUT}
+                        placeholder="Full name *"
                         value={p.name}
                         onChange={e => updatePartner(i, 'name', e.target.value)}
                       />
-                      <input
-                        className={`${INPUT} w-36`}
-                        placeholder="Email"
-                        value={p.email}
-                        onChange={e => updatePartner(i, 'email', e.target.value)}
-                      />
-                      <input
-                        className={`${INPUT} w-20`}
-                        placeholder="%"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={p.percentage}
-                        onChange={e => updatePartner(i, 'percentage', e.target.value)}
-                      />
-                      {partners.length > 1 && (
-                        <button onClick={() => removePartnerRow(i)} className="p-2 text-muted-foreground hover:text-red-400 transition-colors">
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
+                      <div className="flex gap-2">
+                        <input
+                          className={`${INPUT} flex-1`}
+                          placeholder="Email (optional)"
+                          value={p.email}
+                          onChange={e => updatePartner(i, 'email', e.target.value)}
+                        />
+                        <input
+                          className={`${INPUT} w-24`}
+                          placeholder="% share"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={p.percentage}
+                          onChange={e => updatePartner(i, 'percentage', e.target.value)}
+                        />
+                      </div>
                     </div>
                   ))}
                   <button onClick={addPartnerRow} className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 transition-colors">
