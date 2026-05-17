@@ -10,6 +10,7 @@ interface Props {
   initial: FilamentSpool | null
   onSave: (data: FilamentSpool) => void
   onClose: () => void
+  saving?: boolean
 }
 
 const BLANK: Omit<FilamentSpool, 'id'> = {
@@ -24,7 +25,7 @@ const BLANK: Omit<FilamentSpool, 'id'> = {
   notes: '',
 }
 
-export function FilamentForm({ initial, onSave, onClose }: Props) {
+export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
   const [form, setForm] = useState<Omit<FilamentSpool, 'id'>>(
     initial ? { ...initial } : { ...BLANK }
   )
@@ -142,9 +143,9 @@ export function FilamentForm({ initial, onSave, onClose }: Props) {
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
             Cancel
           </button>
-          <button type="submit"
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-medium transition-colors">
-            {initial ? 'Save changes' : 'Add spool'}
+          <button type="submit" disabled={saving}
+            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            {saving ? 'Saving…' : initial ? 'Save changes' : 'Add spool'}
           </button>
         </div>
       </form>

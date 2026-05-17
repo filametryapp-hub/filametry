@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Layers, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
+import { getFilaments, upsertFilament, deleteFilament } from '@/lib/actions/filaments'
 import {
   type FilamentSpool,
   costPerGram,
@@ -11,42 +12,21 @@ import {
   remainingValue,
 } from '@/lib/filament-types'
 
-// Demo data so the UI is useful out of the box
-const DEMO: FilamentSpool[] = [
-  {
-    id: '1',
-    brand: 'Bambu Lab',
-    material: 'PLA Matte',
-    color: 'Matte Black',
-    colorHex: '#1a1a1a',
-    weightG: 1000,
-    remainingG: 780,
-    priceUSD: 20,
-    purchasedAt: '2025-03-01',
-  },
-  {
-    id: '2',
-    brand: 'Bambu Lab',
-    material: 'ABS',
-    color: 'White',
-    colorHex: '#f5f5f5',
-    weightG: 1000,
-    remainingG: 420,
-    priceUSD: 22,
-    purchasedAt: '2025-02-15',
-  },
-  {
-    id: '3',
-    brand: 'eSUN',
-    material: 'PETG',
-    color: 'Transparent Blue',
-    colorHex: '#3b82f6',
-    weightG: 1000,
-    remainingG: 1000,
-    priceUSD: 18,
-    purchasedAt: '2025-04-10',
-  },
-]
+// Map DB row (snake_case) → FilamentSpool (camelCase)
+function fromRow(row: Record<string, unknown>): FilamentSpool {
+  return {
+    id:          String(row.id),
+    brand:       String(row.brand),
+    material:    String(row.material),
+    color:       String(row.color),
+    colorHex:    String(row.color_hex ?? '#ff6b35'),
+    weightG:     Number(row.weight_g),
+    remainingG:  Number(row.remaining_g),
+    priceUSD:    Number(row.price_usd),
+    purchasedAt: row.purchased_at ? String(row.purchased_at) : undefined,
+    notes:       row.notes ? String(row.notes) : undefined,
+  }
+}
 
 function pctColor(pct: number) {
   if (pct > 50) return 'bg-green-500'
@@ -67,10 +47,8 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          {/* Color swatch */}
           <div
             className="size-10 rounded-lg border border-border shrink-0"
             style={{ backgroundColor: spool.colorHex }}
@@ -96,10 +74,8 @@ function SpoolCard({ spool, onEdit, onDelete }: {
         </div>
       </div>
 
-      {/* Material badge */}
       <Badge variant="secondary" className="text-xs">{spool.material}</Badge>
 
-      {/* Progress bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Remaining</span>
@@ -114,7 +90,6 @@ function SpoolCard({ spool, onEdit, onDelete }: {
         <p className="text-xs text-muted-foreground text-right">{pct.toFixed(0)}% left</p>
       </div>
 
-      {/* Cost info */}
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
         <div>
           <p className="text-xs text-muted-foreground">Cost/g</p>
@@ -130,25 +105,61 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 }
 
 export function FilamentList() {
-  const [spools, setSpools] = useState<FilamentSpool[]>(DEMO)
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<FilamentSpool | null>(null)
+  const [spools, setSpools]   = useState<FilamentSpool[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm]   = useState(false)
+  const [editing, setEditing]     = useState<FilamentSpool | null>(null)
+  const [saving, setSaving]       = useState(false)
 
-  const totalValue = spools.reduce((s, sp) => s + remainingValue(sp), 0)
-  const totalWeight = spools.reduce((s, sp) => s + sp.remainingG, 0)
-
-  function save(data: FilamentSpool) {
-    if (editing) {
-      setSpools(prev => prev.map(s => s.id === data.id ? data : s))
-    } else {
-      setSpools(prev => [...prev, { ...data, id: crypto.randomUUID() }])
+  async function load() {
+    setLoading(true)
+    try {
+      const rows = await getFilaments()
+      setSpools((rows ?? []).map(r => fromRow(r as Record<string, unknown>)))
+    } finally {
+      setLoading(false)
     }
-    setEditing(null)
-    setShowForm(false)
   }
 
-  function remove(id: string) {
+  useEffect(() => { load() }, [])
+
+  const totalValue  = spools.reduce((s, sp) => s + remainingValue(sp), 0)
+  const totalWeight = spools.reduce((s, sp) => s + sp.remainingG, 0)
+
+  async function save(data: FilamentSpool) {
+    setSaving(true)
+    try {
+      await upsertFilament({
+        id:           data.id || undefined,
+        brand:        data.brand,
+        material:     data.material,
+        color:        data.color,
+        color_hex:    data.colorHex,
+        weight_g:     data.weightG,
+        remaining_g:  data.remainingG,
+        price_usd:    data.priceUSD,
+        purchased_at: data.purchasedAt,
+        notes:        data.notes,
+      })
+      await load()
+    } finally {
+      setSaving(false)
+      setEditing(null)
+      setShowForm(false)
+    }
+  }
+
+  async function remove(id: string) {
+    await deleteFilament(id)
     setSpools(prev => prev.filter(s => s.id !== id))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -203,6 +214,7 @@ export function FilamentList() {
           initial={editing}
           onSave={save}
           onClose={() => { setShowForm(false); setEditing(null) }}
+          saving={saving}
         />
       )}
     </div>
