@@ -11,6 +11,7 @@ interface Props {
   initial: Product | null
   onSave: (p: Product) => void
   onClose: () => void
+  saving?: boolean
 }
 
 const BLANK: Omit<Product, 'id' | 'createdAt'> = {
@@ -25,7 +26,7 @@ const BLANK: Omit<Product, 'id' | 'createdAt'> = {
   imageUrl: '',
 }
 
-export function ProductForm({ initial, onSave, onClose }: Props) {
+export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   const [form, setForm] = useState(
     initial
       ? { ...initial }
@@ -147,9 +148,9 @@ export function ProductForm({ initial, onSave, onClose }: Props) {
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
             Cancel
           </button>
-          <button type="submit"
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-medium transition-colors">
-            {initial ? 'Save changes' : 'Add product'}
+          <button type="submit" disabled={saving}
+            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            {saving ? 'Saving…' : initial ? 'Save changes' : 'Add product'}
           </button>
         </div>
       </form>

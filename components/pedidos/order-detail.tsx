@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight } from 'lucide-react'
+import { X, ChevronRight, Trash2 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
   type Order,
@@ -13,6 +13,7 @@ import {
 interface Props {
   order: Order
   onStatusChange: (status: OrderStatus) => void
+  onDelete: () => void
   onClose: () => void
 }
 
@@ -30,7 +31,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   )
 }
 
-export function OrderDetail({ order, onStatusChange, onClose }: Props) {
+export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props) {
   const total      = orderTotal(order)
   const currentIdx = FLOW.indexOf(order.status)
 
@@ -96,7 +97,15 @@ export function OrderDetail({ order, onStatusChange, onClose }: Props) {
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">Created {order.createdAt} · Updated {order.updatedAt}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Created {order.createdAt} · Updated {order.updatedAt}</p>
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="size-3.5" /> Delete
+          </button>
+        </div>
 
         {/* Status actions */}
         {order.status !== 'done' && order.status !== 'cancelled' && (

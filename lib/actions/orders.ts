@@ -69,3 +69,11 @@ export async function updateOrderStatus(id: string, status: string) {
   if (error) throw error
   revalidatePath('/pedidos')
 }
+
+export async function deleteOrder(id: string) {
+  const supabase = await createClient()
+  // order_items deleted by cascade
+  const { error } = await supabase.from('orders').delete().eq('id', id)
+  if (error) throw error
+  revalidatePath('/pedidos')
+}

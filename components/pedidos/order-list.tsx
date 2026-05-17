@@ -1,52 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, ClipboardList, ChevronRight } from 'lucide-react'
 import { OrderForm } from './order-form'
 import { OrderDetail } from './order-detail'
+import { getOrders, createOrder, updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import {
   type Order,
+  type OrderItem,
   STATUS_LABELS,
   STATUS_COLORS,
   orderTotal,
 } from '@/lib/product-types'
 
-const DEMO: Order[] = [
-  {
-    id: '1',
-    clientName: 'John Smith',
-    clientEmail: 'john@example.com',
-    status: 'printing',
-    notes: 'Needs to be done by Friday.',
-    createdAt: '2025-05-10',
-    updatedAt: '2025-05-12',
-    items: [
-      { productId: '1', productName: 'Rolling Egg Box', quantity: 2, unitPrice: 18 },
-      { productId: '3', productName: 'Phone Stand', quantity: 1, unitPrice: 12 },
-    ],
-  },
-  {
-    id: '2',
-    clientName: 'Maria Garcia',
-    clientEmail: 'maria@example.com',
-    status: 'sent',
-    createdAt: '2025-05-13',
-    updatedAt: '2025-05-13',
-    items: [
-      { productId: '2', productName: 'Cable Clip Set (×10)', quantity: 3, unitPrice: 6 },
-    ],
-  },
-  {
-    id: '3',
-    clientName: 'Alex Chen',
-    status: 'done',
-    createdAt: '2025-05-01',
-    updatedAt: '2025-05-08',
-    items: [
-      { productId: '1', productName: 'Rolling Egg Box', quantity: 1, unitPrice: 18 },
-    ],
-  },
-]
+// Map DB row → Order
+function fromRow(row: Record<string, unknown>): Order {
+  const items = Array.isArray(row.order_items)
+    ? (row.order_items as Record<string, unknown>[]).map(i => ({
+        productId:   i.product_id ? String(i.product_id) : '',
+        productName: String(i.product_name),
+        quantity:    Number(i.quantity),
+        unitPrice:   Number(i.unit_price),
+      }) as OrderItem)
+    : []
+
+  return {
+    id:          String(row.id),
+    clientName:  String(row.client_name),
+    clientEmail: row.client_email ? String(row.client_email) : undefined,
+    status:      String(row.status) as Order['status'],
+    notes:       row.notes ? String(row.notes) : undefined,
+    items,
+    createdAt:   String(row.created_at ?? '').slice(0, 10),
+    updatedAt:   String(row.updated_at ?? row.created_at ?? '').slice(0, 10),
+  }
+}
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -61,10 +49,23 @@ function StatusBadge({ status }: { status: Order['status'] }) {
 }
 
 export function OrderList() {
-  const [orders, setOrders] = useState<Order[]>(DEMO)
-  const [showForm, setShowForm] = useState(false)
-  const [viewing, setViewing] = useState<Order | null>(null)
-  const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all')
+  const [orders, setOrders]       = useState<Order[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [showForm, setShowForm]   = useState(false)
+  const [viewing, setViewing]     = useState<Order | null>(null)
+  const [filterStatus, setFilter] = useState<Order['status'] | 'all'>('all')
+
+  async function load() {
+    setLoading(true)
+    try {
+      const rows = await getOrders()
+      setOrders((rows ?? []).map(r => fromRow(r as Record<string, unknown>)))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
 
   const filtered = filterStatus === 'all'
     ? orders
@@ -78,27 +79,51 @@ export function OrderList() {
     ['sent', 'accepted', 'printing'].includes(o.status)
   ).length
 
-  function save(order: Order) {
-    const isNew = !orders.find(o => o.id === order.id)
-    setOrders(prev =>
-      isNew
-        ? [{ ...order, id: crypto.randomUUID() }, ...prev]
-        : prev.map(o => o.id === order.id ? order : o)
-    )
+  async function save(order: Order) {
+    await createOrder({
+      client_name:  order.clientName,
+      client_email: order.clientEmail,
+      notes:        order.notes,
+      items: order.items.map(i => ({
+        product_id:   i.productId || undefined,
+        product_name: i.productName,
+        quantity:     i.quantity,
+        unit_price:   i.unitPrice,
+      })),
+    })
+    await load()
     setShowForm(false)
+    setViewing(null)
+  }
+
+  async function changeStatus(id: string, status: Order['status']) {
+    await updateOrderStatus(id, status)
+    await load()
+  }
+
+  async function remove(id: string) {
+    await deleteOrder(id)
+    setOrders(prev => prev.filter(o => o.id !== id))
     setViewing(null)
   }
 
   const STATUSES: Array<Order['status'] | 'all'> = ['all', 'draft', 'sent', 'accepted', 'printing', 'done', 'cancelled']
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total orders',    value: orders.length.toString() },
-          { label: 'Revenue (done)',  value: fmt(totalRevenue) },
-          { label: 'In progress',     value: pending.toString() },
+          { label: 'Total orders',   value: orders.length.toString() },
+          { label: 'Revenue (done)', value: fmt(totalRevenue) },
+          { label: 'In progress',    value: pending.toString() },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -107,14 +132,12 @@ export function OrderList() {
         ))}
       </div>
 
-      {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Status filter pills */}
         <div className="flex gap-1.5 flex-wrap flex-1">
           {STATUSES.map(s => (
             <button
               key={s}
-              onClick={() => setFilterStatus(s)}
+              onClick={() => setFilter(s)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
                 filterStatus === s
                   ? 'bg-orange-500 border-orange-500 text-white'
@@ -125,7 +148,6 @@ export function OrderList() {
             </button>
           ))}
         </div>
-
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
@@ -134,7 +156,6 @@ export function OrderList() {
         </button>
       </div>
 
-      {/* List */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
@@ -143,7 +164,7 @@ export function OrderList() {
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           {filtered.map((order, i) => {
-            const total = orderTotal(order)
+            const total     = orderTotal(order)
             const itemCount = order.items.reduce((s, it) => s + it.quantity, 0)
             return (
               <button
@@ -184,10 +205,10 @@ export function OrderList() {
         <OrderDetail
           order={viewing}
           onStatusChange={(status) => {
-            const updated = { ...viewing, status, updatedAt: new Date().toISOString().slice(0, 10) }
-            save(updated)
-            setViewing(updated)
+            changeStatus(viewing.id, status)
+            setViewing(prev => prev ? { ...prev, status } : null)
           }}
+          onDelete={() => remove(viewing.id)}
           onClose={() => setViewing(null)}
         />
       )}

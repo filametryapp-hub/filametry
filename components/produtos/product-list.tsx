@@ -1,49 +1,27 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Package, Pencil, Trash2, Tag } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useState, useEffect } from 'react'
+import { Plus, Package, Pencil, Trash2 } from 'lucide-react'
 import { ProductForm } from './product-form'
+import { getProducts, upsertProduct, deleteProduct } from '@/lib/actions/products'
 import type { Product } from '@/lib/product-types'
 
-const DEMO: Product[] = [
-  {
-    id: '1',
-    name: 'Rolling Egg Box',
-    description: 'Egg storage organizer with rolling mechanism.',
-    material: 'PLA Matte',
-    weightG: 132,
-    printHours: 3.2,
-    costUSD: 4.80,
-    priceUSD: 18.00,
-    tags: ['kitchen', 'organizer'],
-    createdAt: '2025-04-01',
-  },
-  {
-    id: '2',
-    name: 'Cable Clip Set (×10)',
-    description: 'Desk cable management clips, 10-pack.',
-    material: 'PETG',
-    weightG: 28,
-    printHours: 0.8,
-    costUSD: 1.10,
-    priceUSD: 6.00,
-    tags: ['desk', 'cable'],
-    createdAt: '2025-04-10',
-  },
-  {
-    id: '3',
-    name: 'Phone Stand',
-    description: 'Adjustable phone/tablet stand.',
-    material: 'ABS',
-    weightG: 85,
-    printHours: 2.1,
-    costUSD: 3.20,
-    priceUSD: 12.00,
-    tags: ['desk', 'phone'],
-    createdAt: '2025-04-15',
-  },
-]
+// Map DB row (snake_case) → Product (camelCase)
+function fromRow(row: Record<string, unknown>): Product {
+  return {
+    id:          String(row.id),
+    name:        String(row.name),
+    description: String(row.description ?? ''),
+    material:    String(row.material),
+    weightG:     Number(row.weight_g),
+    printHours:  Number(row.print_hours),
+    costUSD:     Number(row.cost_usd),
+    priceUSD:    Number(row.price_usd),
+    imageUrl:    row.image_url ? String(row.image_url) : undefined,
+    tags:        Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    createdAt:   String(row.created_at ?? ''),
+  }
+}
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -64,13 +42,11 @@ function ProductCard({ product, onEdit, onDelete }: {
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden hover:border-orange-500/30 transition-colors group">
-      {/* Image placeholder */}
       <div className="h-36 bg-muted/40 flex items-center justify-center border-b border-border">
         <Package className="size-10 text-muted-foreground/30" />
       </div>
 
       <div className="p-4 space-y-3">
-        {/* Title + actions */}
         <div className="flex items-start justify-between gap-2">
           <div>
             <h3 className="font-semibold text-sm leading-tight">{product.name}</h3>
@@ -88,7 +64,6 @@ function ProductCard({ product, onEdit, onDelete }: {
           </div>
         </div>
 
-        {/* Tags */}
         {product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {product.tags.map(t => (
@@ -97,7 +72,6 @@ function ProductCard({ product, onEdit, onDelete }: {
           </div>
         )}
 
-        {/* Specs */}
         <div className="text-xs text-muted-foreground flex gap-3">
           <span>{product.material}</span>
           <span>·</span>
@@ -106,7 +80,6 @@ function ProductCard({ product, onEdit, onDelete }: {
           <span>{product.printHours}h</span>
         </div>
 
-        {/* Pricing */}
         <div className="pt-2 border-t border-border grid grid-cols-3 gap-2">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cost</p>
@@ -122,7 +95,6 @@ function ProductCard({ product, onEdit, onDelete }: {
           </div>
         </div>
 
-        {/* Margin bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>Margin</span><span>{m.toFixed(0)}%</span>
@@ -137,10 +109,24 @@ function ProductCard({ product, onEdit, onDelete }: {
 }
 
 export function ProductList() {
-  const [products, setProducts] = useState<Product[]>(DEMO)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Product | null>(null)
-  const [search, setSearch] = useState('')
+  const [editing, setEditing]   = useState<Product | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const [search, setSearch]     = useState('')
+
+  async function load() {
+    setLoading(true)
+    try {
+      const rows = await getProducts()
+      setProducts((rows ?? []).map(r => fromRow(r as Record<string, unknown>)))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -153,19 +139,44 @@ export function ProductList() {
     ? products.reduce((s, p) => s + margin(p.costUSD, p.priceUSD), 0) / products.length
     : 0
 
-  function save(data: Product) {
-    if (editing) {
-      setProducts(prev => prev.map(p => p.id === data.id ? data : p))
-    } else {
-      setProducts(prev => [...prev, { ...data, id: crypto.randomUUID() }])
+  async function save(data: Product) {
+    setSaving(true)
+    try {
+      await upsertProduct({
+        id:          data.id || undefined,
+        name:        data.name,
+        description: data.description,
+        material:    data.material,
+        weight_g:    data.weightG,
+        print_hours: data.printHours,
+        cost_usd:    data.costUSD,
+        price_usd:   data.priceUSD,
+        image_url:   data.imageUrl,
+        tags:        data.tags,
+      })
+      await load()
+    } finally {
+      setSaving(false)
+      setEditing(null)
+      setShowForm(false)
     }
-    setEditing(null)
-    setShowForm(false)
+  }
+
+  async function remove(id: string) {
+    await deleteProduct(id)
+    setProducts(prev => prev.filter(p => p.id !== id))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Products',      value: products.length.toString() },
@@ -179,7 +190,6 @@ export function ProductList() {
         ))}
       </div>
 
-      {/* Toolbar */}
       <div className="flex items-center gap-3">
         <input
           type="search"
@@ -196,7 +206,6 @@ export function ProductList() {
         </button>
       </div>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Package className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
@@ -211,7 +220,7 @@ export function ProductList() {
               key={p.id}
               product={p}
               onEdit={() => { setEditing(p); setShowForm(true) }}
-              onDelete={() => setProducts(prev => prev.filter(x => x.id !== p.id))}
+              onDelete={() => remove(p.id)}
             />
           ))}
         </div>
@@ -222,6 +231,7 @@ export function ProductList() {
           initial={editing}
           onSave={save}
           onClose={() => { setShowForm(false); setEditing(null) }}
+          saving={saving}
         />
       )}
     </div>
