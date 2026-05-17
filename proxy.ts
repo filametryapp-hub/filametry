@@ -30,13 +30,21 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-                      request.nextUrl.pathname.startsWith('/register')
-  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard') ||
-                      request.nextUrl.pathname.startsWith('/precificacao') ||
-                      request.nextUrl.pathname.startsWith('/filamentos') ||
-                      request.nextUrl.pathname.startsWith('/produtos') ||
-                      request.nextUrl.pathname.startsWith('/pedidos')
+  const pathname = request.nextUrl.pathname
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isOnboarding = pathname.startsWith('/onboarding')
+  const isApiRoute = pathname.startsWith('/api')
+  const isDashboard = pathname.startsWith('/dashboard') ||
+                      pathname.startsWith('/precificacao') ||
+                      pathname.startsWith('/filamentos') ||
+                      pathname.startsWith('/produtos') ||
+                      pathname.startsWith('/pedidos') ||
+                      pathname.startsWith('/clients') ||
+                      pathname.startsWith('/suppliers') ||
+                      pathname.startsWith('/expenses') ||
+                      pathname.startsWith('/cash-flow') ||
+                      pathname.startsWith('/billing') ||
+                      pathname.startsWith('/printers')
 
   if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -44,6 +52,19 @@ export async function proxy(request: NextRequest) {
 
   if (user && isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Check onboarding: if user has no company yet, redirect to /onboarding
+  if (user && isDashboard && !isOnboarding && !isApiRoute) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profile && !profile.company_id) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
   }
 
   return supabaseResponse

@@ -1,8 +1,9 @@
-import { Calculator, Layers, Package, ClipboardList, Printer } from 'lucide-react'
+import { Calculator, Layers, Package, ClipboardList, Printer, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { getProfile } from '@/lib/actions/billing'
 import { getPrinterCount } from '@/lib/actions/printers'
 import { TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
+import { getCashFlowSummary } from '@/lib/actions/cash-flow'
 
 const CARDS = [
   {
@@ -39,18 +40,51 @@ const CARDS = [
   },
 ]
 
+function fmtCurrency(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+}
+
 export default async function DashboardPage() {
-  const profile      = await getProfile()
-  const printerCount = await getPrinterCount()
+  const [profile, printerCount, cashSummary] = await Promise.all([
+    getProfile(),
+    getPrinterCount(),
+    getCashFlowSummary().catch(() => ({ income: 0, expenses: 0, balance: 0 })),
+  ])
   const printerLimit: number = profile?.printer_limit ?? TRIAL_PRINTER_LIMIT
   const displayLimit = printerLimit === 9999 ? '∞' : String(printerLimit)
   const pct = printerLimit === 9999 ? 0 : Math.min(100, Math.round((printerCount / printerLimit) * 100))
+  const positive = cashSummary.balance >= 0
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Welcome to Filametry. What would you like to do today?</p>
+      </div>
+
+      {/* Monthly financial summary */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="size-4 text-green-400" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Revenue (this month)</p>
+          </div>
+          <p className="text-xl font-bold text-green-400 group-hover:text-green-300 transition-colors">{fmtCurrency(cashSummary.income)}</p>
+        </Link>
+        <Link href="/expenses" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown className="size-4 text-red-400" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Expenses (this month)</p>
+          </div>
+          <p className="text-xl font-bold text-red-400 group-hover:text-red-300 transition-colors">{fmtCurrency(cashSummary.expenses)}</p>
+        </Link>
+        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className="size-4" style={{ color: positive ? '#FF6B35' : '#f87171' }} />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Balance (this month)</p>
+          </div>
+          <p className="text-xl font-bold transition-colors" style={{ color: positive ? '#FF6B35' : '#f87171' }}>{fmtCurrency(cashSummary.balance)}</p>
+        </Link>
       </div>
 
       {/* Printer usage widget */}
