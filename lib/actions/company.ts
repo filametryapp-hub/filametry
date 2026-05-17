@@ -37,43 +37,45 @@ export async function createCompany(data: {
   state?: string
   country?: string
   is_partnership?: boolean
-}) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+}): Promise<{ error: string } | { id: string; [key: string]: unknown }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
 
-  const { data: company, error: companyError } = await supabase
-    .from('companies')
-    .insert({ ...data, owner_id: user.id })
-    .select()
-    .single()
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({ ...data, owner_id: user.id })
+      .select()
+      .single()
 
-  if (companyError) throw new Error(`Company insert failed: ${companyError.message} (code: ${companyError.code})`)
+    if (companyError) return { error: `Company insert failed: ${companyError.message} [${companyError.code}]` }
 
-  // Add owner as company_users entry
-  const { error: cuError } = await supabase
-    .from('company_users')
-    .insert({
-      company_id: company.id,
-      user_id: user.id,
-      role: 'owner',
-      name: data.owner_name,
-      email: user.email ?? '',
-      status: 'active',
-    })
+    const { error: cuError } = await supabase
+      .from('company_users')
+      .insert({
+        company_id: company.id,
+        user_id: user.id,
+        role: 'owner',
+        name: data.owner_name,
+        email: user.email ?? '',
+        status: 'active',
+      })
 
-  if (cuError) throw new Error(`Company user insert failed: ${cuError.message} (code: ${cuError.code})`)
+    if (cuError) return { error: `Company user failed: ${cuError.message} [${cuError.code}]` }
 
-  // Update profile.company_id
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ company_id: company.id })
-    .eq('id', user.id)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ company_id: company.id })
+      .eq('id', user.id)
 
-  if (profileError) throw new Error(`Profile update failed: ${profileError.message} (code: ${profileError.code})`)
+    if (profileError) return { error: `Profile update failed: ${profileError.message} [${profileError.code}]` }
 
-  revalidatePath('/dashboard')
-  return company
+    revalidatePath('/dashboard')
+    return company
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Unknown error' }
+  }
 }
 
 export async function updateCompany(data: {

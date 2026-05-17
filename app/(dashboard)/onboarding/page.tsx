@@ -79,7 +79,7 @@ export default function OnboardingPage() {
     setError('')
     setLoading(true)
     try {
-      const company = await createCompany({
+      const result = await createCompany({
         name,
         owner_name: ownerName,
         document: document || undefined,
@@ -91,6 +91,12 @@ export default function OnboardingPage() {
         country,
         is_partnership: isPartnership,
       })
+
+      if ('error' in result) {
+        setError(result.error)
+        setLoading(false)
+        return
+      }
 
       if (isPartnership) {
         for (const p of partners) {
