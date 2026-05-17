@@ -4,6 +4,8 @@ import { useState, useEffect, useTransition } from 'react'
 import { Plus, Pencil, Trash2, Receipt } from 'lucide-react'
 import { getExpenses, createExpense, updateExpense, deleteExpense, getExpenseSummary } from '@/lib/actions/expenses'
 import { getSuppliers } from '@/lib/actions/suppliers'
+import { useT } from '@/lib/i18n'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 type Expense = {
   id: string
@@ -21,10 +23,6 @@ type Supplier = { id: string; name: string }
 const CATEGORIES = ['material', 'office', 'equipment', 'maintenance', 'other']
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
-
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -48,10 +46,11 @@ function ExpenseModal({
   onClose: () => void
   saving: boolean
 }) {
+  const { t, fmtCurrency, currencySymbol } = useT()
   const today = new Date().toISOString().split('T')[0]
   const [category, setCategory] = useState(initial?.category ?? 'material')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [amount, setAmount] = useState(initial?.amount?.toString() ?? '')
+  const [amount, setAmount] = useState<number>(initial?.amount ?? 0)
   const [paidAt, setPaidAt] = useState(initial?.paid_at ?? today)
   const [supplierId, setSupplierId] = useState(initial?.supplier_id ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -59,9 +58,9 @@ function ExpenseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
-        <h2 className="font-semibold text-lg">{initial?.id ? 'Edit expense' : 'Add expense'}</h2>
+        <h2 className="font-semibold text-lg">{initial?.id ? t.common.edit : t.expenses.addExpense}</h2>
 
-        <Field label="Category *">
+        <Field label={`${t.expenses.category} *`}>
           <select className={INPUT} value={category} onChange={e => setCategory(e.target.value)}>
             {CATEGORIES.map(c => (
               <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -74,46 +73,46 @@ function ExpenseModal({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Amount (USD) *">
-            <input className={INPUT} type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+          <Field label={`${t.expenses.amount} *`}>
+            <CurrencyInput value={amount} onChange={setAmount} className={INPUT} />
           </Field>
-          <Field label="Date *">
+          <Field label={`${t.common.date} *`}>
             <input className={INPUT} type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} />
           </Field>
         </div>
 
-        <Field label="Supplier (optional)">
+        <Field label={t.expenses.supplier}>
           <select className={INPUT} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
             <option value="">— None —</option>
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </Field>
 
-        <Field label="Notes">
+        <Field label={t.common.notes}>
           <textarea className={`${INPUT} resize-none h-16`} value={notes} onChange={e => setNotes(e.target.value)} />
         </Field>
 
         <div className="flex gap-3 pt-1">
           <button onClick={onClose} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             onClick={() => {
-              if (!description.trim() || !amount) return
+              if (!description.trim() || amount <= 0) return
               onSave({
                 id: initial?.id ?? '',
                 category,
                 description,
-                amount: parseFloat(amount),
+                amount: amount,
                 paid_at: paidAt,
                 supplier_id: supplierId || null,
                 notes: notes || null,
               })
             }}
-            disabled={saving || !description.trim() || !amount}
+            disabled={saving || !description.trim() || amount <= 0}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save expense'}
+            {saving ? t.common.saving : t.common.save}
           </button>
         </div>
       </div>
@@ -124,6 +123,7 @@ function ExpenseModal({
 const CAT_TABS = ['all', ...CATEGORIES]
 
 export default function ExpensesPage() {
+  const { t, fmtCurrency } = useT()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [summary, setSummary] = useState<{ category: string; total: number }[]>([])
@@ -192,21 +192,21 @@ export default function ExpensesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Expenses</h1>
-        <p className="text-muted-foreground mt-1">Track all company spending.</p>
+        <h1 className="text-2xl font-bold">{t.expenses.title}</h1>
+        <p className="text-muted-foreground mt-1">{t.expenses.subtitle}</p>
       </div>
 
       {/* Monthly total */}
       <div className="rounded-xl border border-border bg-card px-6 py-4 mb-6 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">This month</p>
-          <p className="text-2xl font-bold text-orange-500 mt-0.5">{fmt(monthTotal)}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.expenses.totalMonth}</p>
+          <p className="text-2xl font-bold text-orange-500 mt-0.5">{fmtCurrency(monthTotal)}</p>
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          <Plus className="size-4" /> Add expense
+          <Plus className="size-4" /> {t.expenses.addExpense}
         </button>
       </div>
 
@@ -231,15 +231,15 @@ export default function ExpensesPage() {
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Receipt className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-muted-foreground">No expenses found.</p>
+          <p className="text-sm text-muted-foreground">{t.expenses.noExpenses}</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                {['Date', 'Category', 'Description', 'Amount', 'Supplier', 'Actions'].map(h => (
-                  <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === 'Actions' ? 'text-right' : ''} ${h === 'Amount' ? 'text-right' : ''}`}>{h}</th>
+                {[t.common.date, t.expenses.category, t.common.name, t.expenses.amount, 'Supplier', 'Actions'].map(h => (
+                  <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === 'Actions' ? 'text-right' : ''} ${h === t.expenses.amount ? 'text-right' : ''}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -251,7 +251,7 @@ export default function ExpensesPage() {
                     <span className="capitalize text-xs bg-muted px-2 py-0.5 rounded-full">{e.category}</span>
                   </td>
                   <td className="px-4 py-3">{e.description}</td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold">{fmt(Number(e.amount))}</td>
+                  <td className="px-4 py-3 text-right font-mono font-semibold">{fmtCurrency(Number(e.amount))}</td>
                   <td className="px-4 py-3 text-muted-foreground">{e.suppliers?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

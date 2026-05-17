@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { Plus, Pencil, Trash2, Search, Users } from 'lucide-react'
 import { getClients, upsertClient, deleteClient } from '@/lib/actions/clients'
+import { useT } from '@/lib/i18n'
 
 type Client = {
   id: string
@@ -41,61 +42,62 @@ function ClientModal({
   onClose: () => void
   saving: boolean
 }) {
+  const { t } = useT()
   const [form, setForm] = useState<Client>(initial ?? { id: '', ...EMPTY })
   const set = (k: keyof Client, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl space-y-5">
-        <h2 className="font-semibold text-lg">{initial?.id ? 'Edit client' : 'Add client'}</h2>
+        <h2 className="font-semibold text-lg">{initial?.id ? t.clients.editClient : t.clients.addClient}</h2>
 
-        <Field label="Name *">
+        <Field label={`${t.common.name} *`}>
           <input className={INPUT} value={form.name} onChange={e => set('name', e.target.value)} placeholder="John Doe" />
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Email">
+          <Field label={t.common.email}>
             <input className={INPUT} type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} placeholder="john@example.com" />
           </Field>
-          <Field label="Phone">
+          <Field label={t.common.phone}>
             <input className={INPUT} value={form.phone ?? ''} onChange={e => set('phone', e.target.value)} placeholder="+1 555 000 0000" />
           </Field>
         </div>
 
-        <Field label="Document (CPF / SSN)">
+        <Field label={t.common.document}>
           <input className={INPUT} value={form.document ?? ''} onChange={e => set('document', e.target.value)} />
         </Field>
 
-        <Field label="Address">
+        <Field label={t.common.address}>
           <input className={INPUT} value={form.address ?? ''} onChange={e => set('address', e.target.value)} placeholder="123 Main St" />
         </Field>
 
         <div className="grid grid-cols-3 gap-3">
-          <Field label="City">
+          <Field label={t.common.city}>
             <input className={INPUT} value={form.city ?? ''} onChange={e => set('city', e.target.value)} />
           </Field>
-          <Field label="State">
+          <Field label={t.common.state}>
             <input className={INPUT} value={form.state ?? ''} onChange={e => set('state', e.target.value)} />
           </Field>
-          <Field label="Country">
+          <Field label={t.common.country}>
             <input className={INPUT} value={form.country ?? ''} onChange={e => set('country', e.target.value)} />
           </Field>
         </div>
 
-        <Field label="Notes">
+        <Field label={t.common.notes}>
           <textarea className={`${INPUT} resize-none h-20`} value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} />
         </Field>
 
         <div className="flex gap-3 pt-1">
           <button onClick={onClose} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             onClick={() => { if (form.name.trim()) onSave(form) }}
             disabled={saving || !form.name.trim()}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save client'}
+            {saving ? t.common.saving : t.common.save}
           </button>
         </div>
       </div>
@@ -104,6 +106,7 @@ function ClientModal({
 }
 
 export default function ClientsPage() {
+  const { t } = useT()
   const [clients, setClients] = useState<Client[]>([])
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -151,8 +154,8 @@ export default function ClientsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Clients</h1>
-        <p className="text-muted-foreground mt-1">Manage your client directory.</p>
+        <h1 className="text-2xl font-bold">{t.clients.title}</h1>
+        <p className="text-muted-foreground mt-1">{t.clients.subtitle}</p>
       </div>
 
       {/* Actions bar */}
@@ -161,7 +164,7 @@ export default function ClientsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
             className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors"
-            placeholder="Search clients…"
+            placeholder={t.clients.searchClients}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -170,7 +173,7 @@ export default function ClientsPage() {
           onClick={() => { setEditing(null); setShowForm(true) }}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          <Plus className="size-4" /> Add client
+          <Plus className="size-4" /> {t.clients.addClient}
         </button>
       </div>
 
@@ -179,7 +182,7 @@ export default function ClientsPage() {
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Users className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
           <p className="text-sm text-muted-foreground">
-            {clients.length === 0 ? 'No clients yet. Add your first client.' : 'No clients match your search.'}
+            {t.clients.noClients}
           </p>
         </div>
       ) : (
@@ -187,7 +190,7 @@ export default function ClientsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                {['Name', 'Email', 'Phone', 'City', 'Actions'].map(h => (
+                {[t.common.name, t.common.email, t.common.phone, t.common.city, 'Actions'].map(h => (
                   <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === 'Actions' ? 'text-right' : ''}`}>{h}</th>
                 ))}
               </tr>

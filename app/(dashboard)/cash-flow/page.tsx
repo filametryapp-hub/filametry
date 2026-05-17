@@ -3,6 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { Plus, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { getCashFlow, getCashFlowSummary, addCashFlowEntry } from '@/lib/actions/cash-flow'
+import { useT } from '@/lib/i18n'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 type CashEntry = {
   id: string
@@ -14,10 +16,6 @@ type CashEntry = {
 }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
-
-function fmt(n: number) {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -37,18 +35,19 @@ function AddIncomeModal({
   onClose: () => void
   saving: boolean
 }) {
+  const { t, fmtCurrency, currencySymbol } = useT()
   const today = new Date().toISOString().split('T')[0]
   const [category, setCategory] = useState('sales')
   const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState<number>(0)
   const [date, setDate] = useState(today)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
-        <h2 className="font-semibold text-lg">Add income entry</h2>
+        <h2 className="font-semibold text-lg">{t.cashFlow.addEntry}</h2>
 
-        <Field label="Category">
+        <Field label={t.cashFlow.category}>
           <select className={INPUT} value={category} onChange={e => setCategory(e.target.value)}>
             {['sales', 'service', 'refund', 'other'].map(c => (
               <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -61,27 +60,27 @@ function AddIncomeModal({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Amount (USD) *">
-            <input className={INPUT} type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+          <Field label={`${t.cashFlow.amount} *`}>
+            <CurrencyInput value={amount} onChange={setAmount} className={INPUT} />
           </Field>
-          <Field label="Date *">
+          <Field label={`${t.common.date} *`}>
             <input className={INPUT} type="date" value={date} onChange={e => setDate(e.target.value)} />
           </Field>
         </div>
 
         <div className="flex gap-3 pt-1">
           <button onClick={onClose} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             onClick={() => {
-              if (!description.trim() || !amount) return
-              onSave({ category, description, amount: parseFloat(amount), date })
+              if (!description.trim() || amount <= 0) return
+              onSave({ category, description, amount: amount, date })
             }}
-            disabled={saving || !description.trim() || !amount}
+            disabled={saving || !description.trim() || amount <= 0}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Add income'}
+            {saving ? t.common.saving : t.common.add}
           </button>
         </div>
       </div>
@@ -92,6 +91,7 @@ function AddIncomeModal({
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 export default function CashFlowPage() {
+  const { t, fmtCurrency } = useT()
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -131,8 +131,8 @@ export default function CashFlowPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Cash Flow</h1>
-        <p className="text-muted-foreground mt-1">Track income and expenses over time.</p>
+        <h1 className="text-2xl font-bold">{t.cashFlow.title}</h1>
+        <p className="text-muted-foreground mt-1">{t.cashFlow.subtitle}</p>
       </div>
 
       {/* Month selector */}
@@ -151,7 +151,7 @@ export default function CashFlowPage() {
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          <Plus className="size-4" /> Add income
+          <Plus className="size-4" /> {t.cashFlow.addEntry}
         </button>
       </div>
 
@@ -160,24 +160,24 @@ export default function CashFlowPage() {
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="size-4 text-green-400" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Income</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.cashFlow.income}</p>
           </div>
-          <p className="text-xl font-bold text-green-400">{fmt(summary.income)}</p>
+          <p className="text-xl font-bold text-green-400">{fmtCurrency(summary.income)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-2">
             <TrendingDown className="size-4 text-red-400" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Expenses</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.cashFlow.expense}</p>
           </div>
-          <p className="text-xl font-bold text-red-400">{fmt(summary.expenses)}</p>
+          <p className="text-xl font-bold text-red-400">{fmtCurrency(summary.expenses)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="size-4" style={{ color: positive ? '#FF6B35' : '#f87171' }} />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Balance</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.cashFlow.balance}</p>
           </div>
           <p className="text-xl font-bold" style={{ color: positive ? '#FF6B35' : '#f87171' }}>
-            {fmt(summary.balance)}
+            {fmtCurrency(summary.balance)}
           </p>
         </div>
       </div>
@@ -186,15 +186,15 @@ export default function CashFlowPage() {
       {entries.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Wallet className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-muted-foreground">No entries for {MONTHS[month - 1]} {year}.</p>
+          <p className="text-sm text-muted-foreground">{t.cashFlow.noEntries}</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                {['Date', 'Type', 'Category', 'Description', 'Amount'].map(h => (
-                  <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === 'Amount' ? 'text-right' : ''}`}>{h}</th>
+                {[t.common.date, t.cashFlow.type, t.cashFlow.category, t.cashFlow.description, t.cashFlow.amount].map(h => (
+                  <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === t.cashFlow.amount ? 'text-right' : ''}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -210,7 +210,7 @@ export default function CashFlowPage() {
                   <td className="px-4 py-3 text-muted-foreground capitalize">{e.category}</td>
                   <td className="px-4 py-3">{e.description}</td>
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${e.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>
-                    {e.type === 'income' ? '+' : '-'}{fmt(Number(e.amount))}
+                    {e.type === 'income' ? '+' : '-'}{fmtCurrency(Number(e.amount))}
                   </td>
                 </tr>
               ))}
