@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Layers, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Layers, Pencil, Trash2, ChevronDown, ChevronUp, Wallet, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
-import { getFilaments, upsertFilament, deleteFilament } from '@/lib/actions/filaments'
+import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 import {
   type FilamentSpool,
@@ -14,21 +14,38 @@ import {
   remainingValue,
 } from '@/lib/filament-types'
 
-// Map DB row (snake_case) → FilamentSpool (camelCase)
-function fromRow(row: Record<string, unknown>): FilamentSpool {
+type MaterialPayment = {
+  id: string
+  payer_name: string
+  amount_paid: number
+  paid_at: string
+  notes?: string
+}
+
+type SpoolWithPayments = FilamentSpool & {
+  material_payments: MaterialPayment[]
+  price_usd_raw: number
+}
+
+// Map DB row (snake_case) → SpoolWithPayments
+function fromRow(row: Record<string, unknown>): SpoolWithPayments {
   return {
-    id:          String(row.id),
-    brand:       String(row.brand),
-    material:    String(row.material ?? ''),
-    color:       String(row.color),
-    colorHex:    String(row.color_hex ?? '#ff6b35'),
-    weightG:     Number(row.weight_g),
-    remainingG:  Number(row.remaining_g),
-    priceUSD:    Number(row.price_usd),
-    purchasedAt: row.purchased_at ? String(row.purchased_at) : undefined,
-    notes:       row.notes ? String(row.notes) : undefined,
-    category:    (row.category as MaterialCategory) ?? 'Filament',
-    unit:        (row.unit as import('@/lib/filament-types').MaterialUnit) ?? 'g',
+    id:            String(row.id),
+    brand:         String(row.brand),
+    material:      String(row.material ?? ''),
+    color:         String(row.color),
+    colorHex:      String(row.color_hex ?? '#ff6b35'),
+    weightG:       Number(row.weight_g),
+    remainingG:    Number(row.remaining_g),
+    priceUSD:      Number(row.price_usd),
+    price_usd_raw: Number(row.price_usd),
+    purchasedAt:   row.purchased_at ? String(row.purchased_at) : undefined,
+    notes:         row.notes ? String(row.notes) : undefined,
+    category:      (row.category as MaterialCategory) ?? 'Filament',
+    unit:          (row.unit as import('@/lib/filament-types').MaterialUnit) ?? 'g',
+    material_payments: Array.isArray(row.material_payments)
+      ? (row.material_payments as MaterialPayment[])
+      : [],
   }
 }
 
@@ -42,15 +59,145 @@ function fmt(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
 }
 
-function SpoolCard({ spool, onEdit, onDelete }: {
-  spool: FilamentSpool
+function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefresh: () => void }) {
+  const totalPaid   = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
+  const cost        = spool.price_usd_raw
+  const balance     = totalPaid - cost
+  const [payerName, setPayerName] = useState('')
+  const [amount,    setAmount]    = useState('')
+  const [paidAt,    setPaidAt]    = useState(new Date().toISOString().slice(0, 10))
+  const [notes,     setNotes]     = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!payerName || !amount) return
+    setSaving(true)
+    setError('')
+    try {
+      await addMaterialPayment({
+        material_id: spool.id,
+        payer_name:  payerName,
+        amount_paid: Number(amount),
+        paid_at:     paidAt,
+        notes:       notes || undefined,
+      })
+      setPayerName(''); setAmount(''); setNotes('')
+      onRefresh()
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function remove(id: string) {
+    try { await deleteMaterialPayment(id); onRefresh() } catch {}
+  }
+
+  return (
+    <div className="border-t border-border mt-4 pt-4 space-y-4">
+      {/* Balance summary */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-lg bg-muted/40 px-3 py-2">
+          <p className="text-xs text-muted-foreground">Item cost</p>
+          <p className="text-sm font-mono font-semibold">{fmt(cost)}</p>
+        </div>
+        <div className="rounded-lg bg-muted/40 px-3 py-2">
+          <p className="text-xs text-muted-foreground">Total paid</p>
+          <p className="text-sm font-mono font-semibold">{fmt(totalPaid)}</p>
+        </div>
+        <div className={`rounded-lg px-3 py-2 ${balance >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+          <p className="text-xs text-muted-foreground">Balance</p>
+          <p className={`text-sm font-mono font-semibold ${balance >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+            {balance >= 0 ? '+' : ''}{fmt(balance)}
+          </p>
+        </div>
+      </div>
+
+      {/* Existing payments */}
+      {spool.material_payments.length > 0 && (
+        <div className="space-y-1.5">
+          {spool.material_payments.map(p => (
+            <div key={p.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-md px-3 py-2">
+              <div>
+                <span className="font-medium">{p.payer_name}</span>
+                <span className="text-muted-foreground ml-2">{p.paid_at}</span>
+                {p.notes && <span className="text-muted-foreground ml-2">· {p.notes}</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-orange-400">{fmt(Number(p.amount_paid))}</span>
+                <button
+                  onClick={() => remove(p.id)}
+                  className="p-0.5 rounded text-muted-foreground hover:text-red-400 transition-colors"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add payment form */}
+      <form onSubmit={submit} className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Record payment</p>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={payerName}
+            onChange={e => setPayerName(e.target.value)}
+            placeholder="Partner name"
+            className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="Amount (USD)"
+            min={0}
+            step={0.01}
+            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+          <input
+            type="date"
+            value={paidAt}
+            onChange={e => setPaidAt(e.target.value)}
+            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+          <input
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Notes (optional)"
+            className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+        </div>
+        {error && <p className="text-xs text-red-400">{error}</p>}
+        <button
+          type="submit"
+          disabled={saving || !payerName || !amount}
+          className="w-full text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-md px-3 py-1.5 transition-colors"
+        >
+          {saving ? 'Saving…' : 'Add payment'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
+  spool: SpoolWithPayments
   onEdit: () => void
   onDelete: () => void
+  onRefresh: () => void
 }) {
-  const pct = remainingPct(spool)
+  const pct      = remainingPct(spool)
+  const [expanded, setExpanded] = useState(false)
+  const totalPaid = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
@@ -80,6 +227,7 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 
       <Badge variant="secondary" className="text-xs">{spool.material}</Badge>
 
+      {/* Progress bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Remaining</span>
@@ -94,6 +242,7 @@ function SpoolCard({ spool, onEdit, onDelete }: {
         <p className="text-xs text-muted-foreground text-right">{pct.toFixed(0)}% left</p>
       </div>
 
+      {/* Cost row */}
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
         <div>
           <p className="text-xs text-muted-foreground">Cost/{spool.unit ?? 'g'}</p>
@@ -104,6 +253,25 @@ function SpoolCard({ spool, onEdit, onDelete }: {
           <p className="text-sm font-mono font-semibold">{fmt(remainingValue(spool))}</p>
         </div>
       </div>
+
+      {/* Payments toggle */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors pt-1 border-t border-border"
+      >
+        <span className="flex items-center gap-1.5">
+          <Wallet className="size-3.5" />
+          Payments
+          {spool.material_payments.length > 0 && (
+            <span className="bg-orange-500/10 text-orange-500 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+              {spool.material_payments.length} · {fmt(totalPaid)}
+            </span>
+          )}
+        </span>
+        {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+      </button>
+
+      {expanded && <PaymentPanel spool={spool} onRefresh={onRefresh} />}
     </div>
   )
 }
@@ -111,11 +279,11 @@ function SpoolCard({ spool, onEdit, onDelete }: {
 export function FilamentList() {
   const { t } = useT()
   const m = t.materials
-  const [spools, setSpools]   = useState<FilamentSpool[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm]   = useState(false)
-  const [editing, setEditing]     = useState<FilamentSpool | null>(null)
-  const [saving, setSaving]       = useState(false)
+  const [spools, setSpools]     = useState<SpoolWithPayments[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing]   = useState<FilamentSpool | null>(null)
+  const [saving, setSaving]     = useState(false)
 
   async function load() {
     setLoading(true)
@@ -211,6 +379,7 @@ export function FilamentList() {
               spool={spool}
               onEdit={() => { setEditing(spool); setShowForm(true) }}
               onDelete={() => remove(spool.id)}
+              onRefresh={load}
             />
           ))}
         </div>

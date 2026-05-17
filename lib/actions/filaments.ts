@@ -5,13 +5,22 @@ import { revalidatePath } from 'next/cache'
 
 export async function getFilaments() {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('filaments')
-    .select('*')
-    .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*, material_payments(*)')
+      .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data
+    if (error) {
+      // material_payments table may not exist yet — fall back
+      const { data: simple } = await supabase
+        .from('filaments').select('*').order('created_at', { ascending: false })
+      return (simple ?? []).map((m: Record<string, unknown>) => ({ ...m, material_payments: [] }))
+    }
+    return data
+  } catch {
+    return []
+  }
 }
 
 export async function upsertFilament(filament: {
@@ -43,6 +52,28 @@ export async function upsertFilament(filament: {
 export async function deleteFilament(id: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('filaments').delete().eq('id', id)
+  if (error) throw error
+  revalidatePath('/filamentos')
+}
+
+// ── Material Payments ─────────────────────────────────────────
+
+export async function addMaterialPayment(data: {
+  material_id: string
+  payer_name: string
+  amount_paid: number
+  paid_at?: string
+  notes?: string
+}) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('material_payments').insert(data)
+  if (error) throw error
+  revalidatePath('/filamentos')
+}
+
+export async function deleteMaterialPayment(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('material_payments').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/filamentos')
 }
