@@ -72,6 +72,9 @@ const en = {
     totalCost: 'Total cost', profit: 'Profit', suggestedPrice: 'Suggested sale price',
     importSlicer: 'Import from slicer', printer: 'Printer',
     amortFrom: 'Amortization auto-filled from:',
+    batches: 'Build Plates', addBatch: '+ Add plate', batchName: 'Name',
+    removeBatch: 'Remove', totalWeight: 'Total weight', totalTime: 'Total time',
+    plate: 'Plate', importFile: 'Import file', sharedSettings: 'Shared Settings',
   },
   equipment: {
     title: 'Equipment', subtitle: 'Manage printers and track equipment investment.',
@@ -266,6 +269,9 @@ const pt: typeof en = {
     totalCost: 'Custo total', profit: 'Lucro', suggestedPrice: 'Preço de venda sugerido',
     importSlicer: 'Importar do fatiador', printer: 'Impressora',
     amortFrom: 'Amortização preenchida automaticamente de:',
+    batches: 'Bandejas', addBatch: '+ Adicionar bandeja', batchName: 'Nome',
+    removeBatch: 'Remover', totalWeight: 'Peso total', totalTime: 'Tempo total',
+    plate: 'Bandeja', importFile: 'Importar arquivo', sharedSettings: 'Configurações Gerais',
   },
   equipment: {
     title: 'Equipamentos', subtitle: 'Gerencie impressoras e controle o investimento.',
@@ -460,6 +466,9 @@ const es: typeof en = {
     totalCost: 'Costo total', profit: 'Ganancia', suggestedPrice: 'Precio de venta sugerido',
     importSlicer: 'Importar del slicer', printer: 'Impresora',
     amortFrom: 'Amortización llenada automáticamente de:',
+    batches: 'Bandejas', addBatch: '+ Agregar bandeja', batchName: 'Nombre',
+    removeBatch: 'Quitar', totalWeight: 'Peso total', totalTime: 'Tiempo total',
+    plate: 'Bandeja', importFile: 'Importar archivo', sharedSettings: 'Configuración General',
   },
   equipment: {
     title: 'Equipos', subtitle: 'Gestiona impresoras y controla la inversión.',

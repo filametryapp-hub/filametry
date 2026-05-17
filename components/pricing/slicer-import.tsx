@@ -7,11 +7,13 @@ import { cn } from '@/lib/utils'
 
 interface Props {
   onImport: (data: SlicerData) => void
+  compact?: boolean
+  label?: string
 }
 
 type State = 'idle' | 'loading' | 'success' | 'error' | 'empty'
 
-export function SlicerImport({ onImport }: Props) {
+export function SlicerImport({ onImport, compact = false, label }: Props) {
   const [state, setState] = useState<State>('idle')
   const [summary, setSummary] = useState<string>('')
   const [dragging, setDragging] = useState(false)
@@ -53,6 +55,47 @@ export function SlicerImport({ onImport }: Props) {
     if (file) handle(file)
     e.target.value = ''
   }, [handle])
+
+  if (compact) {
+    // Compact inline variant for per-batch rows
+    return (
+      <label className={cn(
+        'flex items-center gap-2 cursor-pointer rounded-md border border-dashed px-3 py-1.5 text-xs transition-colors',
+        dragging
+          ? 'border-orange-500 bg-orange-500/10'
+          : state === 'success'
+            ? 'border-green-500/40 bg-green-500/5 text-green-400'
+            : state === 'error' || state === 'empty'
+              ? 'border-red-500/40 text-red-400'
+              : 'border-border text-muted-foreground hover:border-orange-500/40 hover:text-foreground'
+      )}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+      >
+        <input type="file" accept=".gcode,.g,.3mf" className="sr-only" onChange={onFile} />
+        {state === 'loading' && <Loader2 className="size-3 animate-spin shrink-0" />}
+        {state === 'success' && <CheckCircle className="size-3 shrink-0" />}
+        {(state === 'error' || state === 'empty') && <AlertCircle className="size-3 shrink-0" />}
+        {state === 'idle' && <Upload className="size-3 shrink-0" />}
+        <span className="truncate">
+          {state === 'idle'    && (label ?? 'Import file')}
+          {state === 'loading' && 'Reading…'}
+          {state === 'success' && (summary || 'Imported')}
+          {state === 'empty'   && 'No data found'}
+          {state === 'error'   && 'Error reading file'}
+        </span>
+        {state === 'success' && (
+          <span
+            onClick={e => { e.preventDefault(); setState('idle'); setSummary('') }}
+            className="ml-auto underline underline-offset-2 hover:text-foreground shrink-0"
+          >
+            ×
+          </span>
+        )}
+      </label>
+    )
+  }
 
   return (
     <div
