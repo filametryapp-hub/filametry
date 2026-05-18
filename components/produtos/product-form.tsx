@@ -199,9 +199,9 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                 <div className="space-y-0.5">
                   <Label className="text-[10px] text-muted-foreground">Preço/un</Label>
                   <input
-                    type="number" min={0} step={0.01}
+                    type="number" min={0} step="any"
                     value={tier.priceUSD}
-                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, priceUSD: +e.target.value } : t))}
+                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, priceUSD: parseFloat(e.target.value) || 0 } : t))}
                     className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>

@@ -350,6 +350,15 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
     name: '', brand: '', model: '', watts: 120,
     purchase_value: 0, purchase_date: '', lifespan_hours: 5000,
   })
+  // Payback helper: prazo em meses + horas diárias → calcula lifespan_hours
+  const [paybackMonths, setPaybackMonths] = useState(24)
+  const [hoursPerDay,   setHoursPerDay]   = useState(6)
+  const [usePrazo,      setUsePrazo]      = useState(false)
+
+  function applyPrazo(months: number, hpd: number) {
+    const h = Math.round(months * 30 * hpd)
+    setForm(f => ({ ...f, lifespan_hours: h }))
+  }
 
   if (atLimit) {
     return (
@@ -426,28 +435,96 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 
       <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-3">
         <p className="text-xs font-medium text-orange-400">{eq.equipValue}</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground">{eq.purchaseValue} ({currencySymbol})</label>
-            <CurrencyInput
-              value={form.purchase_value}
-              onChange={v => setForm(f => ({ ...f, purchase_value: v }))}
-              className={INPUT + ' mt-1'}
-            />
-          </div>
+
+        {/* Purchase value */}
+        <div>
+          <label className="text-xs text-muted-foreground">{eq.purchaseValue} ({currencySymbol})</label>
+          <CurrencyInput
+            value={form.purchase_value}
+            onChange={v => setForm(f => ({ ...f, purchase_value: v }))}
+            className={INPUT + ' mt-1'}
+          />
+        </div>
+
+        {/* Amortization mode toggle */}
+        <div className="flex gap-2">
+          <button type="button"
+            onClick={() => setUsePrazo(false)}
+            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${!usePrazo ? 'bg-orange-500 border-orange-500 text-white' : 'border-border text-muted-foreground hover:border-orange-500/50'}`}>
+            Por horas totais
+          </button>
+          <button type="button"
+            onClick={() => { setUsePrazo(true); applyPrazo(paybackMonths, hoursPerDay) }}
+            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${usePrazo ? 'bg-orange-500 border-orange-500 text-white' : 'border-border text-muted-foreground hover:border-orange-500/50'}`}>
+            Por prazo de retorno
+          </button>
+        </div>
+
+        {!usePrazo ? (
+          /* Direct hours input */
           <div>
             <label className="text-xs text-muted-foreground">{eq.expectedLifespan}</label>
-            <input className={INPUT + ' mt-1'} type="number" min={100} step={100} value={form.lifespan_hours}
+            <input className={INPUT + ' mt-1'} type="number" min={100} step={100}
+              value={form.lifespan_hours}
               onChange={e => setForm(f => ({ ...f, lifespan_hours: +e.target.value }))} />
           </div>
-        </div>
-        {form.purchase_value > 0 && form.lifespan_hours ? (
+        ) : (
+          /* Payback helper */
+          <div className="space-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              Em quanto tempo você quer recuperar o investimento?
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-muted-foreground">Prazo (meses)</label>
+                <input
+                  type="number" min={1} step={1}
+                  value={paybackMonths}
+                  onChange={e => {
+                    const v = +e.target.value
+                    setPaybackMonths(v)
+                    applyPrazo(v, hoursPerDay)
+                  }}
+                  className={INPUT + ' mt-0.5 h-8 text-sm'}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground">Uso médio (h/dia)</label>
+                <input
+                  type="number" min={0.5} step={0.5} max={24}
+                  value={hoursPerDay}
+                  onChange={e => {
+                    const v = +e.target.value
+                    setHoursPerDay(v)
+                    applyPrazo(paybackMonths, v)
+                  }}
+                  className={INPUT + ' mt-0.5 h-8 text-sm'}
+                />
+              </div>
+            </div>
+            <div className="rounded-md bg-orange-500/10 px-3 py-2 text-xs space-y-0.5">
+              <p className="text-muted-foreground">
+                {paybackMonths} meses × 30 dias × {hoursPerDay}h =
+                <span className="font-semibold text-foreground ml-1">{form.lifespan_hours.toLocaleString()}h totais</span>
+              </p>
+              {form.purchase_value > 0 && form.lifespan_hours > 0 && (
+                <p className="text-orange-400 font-mono">
+                  → taxa: {fmtCurrency(form.purchase_value / form.lifespan_hours)}/h de impressão
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cost per hour preview (for direct mode) */}
+        {!usePrazo && form.purchase_value > 0 && form.lifespan_hours > 0 && (
           <p className="text-xs text-orange-400 font-mono">
-            → {eq.costPerHour}: {fmtCurrency(form.purchase_value / form.lifespan_hours)}
+            → {eq.costPerHour}: {fmtCurrency(form.purchase_value / form.lifespan_hours)}/h
           </p>
-        ) : null}
+        )}
+
         {form.purchase_value > 0 && (
-          <p className="text-xs text-green-400 mt-1">✓ A purchase expense will be recorded automatically.</p>
+          <p className="text-xs text-green-400">✓ A purchase expense will be recorded automatically.</p>
         )}
       </div>
 

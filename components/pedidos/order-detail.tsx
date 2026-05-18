@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, Trash2 } from 'lucide-react'
+import { X, ChevronRight, Trash2, FileText } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
   type Order,
@@ -35,6 +35,14 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
   const total      = orderTotal(order)
   const currentIdx = FLOW.indexOf(order.status)
 
+  const hasQuote = order.quoteTiers && order.quoteTiers.length > 0
+  // Base price = first item's unit price (1 unit, no discount)
+  const basePrice = order.items[0]?.unitPrice ?? 0
+  // For discount calculation: use the max unitPrice among tiers (= smallest qty = highest price)
+  const maxTierPrice = hasQuote
+    ? Math.max(...order.quoteTiers!.map(t => t.unitPrice))
+    : basePrice
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -43,12 +51,20 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">{order.clientName}</h2>
+            <div className="flex items-center gap-2">
+              {hasQuote && <FileText className="size-4 text-orange-500 shrink-0" />}
+              <h2 className="text-lg font-semibold">{order.clientName}</h2>
+            </div>
             {order.clientEmail && (
               <p className="text-sm text-muted-foreground">{order.clientEmail}</p>
             )}
+            {hasQuote && order.items[0] && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Produto: <span className="text-foreground">{order.items[0].productName}</span>
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={order.status} />
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
               <X className="size-5" />
@@ -74,21 +90,73 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
           </div>
         )}
 
-        {/* Items */}
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">{or.items}</p>
-          {order.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <span>{item.quantity}× {item.productName}</span>
-              <span className="font-mono">{fmtCurrency(item.quantity * item.unitPrice)}</span>
+        {/* Quote table (if this is a quote) */}
+        {hasQuote ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Tabela de Orçamento</p>
             </div>
-          ))}
-          <Separator />
-          <div className="flex justify-between text-sm font-semibold">
-            <span>{t.common.total}</span>
-            <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
+
+            <div className="rounded-lg border border-orange-500/20 overflow-hidden">
+              {/* Column headers */}
+              <div className="grid grid-cols-[60px_1fr_80px_56px] gap-2 px-3 py-2 bg-orange-500/10 border-b border-orange-500/20">
+                <span className="text-[10px] font-semibold text-orange-500 uppercase">Qtd</span>
+                <span className="text-[10px] font-semibold text-orange-500 uppercase">Preço/un</span>
+                <span className="text-[10px] font-semibold text-orange-500 uppercase text-right">Total</span>
+                <span className="text-[10px] font-semibold text-orange-500 uppercase text-center">Desc.</span>
+              </div>
+
+              {order.quoteTiers!.map((tier, idx) => {
+                const discountPct = maxTierPrice > 0
+                  ? ((maxTierPrice - tier.unitPrice) / maxTierPrice * 100)
+                  : 0
+                const rowTotal = tier.qty * tier.unitPrice
+
+                return (
+                  <div
+                    key={tier.qty}
+                    className={`grid grid-cols-[60px_1fr_80px_56px] gap-2 px-3 py-2.5 items-center ${
+                      idx !== 0 ? 'border-t border-border/50' : ''
+                    }`}
+                  >
+                    <span className="text-sm font-bold tabular-nums">{tier.qty}</span>
+                    <span className="text-sm font-mono font-semibold text-foreground">
+                      {fmtCurrency(tier.unitPrice)}
+                    </span>
+                    <span className="text-sm font-mono text-orange-500 font-semibold text-right">
+                      {fmtCurrency(rowTotal)}
+                    </span>
+                    <div className="flex justify-center">
+                      {discountPct > 0 ? (
+                        <span className="text-[11px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full tabular-nums">
+                          -{discountPct.toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">base</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Normal order items */
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">{or.items}</p>
+            {order.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span>{item.quantity}× {item.productName}</span>
+                <span className="font-mono">{fmtCurrency(item.quantity * item.unitPrice)}</span>
+              </div>
+            ))}
+            <Separator />
+            <div className="flex justify-between text-sm font-semibold">
+              <span>{t.common.total}</span>
+              <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         {order.notes && (
@@ -98,7 +166,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
         )}
 
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Created {order.createdAt} · Updated {order.updatedAt}</p>
+          <p className="text-xs text-muted-foreground">Criado {order.createdAt} · Atualizado {order.updatedAt}</p>
           <button
             onClick={onDelete}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"

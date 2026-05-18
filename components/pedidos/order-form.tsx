@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Package, ChevronDown, Tag } from 'lucide-react'
+import { X, Plus, Trash2, ChevronDown, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CurrencyInput } from '@/components/ui/currency-input'
-import { type Order, type OrderItem, type VolumeTier, orderTotal, resolveUnitPrice } from '@/lib/product-types'
+import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@/lib/product-types'
 import { useT } from '@/lib/i18n'
 import { getProducts } from '@/lib/actions/products'
 import { getClients } from '@/lib/actions/clients'
@@ -30,83 +29,29 @@ interface Props {
   onClose: () => void
 }
 
-const BLANK_ITEM: OrderItem = {
-  productId: '',
-  productName: '',
-  quantity: 1,
-  unitPrice: 0,
-}
+const INPUT_CLS =
+  'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 placeholder:text-muted-foreground'
 
-const INPUT_CLS = 'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 placeholder:text-muted-foreground'
-
-/** Show a mini volume pricing table for a product */
-function VolumePriceTable({
-  basePrice,
-  tiers,
-  currentQty,
-}: {
-  basePrice: number
-  tiers: VolumeTier[]
-  currentQty: number
-}) {
-  const { fmtCurrency } = useT()
-  const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty)
-  const allTiers = [{ minQty: 1, priceUSD: basePrice }, ...sorted]
-
-  return (
-    <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 overflow-hidden">
-      <div className="px-3 py-1.5 bg-orange-500/10 flex items-center gap-1.5">
-        <Tag className="size-3 text-orange-500" />
-        <span className="text-[10px] font-medium text-orange-500 uppercase tracking-wider">Tabela de preços por volume</span>
-      </div>
-      <div className="divide-y divide-border/50">
-        {allTiers.map((tier, i) => {
-          const nextMin = allTiers[i + 1]?.minQty
-          const label = nextMin
-            ? `${tier.minQty}–${nextMin - 1} un`
-            : `${tier.minQty}+ un`
-          const discountPct = i > 0
-            ? ((basePrice - tier.priceUSD) / basePrice * 100)
-            : 0
-          const isActive = currentQty >= tier.minQty &&
-            (i === allTiers.length - 1 || currentQty < allTiers[i + 1].minQty)
-
-          return (
-            <div key={i} className={`grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-1.5 items-center ${isActive ? 'bg-orange-500/10' : ''}`}>
-              <span className={`text-xs ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                {label}
-                {isActive && <span className="ml-1.5 text-[10px] text-orange-500">← atual</span>}
-              </span>
-              <span className={`text-xs font-mono font-bold ${isActive ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                {fmtCurrency(tier.priceUSD)}
-              </span>
-              {discountPct > 0 ? (
-                <span className="text-[10px] font-medium text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
-                  -{discountPct.toFixed(0)}%
-                </span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">base</span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+const DEFAULT_QTYS = [10, 20, 50, 100, 200]
 
 export function OrderForm({ onSave, onClose }: Props) {
   const { t, fmtCurrency } = useT()
 
-  const [products,     setProducts]    = useState<CatalogProduct[]>([])
-  const [clients,      setClients]     = useState<CatalogClient[]>([])
-  const [clientName,   setClientName]  = useState('')
-  const [clientEmail,  setClientEmail] = useState('')
-  const [notes,        setNotes]       = useState('')
-  const [items,        setItems]       = useState<OrderItem[]>([{ ...BLANK_ITEM }])
-  const [loadingCat,   setLoadingCat]  = useState(true)
-  // Track which product each item maps to (for volume pricing)
-  const [itemProducts, setItemProducts] = useState<(CatalogProduct | null)[]>([null])
+  const [products,    setProducts]   = useState<CatalogProduct[]>([])
+  const [clients,     setClients]    = useState<CatalogClient[]>([])
+  const [loadingCat,  setLoadingCat] = useState(true)
+
+  // Client
+  const [clientName,  setClientName]  = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+  const [notes,       setNotes]       = useState('')
+
+  // Selected product
+  const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)
+
+  // Quote tiers: qty + unitPrice (editable)
+  const [tiers, setTiers] = useState<QuoteTier[]>([])
+  const [newQty, setNewQty] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -140,45 +85,39 @@ export function OrderForm({ onSave, onClose }: Props) {
     load()
   }, [])
 
-  function addItem() {
-    setItems(prev => [...prev, { ...BLANK_ITEM }])
-    setItemProducts(prev => [...prev, null])
-  }
+  function selectProduct(productId: string) {
+    const prod = products.find(p => p.id === productId) ?? null
+    setSelectedProd(prod)
 
-  function removeItem(i: number) {
-    setItems(prev => prev.filter((_, idx) => idx !== i))
-    setItemProducts(prev => prev.filter((_, idx) => idx !== i))
-  }
-
-  function updateItem<K extends keyof OrderItem>(i: number, key: K, value: OrderItem[K]) {
-    setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [key]: value } : it))
-  }
-
-  function selectProduct(i: number, productId: string) {
-    const prod = products.find(p => p.id === productId)
-    if (!prod) {
-      setItems(prev => prev.map((it, idx) => idx === i
-        ? { ...it, productId: '', productName: '', unitPrice: 0 }
-        : it))
-      setItemProducts(prev => prev.map((p, idx) => idx === i ? null : p))
-      return
+    if (prod) {
+      // Build default tiers from DEFAULT_QTYS, auto-resolving price via volumePrices
+      const initial = DEFAULT_QTYS.map(qty => ({
+        qty,
+        unitPrice: resolveUnitPrice(prod.priceUSD, prod.volumePrices, qty),
+      }))
+      setTiers(initial)
+    } else {
+      setTiers([])
     }
-    const currentQty = items[i].quantity
-    const unitPrice  = resolveUnitPrice(prod.priceUSD, prod.volumePrices, currentQty)
-    setItems(prev => prev.map((it, idx) => idx === i
-      ? { ...it, productId: prod.id, productName: prod.name, unitPrice }
-      : it))
-    setItemProducts(prev => prev.map((p, idx) => idx === i ? prod : p))
   }
 
-  function handleQtyChange(i: number, qty: number) {
-    const prod = itemProducts[i]
-    const unitPrice = prod
-      ? resolveUnitPrice(prod.priceUSD, prod.volumePrices, qty)
-      : items[i].unitPrice
-    setItems(prev => prev.map((it, idx) => idx === i
-      ? { ...it, quantity: qty, unitPrice }
-      : it))
+  function addTier() {
+    const qty = parseInt(newQty, 10)
+    if (!qty || qty < 1) return
+    if (tiers.some(t => t.qty === qty)) return
+    const unitPrice = selectedProd
+      ? resolveUnitPrice(selectedProd.priceUSD, selectedProd.volumePrices, qty)
+      : 0
+    setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
+    setNewQty('')
+  }
+
+  function removeTier(qty: number) {
+    setTiers(prev => prev.filter(t => t.qty !== qty))
+  }
+
+  function updateTierPrice(qty: number, price: number) {
+    setTiers(prev => prev.map(t => t.qty === qty ? { ...t, unitPrice: price } : t))
   }
 
   function selectClient(clientId: string) {
@@ -188,17 +127,26 @@ export function OrderForm({ onSave, onClose }: Props) {
     setClientEmail(c.email ?? '')
   }
 
-  const total = orderTotal({ items } as Order)
+  const basePrice = selectedProd?.priceUSD ?? 0
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedProd || tiers.length === 0) return
     const now = new Date().toISOString().slice(0, 10)
+    const smallestTier = tiers[0]
     onSave({
       id: '',
       clientName,
       clientEmail: clientEmail || undefined,
       notes: notes || undefined,
-      items,
+      // Keep one item for order total/reference (smallest qty tier)
+      items: [{
+        productId:   selectedProd.id,
+        productName: selectedProd.name,
+        quantity:    smallestTier.qty,
+        unitPrice:   smallestTier.unitPrice,
+      }],
+      quoteTiers: tiers,
       status: 'draft',
       createdAt: now,
       updatedAt: now,
@@ -213,190 +161,246 @@ export function OrderForm({ onSave, onClose }: Props) {
         onSubmit={submit}
         className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-background shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
       >
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t.orders.newOrder}</h2>
+          <div className="flex items-center gap-2">
+            <FileText className="size-4 text-orange-500" />
+            <h2 className="text-lg font-semibold">Novo Orçamento</h2>
+          </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="size-5" />
           </button>
         </div>
 
-        {/* Client */}
+        {/* Client info */}
         <div className="space-y-3">
+          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
+
           {clients.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Cliente do cadastro</Label>
-              <div className="relative">
-                <select
-                  defaultValue=""
-                  onChange={e => selectClient(e.target.value)}
-                  className={INPUT_CLS + ' pr-8 appearance-none'}
-                >
-                  <option value="">— selecionar cliente —</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.email ? ` · ${c.email}` : ''}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-              </div>
+            <div className="relative">
+              <select
+                defaultValue=""
+                onChange={e => selectClient(e.target.value)}
+                className={INPUT_CLS + ' pr-8 appearance-none'}
+              >
+                <option value="">— selecionar cliente cadastrado —</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.email ? ` · ${c.email}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t.orders.clientName} *</Label>
-              <Input value={clientName} onChange={e => setClientName(e.target.value)}
-                placeholder="Nome completo" required />
+              <Input
+                value={clientName}
+                onChange={e => setClientName(e.target.value)}
+                placeholder="Nome completo"
+                required
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t.orders.clientEmail}</Label>
-              <Input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)}
-                placeholder="email@exemplo.com" />
+              <Input
+                type="email"
+                value={clientEmail}
+                onChange={e => setClientEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+              />
             </div>
           </div>
         </div>
 
-        {/* Items */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t.orders.items}</Label>
-            <button type="button" onClick={addItem}
-              className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1 transition-colors">
-              <Plus className="size-3" /> {t.orders.addItem}
-            </button>
-          </div>
+        {/* Product picker */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Produto</Label>
 
           {loadingCat ? (
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-3">
               <div className="size-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="space-y-3">
-              {items.map((item, i) => {
-                const prod = itemProducts[i]
-                const hasTiers = prod?.volumePrices && prod.volumePrices.length > 0
-                const appliedTier = hasTiers
-                  ? resolveUnitPrice(prod!.priceUSD, prod!.volumePrices, item.quantity)
-                  : null
-                const isDiscounted = appliedTier !== null && appliedTier < prod!.priceUSD
-
-                return (
-                  <div key={i} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                    {/* Product picker */}
-                    <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Produto do catálogo</Label>
-                      <div className="relative">
-                        <select
-                          value={item.productId}
-                          onChange={e => selectProduct(i, e.target.value)}
-                          className={INPUT_CLS + ' pr-8 appearance-none h-8 text-xs'}
-                        >
-                          <option value="">— selecionar produto —</option>
-                          {products.map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}{p.material && !p.material.includes('[object') ? ` · ${p.material}` : ''}
-                              {p.volumePrices?.length ? ' 🏷️' : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
-                      </div>
-                    </div>
-
-                    {/* Manual override + qty + price */}
-                    <div className="grid grid-cols-12 gap-2 items-end">
-                      {/* Product name */}
-                      <div className="col-span-5 space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Nome / descrição</Label>
-                        <Input
-                          value={item.productName}
-                          onChange={e => updateItem(i, 'productName', e.target.value)}
-                          placeholder="Nome do item"
-                          className="h-8 text-xs"
-                          required
-                        />
-                      </div>
-                      {/* Qty */}
-                      <div className="col-span-2 space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Qtd</Label>
-                        <Input
-                          type="number" min={1} step={1}
-                          value={item.quantity}
-                          onChange={e => handleQtyChange(i, +e.target.value)}
-                          className="h-8 text-xs text-center"
-                        />
-                      </div>
-                      {/* Unit price */}
-                      <div className="col-span-3 space-y-1">
-                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          Preço unit.
-                          {isDiscounted && (
-                            <span className="text-green-400 font-medium">↓</span>
-                          )}
-                        </Label>
-                        <CurrencyInput
-                          value={item.unitPrice}
-                          onChange={v => updateItem(i, 'unitPrice', v)}
-                          className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500"
-                        />
-                      </div>
-                      {/* Subtotal + remove */}
-                      <div className="col-span-2 flex items-center justify-between">
-                        <span className="text-xs font-mono text-orange-500 font-medium">
-                          {fmtCurrency(item.quantity * item.unitPrice)}
-                        </span>
-                        {items.length > 1 && (
-                          <button type="button" onClick={() => removeItem(i)}
-                            className="text-muted-foreground hover:text-red-400 transition-colors">
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Volume pricing table */}
-                    {hasTiers && (
-                      <VolumePriceTable
-                        basePrice={prod!.priceUSD}
-                        tiers={prod!.volumePrices!}
-                        currentQty={item.quantity}
-                      />
-                    )}
-
-                    {/* Discount badge */}
-                    {isDiscounted && (
-                      <p className="text-[11px] text-green-400 flex items-center gap-1">
-                        <span className="size-1.5 rounded-full bg-green-400 inline-block" />
-                        Desconto de volume aplicado automaticamente
-                      </p>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="relative">
+              <select
+                value={selectedProd?.id ?? ''}
+                onChange={e => selectProduct(e.target.value)}
+                className={INPUT_CLS + ' pr-8 appearance-none'}
+                required
+              >
+                <option value="">— selecionar produto —</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.material && !p.material.includes('[object') ? ` · ${p.material}` : ''}
+                    {p.volumePrices?.length ? ' 🏷️' : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             </div>
           )}
 
-          {/* Total */}
-          <div className="flex justify-between items-center pt-2 border-t border-border">
-            <span className="text-sm text-muted-foreground">{t.common.total}</span>
-            <span className="font-mono font-bold text-orange-500 text-lg">{fmtCurrency(total)}</span>
-          </div>
+          {selectedProd && (
+            <p className="text-[11px] text-muted-foreground">
+              Preço base: <span className="font-mono text-foreground">{fmtCurrency(selectedProd.priceUSD)}</span>/un
+              {selectedProd.volumePrices?.length
+                ? <span className="ml-2 text-orange-500">· {selectedProd.volumePrices.length} faixas de volume</span>
+                : null}
+            </p>
+          )}
         </div>
+
+        {/* Quote tiers table */}
+        {selectedProd && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                Tabela de Quantidades
+              </Label>
+              <span className="text-[11px] text-muted-foreground">preço/un · total · desconto</span>
+            </div>
+
+            {tiers.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/60 italic text-center py-2">
+                Adicione quantidades para montar o orçamento
+              </p>
+            )}
+
+            {tiers.length > 0 && (
+              <div className="rounded-lg border border-border overflow-hidden">
+                {/* Column headers */}
+                <div className="grid grid-cols-[60px_1fr_80px_60px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
+                  <span className="text-[10px] text-muted-foreground font-medium">Qtd</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">Preço/un</span>
+                  <span className="text-[10px] text-muted-foreground font-medium text-right">Total</span>
+                  <span className="text-[10px] text-muted-foreground font-medium text-center">Desc.</span>
+                  <span />
+                </div>
+
+                {tiers.map((tier, idx) => {
+                  const discountPct = basePrice > 0
+                    ? ((basePrice - tier.unitPrice) / basePrice * 100)
+                    : 0
+                  const total = tier.qty * tier.unitPrice
+
+                  return (
+                    <div
+                      key={tier.qty}
+                      className={`grid grid-cols-[60px_1fr_80px_60px_28px] gap-2 px-3 py-2 items-center ${
+                        idx !== 0 ? 'border-t border-border/60' : ''
+                      }`}
+                    >
+                      {/* Qty */}
+                      <span className="text-sm font-semibold tabular-nums">{tier.qty}</span>
+
+                      {/* Unit price (editable) */}
+                      <input
+                        type="number"
+                        min={0}
+                        step="any"
+                        value={tier.unitPrice}
+                        onChange={e => updateTierPrice(tier.qty, parseFloat(e.target.value) || 0)}
+                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+
+                      {/* Total */}
+                      <span className="text-xs font-mono text-right text-orange-500 font-medium">
+                        {fmtCurrency(total)}
+                      </span>
+
+                      {/* Discount */}
+                      <span className={`text-[11px] font-medium text-center tabular-nums ${
+                        discountPct > 0 ? 'text-green-400' : 'text-muted-foreground'
+                      }`}>
+                        {discountPct > 0 ? `-${discountPct.toFixed(0)}%` : '—'}
+                      </span>
+
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        onClick={() => removeTier(tier.qty)}
+                        className="text-muted-foreground hover:text-red-400 transition-colors flex justify-center"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Add custom qty */}
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={newQty}
+                onChange={e => setNewQty(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTier() } }}
+                placeholder="Quantidade"
+                className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                onClick={addTier}
+                disabled={!newQty}
+                className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 disabled:opacity-40 transition-colors"
+              >
+                <Plus className="size-3.5" /> Adicionar quantidade
+              </button>
+            </div>
+
+            {/* Quick-add preset buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground">Rápido:</span>
+              {DEFAULT_QTYS.map(qty => (
+                <button
+                  key={qty}
+                  type="button"
+                  disabled={tiers.some(t => t.qty === qty)}
+                  onClick={() => {
+                    const unitPrice = resolveUnitPrice(selectedProd.priceUSD, selectedProd.volumePrices, qty)
+                    setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-orange-500/50 hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  {qty}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{t.orders.notes}</Label>
-          <Input value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="Prazo, instruções especiais…" />
+          <Input
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Prazo de entrega, instruções especiais…"
+          />
         </div>
 
         <div className="flex gap-3 pt-1">
-          <button type="button" onClick={onClose}
-            className="flex-1 rounded-lg border border-border py-2.5 text-sm hover:bg-muted transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-border py-2.5 text-sm hover:bg-muted transition-colors"
+          >
             {t.common.cancel}
           </button>
-          <button type="submit"
-            className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-white py-2.5 text-sm font-medium transition-colors">
-            {t.orders.createOrder}
+          <button
+            type="submit"
+            disabled={!selectedProd || tiers.length === 0}
+            className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
+          >
+            Salvar Orçamento
           </button>
         </div>
       </form>

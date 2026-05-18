@@ -27,6 +27,11 @@ export interface OrderItem {
 
 export type OrderStatus = 'draft' | 'sent' | 'accepted' | 'printing' | 'done' | 'cancelled'
 
+export interface QuoteTier {
+  qty: number
+  unitPrice: number
+}
+
 export interface Order {
   id: string
   clientName: string
@@ -36,6 +41,7 @@ export interface Order {
   notes?: string
   createdAt: string
   updatedAt: string
+  quoteTiers?: QuoteTier[]   // multi-quantity proposal table
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {

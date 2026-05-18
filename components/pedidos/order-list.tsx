@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, ClipboardList, ChevronRight } from 'lucide-react'
+import { Plus, ClipboardList, ChevronRight, FileText } from 'lucide-react'
 import { OrderForm } from './order-form'
 import { OrderDetail } from './order-detail'
 import { getOrders, createOrder, updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import {
   type Order,
   type OrderItem,
+  type QuoteTier,
   STATUS_COLORS,
   orderTotal,
 } from '@/lib/product-types'
@@ -24,6 +25,13 @@ function fromRow(row: Record<string, unknown>): Order {
       }) as OrderItem)
     : []
 
+  const quoteTiers: QuoteTier[] | undefined = Array.isArray(row.quote_tiers)
+    ? (row.quote_tiers as { qty: number; unit_price: number }[]).map(t => ({
+        qty: Number(t.qty),
+        unitPrice: Number(t.unit_price),
+      }))
+    : undefined
+
   return {
     id:          String(row.id),
     clientName:  String(row.client_name),
@@ -31,6 +39,7 @@ function fromRow(row: Record<string, unknown>): Order {
     status:      String(row.status) as Order['status'],
     notes:       row.notes ? String(row.notes) : undefined,
     items,
+    quoteTiers,
     createdAt:   String(row.created_at ?? '').slice(0, 10),
     updatedAt:   String(row.updated_at ?? row.created_at ?? '').slice(0, 10),
   }
@@ -84,6 +93,10 @@ export function OrderList() {
       client_name:  order.clientName,
       client_email: order.clientEmail,
       notes:        order.notes,
+      quote_tiers:  order.quoteTiers?.map(t => ({
+        qty:        t.qty,
+        unit_price: t.unitPrice,
+      })) ?? null,
       items: order.items.map(i => ({
         product_id:   i.productId || undefined,
         product_name: i.productName,
@@ -178,9 +191,16 @@ export function OrderList() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-sm">{order.clientName}</span>
                     <StatusBadge status={order.status} />
+                    {order.quoteTiers && order.quoteTiers.length > 0 && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
+                        <FileText className="size-2.5" /> orçamento
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {itemCount} item{itemCount !== 1 ? 's' : ''} · {order.createdAt}
+                    {order.quoteTiers?.length
+                      ? `${order.quoteTiers.length} faixas · ${order.createdAt}`
+                      : `${itemCount} item${itemCount !== 1 ? 's' : ''} · ${order.createdAt}`}
                     {order.clientEmail && ` · ${order.clientEmail}`}
                   </p>
                 </div>

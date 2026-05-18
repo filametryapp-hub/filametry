@@ -18,6 +18,7 @@ export async function createOrder(order: {
   client_name: string
   client_email?: string
   notes?: string
+  quote_tiers?: { qty: number; unit_price: number }[] | null
   items: Array<{
     product_id?: string
     product_name: string
@@ -36,6 +37,7 @@ export async function createOrder(order: {
       client_name:  order.client_name,
       client_email: order.client_email,
       notes:        order.notes,
+      quote_tiers:  order.quote_tiers ?? null,
       status:       'draft',
     })
     .select()
@@ -43,17 +45,18 @@ export async function createOrder(order: {
 
   if (orderError) throw orderError
 
-  const { error: itemsError } = await supabase.from('order_items').insert(
-    order.items.map(item => ({
-      order_id:     newOrder.id,
-      product_id:   item.product_id ?? null,
-      product_name: item.product_name,
-      quantity:     item.quantity,
-      unit_price:   item.unit_price,
-    }))
-  )
-
-  if (itemsError) throw itemsError
+  if (order.items.length > 0) {
+    const { error: itemsError } = await supabase.from('order_items').insert(
+      order.items.map(item => ({
+        order_id:     newOrder.id,
+        product_id:   item.product_id ?? null,
+        product_name: item.product_name,
+        quantity:     item.quantity,
+        unit_price:   item.unit_price,
+      }))
+    )
+    if (itemsError) throw itemsError
+  }
 
   revalidatePath('/pedidos')
   return newOrder
@@ -72,7 +75,6 @@ export async function updateOrderStatus(id: string, status: string) {
 
 export async function deleteOrder(id: string) {
   const supabase = await createClient()
-  // order_items deleted by cascade
   const { error } = await supabase.from('orders').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/pedidos')
