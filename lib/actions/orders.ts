@@ -64,6 +64,54 @@ export async function createOrder(order: {
   return newOrder
 }
 
+export async function updateOrder(id: string, order: {
+  client_name: string
+  client_email?: string
+  notes?: string
+  quote_tiers?: { qty: number; unit_price: number }[] | null
+  show_discount_on_print?: boolean
+  items: Array<{
+    product_id?: string
+    product_name: string
+    quantity: number
+    unit_price: number
+  }>
+}) {
+  const supabase = await createClient()
+
+  const { error: orderError } = await supabase
+    .from('orders')
+    .update({
+      client_name:            order.client_name,
+      client_email:           order.client_email ?? null,
+      notes:                  order.notes ?? null,
+      quote_tiers:            order.quote_tiers ?? null,
+      show_discount_on_print: order.show_discount_on_print ?? false,
+      updated_at:             new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (orderError) throw orderError
+
+  // Replace order items: delete existing, insert new
+  await supabase.from('order_items').delete().eq('order_id', id)
+
+  if (order.items.length > 0) {
+    const { error: itemsError } = await supabase.from('order_items').insert(
+      order.items.map(item => ({
+        order_id:     id,
+        product_id:   item.product_id ?? null,
+        product_name: item.product_name,
+        quantity:     item.quantity,
+        unit_price:   item.unit_price,
+      }))
+    )
+    if (itemsError) throw itemsError
+  }
+
+  revalidatePath('/pedidos')
+}
+
 export async function updateOrderStatus(id: string, status: string) {
   const supabase = await createClient()
   const { error } = await supabase

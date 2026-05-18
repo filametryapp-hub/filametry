@@ -25,6 +25,7 @@ interface CatalogClient {
 }
 
 interface Props {
+  initial?: Order          // if provided → edit mode
   onSave: (order: Order) => void
   onClose: () => void
 }
@@ -34,46 +35,46 @@ const INPUT_CLS =
 
 const DEFAULT_QTYS = [10, 20, 50, 100, 200]
 
-export function OrderForm({ onSave, onClose }: Props) {
+export function OrderForm({ initial, onSave, onClose }: Props) {
   const { t, fmtCurrency } = useT()
+  const isEditing = Boolean(initial)
 
   const [products,    setProducts]   = useState<CatalogProduct[]>([])
   const [clients,     setClients]    = useState<CatalogClient[]>([])
   const [loadingCat,  setLoadingCat] = useState(true)
 
-  // Client
-  const [clientName,  setClientName]  = useState('')
-  const [clientEmail, setClientEmail] = useState('')
-  const [notes,       setNotes]       = useState('')
+  // Client — pre-fill from initial if editing
+  const [clientName,  setClientName]  = useState(initial?.clientName ?? '')
+  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? '')
+  const [notes,       setNotes]       = useState(initial?.notes ?? '')
 
-  // Selected product
+  // Selected product — pre-fill from first item
   const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)
 
-  // Quote tiers: qty + unitPrice
-  const [tiers, setTiers] = useState<QuoteTier[]>([])
+  // Quote tiers — pre-fill from initial
+  const [tiers, setTiers] = useState<QuoteTier[]>(initial?.quoteTiers ?? [])
   const [newQty, setNewQty] = useState('')
 
-  // Print option
-  const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(false)
+  // Print option — pre-fill from initial
+  const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(initial?.showDiscountOnPrint ?? false)
 
   useEffect(() => {
     async function load() {
       try {
         const [prods, cls] = await Promise.all([getProducts(), getClients()])
-        setProducts(
-          (prods ?? []).map((p: Record<string, unknown>) => ({
-            id:           String(p.id),
-            name:         String(p.name),
-            priceUSD:     Number(p.price_usd ?? 0),
-            costUSD:      Number(p.cost_usd ?? 0),
-            material:     String(p.material ?? ''),
-            volumePrices: Array.isArray(p.volume_prices)
-              ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
-                  minQty: t.min_qty, priceUSD: t.price_usd,
-                }))
-              : undefined,
-          }))
-        )
+        const mapped: CatalogProduct[] = (prods ?? []).map((p: Record<string, unknown>) => ({
+          id:           String(p.id),
+          name:         String(p.name),
+          priceUSD:     Number(p.price_usd ?? 0),
+          costUSD:      Number(p.cost_usd ?? 0),
+          material:     String(p.material ?? ''),
+          volumePrices: Array.isArray(p.volume_prices)
+            ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
+                minQty: t.min_qty, priceUSD: t.price_usd,
+              }))
+            : undefined,
+        }))
+        setProducts(mapped)
         setClients(
           (cls ?? []).map((c: Record<string, unknown>) => ({
             id:    String(c.id),
@@ -81,12 +82,17 @@ export function OrderForm({ onSave, onClose }: Props) {
             email: c.email ? String(c.email) : null,
           }))
         )
+        // In edit mode: find and pre-select the product from first item
+        if (initial?.items[0]?.productId) {
+          const found = mapped.find(p => p.id === initial.items[0].productId)
+          if (found) setSelectedProd(found)
+        }
       } catch { /* silent */ } finally {
         setLoadingCat(false)
       }
     }
     load()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectProduct(productId: string) {
     const prod = products.find(p => p.id === productId) ?? null
@@ -141,20 +147,20 @@ export function OrderForm({ onSave, onClose }: Props) {
     const now = new Date().toISOString().slice(0, 10)
     const smallestTier = tiers[0]
     onSave({
-      id: '',
+      id:          initial?.id ?? '',
       clientName,
       clientEmail: clientEmail || undefined,
-      notes: notes || undefined,
+      notes:       notes || undefined,
       items: [{
         productId:   selectedProd.id,
         productName: selectedProd.name,
         quantity:    smallestTier.qty,
         unitPrice:   smallestTier.unitPrice,
       }],
-      quoteTiers: tiers,
+      quoteTiers:         tiers,
       showDiscountOnPrint,
-      status: 'draft',
-      createdAt: now,
+      status:    initial?.status ?? 'draft',
+      createdAt: initial?.createdAt ?? now,
       updatedAt: now,
     })
   }
@@ -171,7 +177,7 @@ export function OrderForm({ onSave, onClose }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="size-4 text-orange-500" />
-            <h2 className="text-lg font-semibold">Novo Orçamento</h2>
+            <h2 className="text-lg font-semibold">{isEditing ? 'Editar Orçamento' : 'Novo Orçamento'}</h2>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="size-5" />
@@ -425,7 +431,7 @@ export function OrderForm({ onSave, onClose }: Props) {
             disabled={!selectedProd || tiers.length === 0}
             className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
           >
-            Salvar Orçamento
+            {isEditing ? 'Salvar Alterações' : 'Salvar Orçamento'}
           </button>
         </div>
       </form>

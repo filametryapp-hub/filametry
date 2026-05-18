@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, Trash2, FileText, Printer } from 'lucide-react'
+import { X, ChevronRight, Trash2, FileText, Printer, Pencil } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
   type Order,
@@ -14,6 +14,7 @@ interface Props {
   order: Order
   onStatusChange: (status: OrderStatus) => void
   onDelete: () => void
+  onEdit: () => void
   onClose: () => void
 }
 
@@ -29,7 +30,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   )
 }
 
-export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props) {
+export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }: Props) {
   const { t, fmtCurrency } = useT()
   const or = t.orders
   const total      = orderTotal(order)
@@ -176,12 +177,20 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">Criado {order.createdAt} · Atualizado {order.updatedAt}</p>
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"
-          >
-            <Trash2 className="size-3.5" /> {t.common.delete}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-orange-400 transition-colors"
+            >
+              <Pencil className="size-3.5" /> Alterar
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"
+            >
+              <Trash2 className="size-3.5" /> {t.common.delete}
+            </button>
+          </div>
         </div>
 
         {/* Status actions */}

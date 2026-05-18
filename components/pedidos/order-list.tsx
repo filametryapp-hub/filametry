@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, ClipboardList, ChevronRight, FileText } from 'lucide-react'
 import { OrderForm } from './order-form'
 import { OrderDetail } from './order-detail'
-import { getOrders, createOrder, updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
+import { getOrders, createOrder, updateOrder, updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import {
   type Order,
   type OrderItem,
@@ -62,6 +62,7 @@ export function OrderList() {
   const [orders, setOrders]       = useState<Order[]>([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
+  const [editing, setEditing]     = useState<Order | null>(null)
   const [viewing, setViewing]     = useState<Order | null>(null)
   const [filterStatus, setFilter] = useState<Order['status'] | 'all'>('all')
 
@@ -89,12 +90,12 @@ export function OrderList() {
     ['sent', 'accepted', 'printing'].includes(o.status)
   ).length
 
-  async function save(order: Order) {
-    await createOrder({
-      client_name:  order.clientName,
-      client_email: order.clientEmail,
-      notes:        order.notes,
-      quote_tiers:           order.quoteTiers?.map(t => ({
+  function buildPayload(order: Order) {
+    return {
+      client_name:            order.clientName,
+      client_email:           order.clientEmail,
+      notes:                  order.notes,
+      quote_tiers:            order.quoteTiers?.map(t => ({
         qty:        t.qty,
         unit_price: t.unitPrice,
       })) ?? null,
@@ -105,9 +106,20 @@ export function OrderList() {
         quantity:     i.quantity,
         unit_price:   i.unitPrice,
       })),
-    })
+    }
+  }
+
+  async function save(order: Order) {
+    if (order.id) {
+      // Edit mode
+      await updateOrder(order.id, buildPayload(order))
+    } else {
+      // Create mode
+      await createOrder(buildPayload(order))
+    }
     await load()
     setShowForm(false)
+    setEditing(null)
     setViewing(null)
   }
 
@@ -223,7 +235,15 @@ export function OrderList() {
         />
       )}
 
-      {viewing && (
+      {editing && (
+        <OrderForm
+          initial={editing}
+          onSave={save}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {viewing && !editing && (
         <OrderDetail
           order={viewing}
           onStatusChange={(status) => {
@@ -231,6 +251,7 @@ export function OrderList() {
             setViewing(prev => prev ? { ...prev, status } : null)
           }}
           onDelete={() => remove(viewing.id)}
+          onEdit={() => { setEditing(viewing); setViewing(null) }}
           onClose={() => setViewing(null)}
         />
       )}
