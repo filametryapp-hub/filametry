@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Plus, Trash2 } from 'lucide-react'
+import type { VolumeTier } from '@/lib/product-types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MATERIAL_GROUPS } from '@/lib/filament-types'
@@ -36,6 +37,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
       : { ...BLANK, id: '', createdAt: new Date().toISOString().slice(0, 10) }
   )
   const [tagInput, setTagInput] = useState(initial?.tags.join(', ') ?? '')
+  const [volumeTiers, setVolumeTiers] = useState<VolumeTier[]>(initial?.volumePrices ?? [])
 
   const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
     setForm(prev => ({ ...prev, [k]: v }))
@@ -47,7 +49,14 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
-    onSave({ ...form, tags })
+    onSave({ ...form, tags, volumePrices: volumeTiers.length ? volumeTiers : undefined })
+  }
+
+  function addTier() {
+    const nextQty = volumeTiers.length === 0
+      ? 5
+      : Math.max(...volumeTiers.map(t => t.minQty)) + 5
+    setVolumeTiers(prev => [...prev, { minQty: nextQty, priceUSD: form.priceUSD * 0.9 }])
   }
 
   return (
@@ -155,6 +164,59 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             </div>
           </div>
         )}
+
+        {/* Volume pricing tiers */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Preço por volume</Label>
+            <button type="button" onClick={addTier}
+              className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 transition-colors">
+              <Plus className="size-3" /> Adicionar faixa
+            </button>
+          </div>
+
+          {volumeTiers.length === 0 && (
+            <p className="text-[11px] text-muted-foreground/60 italic">
+              Nenhuma faixa de volume. Clique em &quot;Adicionar faixa&quot; para oferecer desconto por quantidade.
+            </p>
+          )}
+
+          {volumeTiers.sort((a, b) => a.minQty - b.minQty).map((tier, idx) => {
+            const discountPct = form.priceUSD > 0
+              ? ((form.priceUSD - tier.priceUSD) / form.priceUSD * 100)
+              : 0
+            return (
+              <div key={idx} className="grid grid-cols-[80px_1fr_56px_24px] gap-2 items-center">
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground">A partir de</Label>
+                  <input
+                    type="number" min={2} step={1}
+                    value={tier.minQty}
+                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, minQty: +e.target.value } : t))}
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground">Preço/un</Label>
+                  <input
+                    type="number" min={0} step={0.01}
+                    value={tier.priceUSD}
+                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, priceUSD: +e.target.value } : t))}
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                <span className={`text-xs font-medium text-right tabular-nums ${discountPct > 0 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                  {discountPct > 0 ? `-${discountPct.toFixed(0)}%` : '—'}
+                </span>
+                <button type="button"
+                  onClick={() => setVolumeTiers(prev => prev.filter((_, i) => i !== idx))}
+                  className="text-muted-foreground hover:text-red-400 transition-colors">
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
 
         <div className="flex gap-3">
           <button type="button" onClick={onClose}

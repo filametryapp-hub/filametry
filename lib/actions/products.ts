@@ -25,6 +25,7 @@ export async function upsertProduct(product: {
   price_usd: number
   image_url?: string
   tags: string[]
+  volume_prices?: { min_qty: number; price_usd: number }[] | null
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

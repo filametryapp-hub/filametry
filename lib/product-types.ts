@@ -1,3 +1,8 @@
+export interface VolumeTier {
+  minQty: number
+  priceUSD: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -6,10 +11,11 @@ export interface Product {
   weightG: number
   printHours: number
   costUSD: number       // total production cost
-  priceUSD: number      // sale price
+  priceUSD: number      // sale price (1 unit, no volume)
   imageUrl?: string
   tags: string[]
   createdAt: string
+  volumePrices?: VolumeTier[]
 }
 
 export interface OrderItem {
@@ -33,12 +39,12 @@ export interface Order {
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  draft:     'Draft',
-  sent:      'Sent',
-  accepted:  'Accepted',
-  printing:  'Printing',
-  done:      'Done',
-  cancelled: 'Cancelled',
+  draft:     'Rascunho',
+  sent:      'Enviado',
+  accepted:  'Aceito',
+  printing:  'Imprimindo',
+  done:      'Concluído',
+  cancelled: 'Cancelado',
 }
 
 export const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -48,6 +54,14 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   printing:  'bg-orange-500/10 text-orange-400',
   done:      'bg-green-500/10 text-green-400',
   cancelled: 'bg-red-500/10 text-red-400',
+}
+
+/** Given a product's volume tiers and a quantity, return the applicable unit price */
+export function resolveUnitPrice(priceUSD: number, volumePrices: VolumeTier[] | undefined, qty: number): number {
+  if (!volumePrices || volumePrices.length === 0) return priceUSD
+  const sorted = [...volumePrices].sort((a, b) => b.minQty - a.minQty)
+  const tier = sorted.find(t => qty >= t.minQty)
+  return tier ? tier.priceUSD : priceUSD
 }
 
 export function orderTotal(order: Order): number {

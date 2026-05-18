@@ -10,17 +10,22 @@ import type { Product } from '@/lib/product-types'
 // Map DB row (snake_case) → Product (camelCase)
 function fromRow(row: Record<string, unknown>): Product {
   return {
-    id:          String(row.id),
-    name:        String(row.name),
-    description: String(row.description ?? ''),
-    material:    String(row.material),
-    weightG:     Number(row.weight_g),
-    printHours:  Number(row.print_hours),
-    costUSD:     Number(row.cost_usd),
-    priceUSD:    Number(row.price_usd),
-    imageUrl:    row.image_url ? String(row.image_url) : undefined,
-    tags:        Array.isArray(row.tags) ? (row.tags as string[]) : [],
-    createdAt:   String(row.created_at ?? ''),
+    id:           String(row.id),
+    name:         String(row.name),
+    description:  String(row.description ?? ''),
+    material:     String(row.material),
+    weightG:      Number(row.weight_g),
+    printHours:   Number(row.print_hours),
+    costUSD:      Number(row.cost_usd),
+    priceUSD:     Number(row.price_usd),
+    imageUrl:     row.image_url ? String(row.image_url) : undefined,
+    tags:         Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    createdAt:    String(row.created_at ?? ''),
+    volumePrices: Array.isArray(row.volume_prices)
+      ? (row.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
+          minQty: t.min_qty, priceUSD: t.price_usd,
+        }))
+      : undefined,
   }
 }
 
@@ -161,16 +166,17 @@ export function ProductList() {
     setSaving(true)
     try {
       await upsertProduct({
-        id:          data.id || undefined,
-        name:        data.name,
-        description: data.description,
-        material:    data.material,
-        weight_g:    data.weightG,
-        print_hours: data.printHours,
-        cost_usd:    data.costUSD,
-        price_usd:   data.priceUSD,
-        image_url:   data.imageUrl,
-        tags:        data.tags,
+        id:            data.id || undefined,
+        name:          data.name,
+        description:   data.description,
+        material:      data.material,
+        weight_g:      data.weightG,
+        print_hours:   data.printHours,
+        cost_usd:      data.costUSD,
+        price_usd:     data.priceUSD,
+        image_url:     data.imageUrl,
+        tags:          data.tags,
+        volume_prices: data.volumePrices?.map(t => ({ min_qty: t.minQty, price_usd: t.priceUSD })) ?? null,
       })
       await load()
     } finally {
