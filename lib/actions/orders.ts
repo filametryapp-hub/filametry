@@ -14,6 +14,18 @@ export async function getOrders() {
   return data
 }
 
+export async function getOrderById(id: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function createOrder(order: {
   client_name: string
   client_email?: string

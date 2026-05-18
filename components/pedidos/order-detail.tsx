@@ -185,6 +185,12 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
               <Pencil className="size-3.5" /> Alterar
             </button>
             <button
+              onClick={() => window.open(`/pedidos/${order.id}/print`, '_blank')}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-orange-400 transition-colors"
+            >
+              <Printer className="size-3.5" /> Imprimir
+            </button>
+            <button
               onClick={onDelete}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors"
             >
