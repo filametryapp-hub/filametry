@@ -5,19 +5,11 @@ import { X, Plus, Trash2, ShoppingCart, Package } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { MATERIALS, type MaterialCategory, type MaterialUnit } from '@/lib/filament-types'
+import { MATERIAL_GROUPS, type MaterialCategory, type MaterialUnit } from '@/lib/filament-types'
 import { batchUpsertFilaments } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 
-// ── Material options flat list for per-item selects ───────────
-const MATERIAL_GROUPS = [
-  { label: 'PLA',      items: ['PLA', 'PLA+', 'PLA Matte', 'PLA Silk', 'PLA-CF'] },
-  { label: 'PETG',     items: ['PETG', 'PETG-CF'] },
-  { label: 'ABS/ASA',  items: ['ABS', 'ASA'] },
-  { label: 'Flexível', items: ['TPU', 'TPE'] },
-  { label: 'Técnico',  items: ['PA (Nylon)', 'PA-CF', 'PA-GF', 'PC', 'PC-ABS'] },
-  { label: 'Outros',   items: ['HIPS', 'PVA', 'Resin (Standard)', 'Resin (ABS-like)', 'Resin (Flexible)'] },
-]
+// MATERIAL_GROUPS imported from @/lib/filament-types
 
 const CATEGORIES: MaterialCategory[] = ['Filament', 'Tool', 'Packaging', 'Accessory', 'Other']
 const UNITS: MaterialUnit[] = ['g', 'kg', 'units', 'm', 'ml']

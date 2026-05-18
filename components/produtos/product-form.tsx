@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MATERIALS } from '@/lib/filament-types'
+import { MATERIAL_GROUPS } from '@/lib/filament-types'
 import type { Product } from '@/lib/product-types'
 import { useT } from '@/lib/i18n'
 import { CurrencyInput } from '@/components/ui/currency-input'
@@ -88,7 +88,11 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
               onChange={e => set('material', e.target.value)}
               className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
-              {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
+              {MATERIAL_GROUPS.map(group => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.items.map(m => <option key={m} value={m}>{m}</option>)}
+                </optgroup>
+              ))}
             </select>
           </div>
 

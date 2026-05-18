@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { type FilamentSpool, MATERIALS, type MaterialCategory, type MaterialUnit } from '@/lib/filament-types'
+import { type FilamentSpool, MATERIAL_GROUPS, type MaterialCategory, type MaterialUnit } from '@/lib/filament-types'
 import { useT } from '@/lib/i18n'
 
 interface Props {
@@ -122,7 +122,11 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
                 onChange={e => set('material', e.target.value)}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
               >
-                {MATERIALS.map(mat => <option key={mat} value={mat}>{mat}</option>)}
+                {MATERIAL_GROUPS.map(group => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.items.map(mat => <option key={mat} value={mat}>{mat}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </div>
           )}
