@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Info, Plus, X, Layers, RotateCcw, Palette } from 'lucide-react'
+import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import type { SlicerData } from '@/lib/parse-gcode'
 import { useT } from '@/lib/i18n'
+import { upsertProduct } from '@/lib/actions/products'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -117,6 +118,150 @@ const SPOOL_DEFAULTS: Field[] = [
   { id: 'defaultSpoolPrice',  label: 'Default spool price',  unit: '$',  min: 0.01, step: 0.5, tip: 'Default price used when adding a new filament.' },
   { id: 'defaultSpoolWeight', label: 'Default spool weight', unit: 'g',  min: 100,  step: 50,  tip: 'Default spool weight in grams (usually 1000 g).' },
 ]
+
+// ── SaveProductModal ────────────────────────────────────────────
+
+function SaveProductModal({
+  costUSD,
+  priceUSD,
+  weightG,
+  printHours,
+  material,
+  onClose,
+}: {
+  costUSD: number
+  priceUSD: number
+  weightG: number
+  printHours: number
+  material: string
+  onClose: () => void
+}) {
+  const { t } = useT()
+  const pr = t.pricing
+  const [name, setName]       = useState('')
+  const [mat, setMat]         = useState(material || 'PLA')
+  const [cost, setCost]       = useState(parseFloat(costUSD.toFixed(2)))
+  const [price, setPrice]     = useState(parseFloat(priceUSD.toFixed(2)))
+  const [saving, setSaving]   = useState(false)
+  const [saved, setSaved]     = useState(false)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await upsertProduct({
+        name: name.trim(),
+        material: mat,
+        weight_g: parseFloat(weightG.toFixed(1)),
+        print_hours: parseFloat(printHours.toFixed(2)),
+        cost_usd: cost,
+        price_usd: price,
+        tags: [],
+      })
+      setSaved(true)
+      setTimeout(onClose, 1200)
+    } catch {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <form
+        onSubmit={submit}
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl p-6 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <PackagePlus className="size-4 text-orange-500" />
+            {pr.saveAsProductTitle}
+          </h2>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">{pr.productName} *</label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Happy Birthday Nameplate"
+              required
+            />
+          </div>
+
+          {/* Material */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">{pr.productMaterial}</label>
+            <Input value={mat} onChange={e => setMat(e.target.value)} placeholder="PLA" />
+          </div>
+
+          {/* Cost + Price side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">{t.products.costUSD}</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
+                <Input
+                  type="number" min={0} step={0.01}
+                  value={cost}
+                  onChange={e => setCost(parseFloat(e.target.value) || 0)}
+                  onWheel={e => e.currentTarget.blur()}
+                  className="pl-6"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">{t.products.priceUSD}</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
+                <Input
+                  type="number" min={0} step={0.01}
+                  value={price}
+                  onChange={e => setPrice(parseFloat(e.target.value) || 0)}
+                  onWheel={e => e.currentTarget.blur()}
+                  className="pl-6"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Summary chips */}
+          <div className="flex gap-2 text-xs text-muted-foreground">
+            <span className="bg-muted/50 rounded-full px-2 py-0.5">{weightG.toFixed(1)}g</span>
+            <span className="bg-muted/50 rounded-full px-2 py-0.5">{printHours.toFixed(2)}h</span>
+            {price > 0 && cost > 0 && (
+              <span className="bg-orange-500/10 text-orange-400 rounded-full px-2 py-0.5">
+                {(((price - cost) / price) * 100).toFixed(1)}% margin
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onClose}
+            className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
+            {t.common.cancel}
+          </button>
+          <button type="submit" disabled={saving || saved || !name.trim()}
+            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+            {saved
+              ? <><Check className="size-4" /> {pr.productSaved}</>
+              : saving
+                ? pr.productSaving
+                : pr.saveAsProduct}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
 
 // ── NumInput ───────────────────────────────────────────────────
 
@@ -411,6 +556,7 @@ export function PricingCalculator() {
   const [amortLabel, setAmortLabel] = useState<string | null>(null)
   const [priceOverride, setPriceOverride] = useState<number | null>(null)
   const [priceInput, setPriceInput]       = useState('')
+  const [showSaveModal, setShowSaveModal] = useState(false)
 
   // ── Shared setters ─────────────────────────────────────────
   const setSharedField = (id: keyof SharedValues) => (v: number) => {
@@ -669,6 +815,7 @@ export function PricingCalculator() {
                       if (isNaN(n) || n <= 0) { setPriceOverride(null); setPriceInput('') }
                       else { setPriceOverride(n); setPriceInput(n.toFixed(2)) }
                     }}
+                    onWheel={e => e.currentTarget.blur()}
                     className="text-4xl font-bold text-orange-500 bg-transparent border-none outline-none w-40 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
@@ -688,6 +835,15 @@ export function PricingCalculator() {
                   ROI ×{result.subtotal > 0 ? (finalPrice / result.subtotal).toFixed(2) : '—'}
                 </Badge>
               </div>
+
+              {/* Save as product */}
+              <button
+                onClick={() => setShowSaveModal(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10 text-orange-500 text-sm font-medium py-2 transition-colors"
+              >
+                <PackagePlus className="size-4" />
+                {pr.saveAsProduct}
+              </button>
 
               {/* Per-batch summary */}
               {batches.length > 1 && (
@@ -740,6 +896,18 @@ export function PricingCalculator() {
           </Card>
         </div>
       </div>
+
+      {/* Save as product modal */}
+      {showSaveModal && (
+        <SaveProductModal
+          costUSD={result.subtotal}
+          priceUSD={finalPrice}
+          weightG={result.totalWeight}
+          printHours={result.totalHours}
+          material={batches[0]?.filaments[0]?.type ?? 'PLA'}
+          onClose={() => setShowSaveModal(false)}
+        />
+      )}
     </div>
   )
 }
