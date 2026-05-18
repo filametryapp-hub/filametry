@@ -90,9 +90,9 @@ export async function deleteDistribution(id: string) {
 export async function getAssetDebtSummary() {
   const { supabase, companyId } = await getCtx()
 
-  // 1. Partners with percentages
+  // 1. Partners with percentages (stored in 'partners' table)
   const { data: partners } = await supabase
-    .from('company_partners')
+    .from('partners')
     .select('name, percentage')
     .eq('company_id', companyId)
 

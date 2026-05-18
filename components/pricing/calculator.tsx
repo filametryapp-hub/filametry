@@ -147,6 +147,7 @@ function SaveProductModal({
   const [mat, setMat]         = useState(material || 'PLA')
   const [cost, setCost]       = useState(parseFloat(costUSD.toFixed(2)))
   const [price, setPrice]     = useState(parseFloat(priceUSD.toFixed(2)))
+  const [priceStr, setPriceStr] = useState(priceUSD > 0 ? priceUSD.toFixed(2) : '')
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
 
@@ -214,11 +215,11 @@ function SaveProductModal({
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
                 <Input
-                  type="number" min={0} step={0.01}
-                  value={cost}
-                  onChange={e => setCost(parseFloat(e.target.value) || 0)}
-                  onWheel={e => e.currentTarget.blur()}
-                  className="pl-6"
+                  type="text"
+                  inputMode="decimal"
+                  value={cost.toFixed(2)}
+                  readOnly
+                  className="pl-6 text-muted-foreground cursor-default select-none"
                 />
               </div>
             </div>
@@ -227,10 +228,26 @@ function SaveProductModal({
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
                 <Input
-                  type="number" min={0} step={0.01}
-                  value={price}
-                  onChange={e => setPrice(parseFloat(e.target.value) || 0)}
-                  onWheel={e => e.currentTarget.blur()}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={priceStr}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9.]/g, '')
+                    setPriceStr(raw)
+                    const n = parseFloat(raw)
+                    if (!isNaN(n) && n > 0) setPrice(n)
+                  }}
+                  onBlur={() => {
+                    const n = parseFloat(priceStr)
+                    if (!isNaN(n) && n > 0) {
+                      setPrice(n)
+                      setPriceStr(n.toFixed(2))
+                    } else {
+                      setPriceStr('')
+                      setPrice(0)
+                    }
+                  }}
                   className="pl-6"
                 />
               </div>
@@ -839,7 +856,7 @@ export function PricingCalculator() {
                       const raw = e.target.value
                       setPriceInput(raw)
                       const n = parseFloat(raw)
-                      if (!isNaN(n) && n >= 0) setPriceOverride(n)
+                      if (!isNaN(n) && n > 0) setPriceOverride(n)
                     }}
                     onBlur={e => {
                       const n = parseFloat(e.target.value)
