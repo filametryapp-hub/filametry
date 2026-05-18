@@ -13,6 +13,7 @@ import {
   getBambuStatus,
   bambuConnect,
   bambuVerify,
+  bambuTfa,
   bambuDisconnect,
 } from '@/lib/actions/bambu'
 import { useT, CURRENCIES, type CurrencyCode } from '@/lib/i18n'
@@ -55,7 +56,8 @@ function BambuSection() {
   const [email, setEmail]             = useState('')
   const [password, setPassword]       = useState('')
   const [showPass, setShowPass]       = useState(false)
-  const [step, setStep]               = useState<'idle' | 'verify'>('idle')
+  const [step, setStep]               = useState<'idle' | 'verify' | 'tfa'>('idle')
+  const [tfaKey, setTfaKey]           = useState('')
   const [busy, setBusy]               = useState(false)
   const [verifyCode, setVerifyCode]   = useState('')
   const [error, setError]             = useState('')
@@ -75,6 +77,9 @@ function BambuSection() {
       setPassword('')
     } else if (result.type === 'verify') {
       setStep('verify')
+    } else if (result.type === 'tfa') {
+      setTfaKey(result.tfaKey)
+      setStep('tfa')
     } else {
       setError(result.msg)
     }
@@ -85,6 +90,22 @@ function BambuSection() {
     setError('')
     setBusy(true)
     const result = await bambuVerify(email.trim(), verifyCode.trim())
+    setBusy(false)
+    if (result.type === 'ok') {
+      setStatus({ connected: true, email: email.trim() })
+      setVerifyCode('')
+      setPassword('')
+      setStep('idle')
+    } else {
+      setError(result.msg)
+    }
+  }
+
+  async function handleTfa() {
+    if (!verifyCode.trim()) { setError('Digite o código TOTP.'); return }
+    setError('')
+    setBusy(true)
+    const result = await bambuTfa(tfaKey, verifyCode.trim())
     setBusy(false)
     if (result.type === 'ok') {
       setStatus({ connected: true, email: email.trim() })
@@ -143,22 +164,24 @@ function BambuSection() {
           </button>
         </div>
       ) : step === 'verify' ? (
-        /* ── 2FA verification ── */
+        /* ── Email verification code ── */
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Um código de verificação foi enviado para <span className="font-medium text-foreground">{email}</span>. Digite-o abaixo.
+            Um código de verificação foi enviado para <span className="font-medium text-foreground">{email}</span>. Verifique sua caixa de entrada e cole o código abaixo.
           </p>
           <input
             className={INPUT}
             placeholder="Código de 6 dígitos"
             value={verifyCode}
             maxLength={8}
+            inputMode="numeric"
             onChange={e => setVerifyCode(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleVerify()}
+            autoFocus
           />
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={() => { setStep('idle'); setError('') }}
+            <button onClick={() => { setStep('idle'); setError(''); setVerifyCode('') }}
               className="text-sm px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
               Voltar
             </button>
@@ -167,6 +190,36 @@ function BambuSection() {
               {busy
                 ? <><div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verificando…</>
                 : <>Verificar código</>}
+            </button>
+          </div>
+        </div>
+      ) : step === 'tfa' ? (
+        /* ── TOTP / Authenticator app ── */
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Sua conta usa autenticação de dois fatores. Digite o código do seu aplicativo autenticador.
+          </p>
+          <input
+            className={INPUT}
+            placeholder="Código TOTP (6 dígitos)"
+            value={verifyCode}
+            maxLength={6}
+            inputMode="numeric"
+            onChange={e => setVerifyCode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleTfa()}
+            autoFocus
+          />
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => { setStep('idle'); setError(''); setVerifyCode('') }}
+              className="text-sm px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
+              Voltar
+            </button>
+            <button onClick={handleTfa} disabled={busy}
+              className="flex-1 flex items-center justify-center gap-2 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+              {busy
+                ? <><div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verificando…</>
+                : <>Confirmar 2FA</>}
             </button>
           </div>
         </div>

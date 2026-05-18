@@ -9,7 +9,7 @@ import { MATERIALS, type MaterialCategory, type MaterialUnit } from '@/lib/filam
 import { batchUpsertFilaments } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 
-// ── Common material type groups for quick selection ───────────
+// ── Material options flat list for per-item selects ───────────
 const MATERIAL_GROUPS = [
   { label: 'PLA',      items: ['PLA', 'PLA+', 'PLA Matte', 'PLA Silk', 'PLA-CF'] },
   { label: 'PETG',     items: ['PETG', 'PETG-CF'] },
@@ -22,8 +22,82 @@ const MATERIAL_GROUPS = [
 const CATEGORIES: MaterialCategory[] = ['Filament', 'Tool', 'Packaging', 'Accessory', 'Other']
 const UNITS: MaterialUnit[] = ['g', 'kg', 'units', 'm', 'ml']
 
+// ── Color name → hex lookup ───────────────────────────────────
+// Each entry: [keywords (pt + en), hex]
+const COLOR_MAP: [string[], string][] = [
+  // Neutros
+  [['preto', 'black', 'negro'],                         '#1C1C1C'],
+  [['branco', 'white', 'blanc'],                        '#F5F5F5'],
+  [['cinza escuro', 'dark gray', 'dark grey', 'charcoal', 'carvão'], '#555555'],
+  [['cinza claro', 'light gray', 'light grey'],         '#C0C0C0'],
+  [['cinza', 'gray', 'grey', 'prata fria'],             '#888888'],
+  [['prata', 'silver', 'prateado'],                     '#AAAAAA'],
+  [['transparente', 'natural', 'clear', 'translúcido', 'translucido'], '#D8E8F0'],
+  // Vermelhos / Rosas
+  [['vermelho escuro', 'dark red', 'bordô', 'bordeau', 'vinho', 'wine', 'maroon'], '#8B0000'],
+  [['vermelho', 'red', 'rojo'],                         '#D32F2F'],
+  [['coral'],                                           '#FF6F61'],
+  [['salmão', 'salmon'],                                '#FA8072'],
+  [['rosa claro', 'light pink', 'rosa bebê', 'baby pink'], '#F8BBD0'],
+  [['rosa choque', 'hot pink', 'pink choque', 'magenta rosa'], '#FF1493'],
+  [['rosa', 'pink'],                                    '#E91E63'],
+  [['magenta', 'fúcsia', 'fucsia'],                     '#C2185B'],
+  // Laranjas / Amarelos
+  [['laranja escuro', 'dark orange', 'abóbora', 'pumpkin'], '#E65100'],
+  [['laranja', 'orange'],                               '#FF6D00'],
+  [['amarelo ouro', 'gold yellow', 'âmbar', 'amber'],   '#FFC107'],
+  [['amarelo', 'yellow', 'amarillo'],                   '#FDD835'],
+  [['creme', 'cream', 'marfim', 'ivory'],               '#FFF8E1'],
+  [['bege', 'beige', 'areia', 'sand'],                  '#D4B896'],
+  // Verdes
+  [['verde lima', 'lime', 'verde neon', 'neon green'],  '#8BC34A'],
+  [['verde militar', 'olive', 'oliva', 'army green'],   '#556B2F'],
+  [['verde escuro', 'dark green', 'forest green'],      '#1B5E20'],
+  [['verde menta', 'mint', 'menta'],                    '#A5D6A7'],
+  [['verde', 'green', 'verde folha'],                   '#388E3C'],
+  [['teal', 'verde azulado', 'petróleo'],               '#00796B'],
+  // Azuis
+  [['azul royal', 'royal blue'],                        '#1565C0'],
+  [['azul marinho', 'navy', 'marine blue', 'marinho', 'azul escuro', 'dark blue'], '#0D1B4B'],
+  [['azul celeste', 'sky blue', 'céu'],                 '#4FC3F7'],
+  [['azul bebê', 'baby blue', 'azul claro', 'light blue'], '#BBDEFB'],
+  [['azul elétrico', 'electric blue', 'azul neon'],     '#0D47A1'],
+  [['ciano', 'cyan', 'aqua'],                           '#00BCD4'],
+  [['azul', 'blue', 'azul médio'],                      '#1976D2'],
+  [['índigo', 'indigo'],                                '#3F51B5'],
+  // Roxos / Lilás
+  [['roxo escuro', 'dark purple', 'uva', 'grape'],      '#4A148C'],
+  [['violeta', 'violet'],                               '#7B1FA2'],
+  [['roxo', 'purple'],                                  '#9C27B0'],
+  [['lilás', 'lilas', 'lavanda', 'lavender'],           '#CE93D8'],
+  // Marrons
+  [['marrom escuro', 'dark brown', 'chocolate'],        '#4E342E'],
+  [['marrom', 'brown', 'café', 'caramel', 'caramelo'],  '#795548'],
+  [['terracota', 'terra', 'terra cotta'],               '#C4622D'],
+  // Metálicos / Especiais
+  [['dourado', 'gold', 'ouro'],                         '#FFD700'],
+  [['bronze'],                                          '#CD7F32'],
+  [['cobre', 'copper'],                                 '#B87333'],
+]
+
+function guessHex(colorName: string): string | null {
+  const n = colorName.toLowerCase().trim()
+  if (!n) return null
+  // Try longest match first (e.g. "azul marinho" before "azul")
+  const sorted = [...COLOR_MAP].sort((a, b) => {
+    const aMax = Math.max(...a[0].map(k => k.length))
+    const bMax = Math.max(...b[0].map(k => k.length))
+    return bMax - aMax
+  })
+  for (const [keys, hex] of sorted) {
+    if (keys.some(k => n.includes(k))) return hex
+  }
+  return null
+}
+
 interface BatchItem {
   id: string
+  material: string     // ← now per-item
   color: string
   colorHex: string
   weightG: number
@@ -31,9 +105,10 @@ interface BatchItem {
   notes: string
 }
 
-function newItem(defaultWeight: number, defaultPrice: number): BatchItem {
+function newItem(defaultWeight: number, defaultPrice: number, defaultMaterial = 'PLA'): BatchItem {
   return {
     id: crypto.randomUUID(),
+    material: defaultMaterial,
     color: '',
     colorHex: '#888888',
     weightG: defaultWeight,
@@ -48,23 +123,23 @@ interface Props {
 }
 
 const INPUT = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground h-9'
+const SELECT_CLS = 'rounded-md border border-border/60 bg-background px-2 py-1 text-xs outline-none focus:border-orange-500 transition-colors h-8 w-full'
 
 export function BatchEntryModal({ onSaved, onClose }: Props) {
   const { t, fmtCurrency, currencySymbol } = useT()
   const m = t.materials
 
   // ── Shared fields ──────────────────────────────────────────
-  const [category,     setCategory]    = useState<MaterialCategory>('Filament')
-  const [material,     setMaterial]    = useState('PLA')
-  const [brand,        setBrand]       = useState('')
-  const [spoolWeightG, setSpoolWeightG] = useState(1000)
-  const [unit,         setUnit]        = useState<MaterialUnit>('g')
-  const [purchasedAt,  setPurchasedAt] = useState(new Date().toISOString().slice(0, 10))
-  const [sharedPrice,  setSharedPrice] = useState(0)   // if > 0, pre-fills all items
+  const [category,      setCategory]     = useState<MaterialCategory>('Filament')
+  const [brand,         setBrand]        = useState('')
+  const [spoolWeightG,  setSpoolWeightG] = useState(1000)
+  const [unit,          setUnit]         = useState<MaterialUnit>('g')
+  const [purchasedAt,   setPurchasedAt]  = useState(new Date().toISOString().slice(0, 10))
+  const [sharedPrice,   setSharedPrice]  = useState(0)
   const [applyPriceAll, setApplyPriceAll] = useState(true)
 
   // ── Items list ─────────────────────────────────────────────
-  const [items, setItems] = useState<BatchItem[]>([newItem(1000, 0)])
+  const [items, setItems] = useState<BatchItem[]>([newItem(1000, 0, 'PLA')])
 
   // ── Submission ─────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
@@ -74,7 +149,9 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
   const totalCost  = items.reduce((s, i) => s + i.priceUSD, 0)
 
   function addItem() {
-    setItems(prev => [...prev, newItem(spoolWeightG, applyPriceAll ? sharedPrice : 0)])
+    // New item inherits material from the last item for convenience
+    const lastMaterial = items[items.length - 1]?.material ?? 'PLA'
+    setItems(prev => [...prev, newItem(spoolWeightG, applyPriceAll ? sharedPrice : 0, lastMaterial)])
   }
 
   function removeItem(id: string) {
@@ -102,7 +179,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
     try {
       await batchUpsertFilaments(items.map(item => ({
         brand:        brand.trim(),
-        material:     isFilament ? material : '',
+        material:     isFilament ? item.material : '',
         color:        item.color.trim(),
         color_hex:    item.colorHex,
         weight_g:     item.weightG,
@@ -163,31 +240,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
             </div>
           </div>
 
-          {/* Material type — hero */}
-          {isFilament && (
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tipo de material</Label>
-              <div className="space-y-2">
-                {MATERIAL_GROUPS.map(group => (
-                  <div key={group.label} className="flex flex-wrap gap-1.5 items-center">
-                    <span className="text-[10px] text-muted-foreground/60 w-14 shrink-0">{group.label}</span>
-                    {group.items.map(mat => (
-                      <button key={mat} type="button" onClick={() => setMaterial(mat)}
-                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                          material === mat
-                            ? 'border-orange-500 bg-orange-500 text-white font-medium'
-                            : 'border-border text-muted-foreground hover:border-orange-500/50'
-                        }`}>
-                        {mat}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Shared fields row */}
+          {/* Shared fields */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label className="text-xs text-muted-foreground">Marca *</Label>
@@ -195,7 +248,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                 value={brand} onChange={e => setBrand(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Qtd por item ({unit})</Label>
+              <Label className="text-xs text-muted-foreground">Qtd padrão ({unit})</Label>
               <input className={INPUT} type="number" min={1} step={isFilament ? 50 : 1}
                 value={spoolWeightG}
                 onChange={e => {
@@ -218,8 +271,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Preço padrão ({currencySymbol})</Label>
-              <CurrencyInput value={sharedPrice} onChange={applySharedPrice}
-                className={INPUT} />
+              <CurrencyInput value={sharedPrice} onChange={applySharedPrice} className={INPUT} />
             </div>
             <div className="col-span-2 flex items-end pb-0.5">
               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
@@ -248,7 +300,8 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-[1fr_36px_120px_120px_32px] gap-2 px-1">
+            <div className="grid grid-cols-[130px_1fr_36px_90px_90px_32px] gap-2 px-3">
+              <span className="text-[10px] text-muted-foreground">Tipo</span>
               <span className="text-[10px] text-muted-foreground">Cor / Nome</span>
               <span className="text-[10px] text-muted-foreground text-center">Cor</span>
               <span className="text-[10px] text-muted-foreground text-center">Qtd ({unit})</span>
@@ -259,21 +312,52 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
             <div className="space-y-2">
               {items.map((item, idx) => (
                 <div key={item.id}
-                  className="grid grid-cols-[1fr_36px_120px_120px_32px] gap-2 items-center rounded-lg border border-border bg-muted/20 px-3 py-2">
+                  className="grid grid-cols-[130px_1fr_36px_90px_90px_32px] gap-2 items-center rounded-lg border border-border bg-muted/20 px-3 py-2">
 
-                  {/* Color name */}
+                  {/* Material type — per item */}
+                  {isFilament ? (
+                    <select
+                      value={item.material}
+                      onChange={e => updateItem(item.id, 'material', e.target.value)}
+                      className={SELECT_CLS}
+                    >
+                      {MATERIAL_GROUPS.map(group => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.items.map(mat => (
+                            <option key={mat} value={mat}>{mat}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+
+                  {/* Color name — auto-detects hex */}
                   <input
                     className="bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 min-w-0"
-                    placeholder={isFilament ? `Cor ${idx + 1} — ex: Preto Matte` : `Item ${idx + 1}`}
+                    placeholder={isFilament ? `Cor ${idx + 1}` : `Item ${idx + 1}`}
                     value={item.color}
-                    onChange={e => updateItem(item.id, 'color', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      updateItem(item.id, 'color', val)
+                      if (isFilament) {
+                        const hex = guessHex(val)
+                        if (hex) updateItem(item.id, 'colorHex', hex)
+                      }
+                    }}
                   />
 
                   {/* Color hex picker */}
                   {isFilament ? (
-                    <label className="cursor-pointer" title="Cor">
-                      <span className="block size-7 rounded-full border-2 border-border/60 mx-auto"
-                        style={{ backgroundColor: item.colorHex }} />
+                    <label className="cursor-pointer" title={item.colorHex}>
+                      <span className="block size-7 rounded-full border-2 border-border/60 mx-auto relative"
+                        style={{ backgroundColor: item.colorHex }}>
+                        {/* tiny sparkle when auto-detected */}
+                        {guessHex(item.color) === item.colorHex && (
+                          <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-orange-500 border border-background" />
+                        )}
+                      </span>
                       <input type="color" value={item.colorHex}
                         onChange={e => updateItem(item.id, 'colorHex', e.target.value)}
                         className="sr-only" />
@@ -327,8 +411,13 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
               <div className="text-sm">
                 <span className="font-semibold text-orange-500">{items.length} itens</span>
                 <span className="text-muted-foreground ml-2">
-                  · {brand || '…'} {isFilament ? material : ''} · {items.reduce((s, i) => s + i.weightG, 0).toLocaleString()}{unit} total
+                  · {brand || '…'} · {items.reduce((s, i) => s + i.weightG, 0).toLocaleString()}{unit} total
                 </span>
+                {isFilament && (
+                  <span className="text-muted-foreground ml-1">
+                    · {[...new Set(items.map(i => i.material))].join(', ')}
+                  </span>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Valor total</p>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Package, Pencil, Trash2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Package, Pencil, Trash2, FlaskConical } from 'lucide-react'
 import { ProductForm } from './product-form'
+import { TestPrintsSection } from './test-prints-section'
 import { getProducts, upsertProduct, deleteProduct } from '@/lib/actions/products'
 import type { Product } from '@/lib/product-types'
 
@@ -32,10 +33,11 @@ function margin(cost: number, price: number) {
   return ((price - cost) / price) * 100
 }
 
-function ProductCard({ product, onEdit, onDelete }: {
+function ProductCard({ product, onEdit, onDelete, onRegisterTest }: {
   product: Product
   onEdit: () => void
   onDelete: () => void
+  onRegisterTest: () => void
 }) {
   const m = margin(product.costUSD, product.priceUSD)
   const profit = product.priceUSD - product.costUSD
@@ -53,6 +55,13 @@ function ProductCard({ product, onEdit, onDelete }: {
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{product.description}</p>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <button
+              onClick={onRegisterTest}
+              title="Registrar teste / perda"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            >
+              <FlaskConical className="size-3.5" />
+            </button>
             <button onClick={onEdit}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
               <Pencil className="size-3.5" />
@@ -109,12 +118,14 @@ function ProductCard({ product, onEdit, onDelete }: {
 }
 
 export function ProductList() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing]   = useState<Product | null>(null)
-  const [saving, setSaving]     = useState(false)
-  const [search, setSearch]     = useState('')
+  const [products, setProducts]       = useState<Product[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [showForm, setShowForm]       = useState(false)
+  const [editing, setEditing]         = useState<Product | null>(null)
+  const [saving, setSaving]           = useState(false)
+  const [search, setSearch]           = useState('')
+  const [prefillProduct, setPrefill]  = useState<string | null>(null)
+  const testSectionRef                = useRef<HTMLDivElement>(null)
 
   async function load() {
     setLoading(true)
@@ -127,6 +138,12 @@ export function ProductList() {
   }
 
   useEffect(() => { load() }, [])
+
+  function handleRegisterTest(productName: string) {
+    setPrefill(productName)
+    // Small delay so the section can open and mount before scrolling
+    setTimeout(() => testSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+  }
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -221,10 +238,18 @@ export function ProductList() {
               product={p}
               onEdit={() => { setEditing(p); setShowForm(true) }}
               onDelete={() => remove(p.id)}
+              onRegisterTest={() => handleRegisterTest(p.name)}
             />
           ))}
         </div>
       )}
+
+      {/* Test prints & waste */}
+      <div ref={testSectionRef}>
+        <TestPrintsSection
+          prefillProduct={prefillProduct}
+        />
+      </div>
 
       {showForm && (
         <ProductForm
