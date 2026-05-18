@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle } from 'lucide-react'
 import { ProductForm } from './product-form'
-import { TestPrintsSection } from './test-prints-section'
+import { TestPrintsModal } from './test-prints-modal'
 import { getProducts, upsertProduct, deleteProduct, setProductStatus } from '@/lib/actions/products'
 import type { Product } from '@/lib/product-types'
 
@@ -153,17 +153,17 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
   )
 }
 
+type TestModalConfig = { prefillProduct?: string; prefillCost?: number } | null
+
 export function ProductList() {
-  const [products, setProducts]       = useState<Product[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [showForm, setShowForm]       = useState(false)
-  const [editing, setEditing]         = useState<Product | null>(null)
-  const [saving, setSaving]           = useState(false)
-  const [search, setSearch]           = useState('')
-  const [filterStatus, setFilter]     = useState<FilterStatus>('active')
-  const [prefillProduct, setPrefill]  = useState<string | null>(null)
-  const [prefillCost, setPrefillCost] = useState<number | null>(null)
-  const testSectionRef                = useRef<HTMLDivElement>(null)
+  const [products, setProducts]         = useState<Product[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [showForm, setShowForm]         = useState(false)
+  const [editing, setEditing]           = useState<Product | null>(null)
+  const [saving, setSaving]             = useState(false)
+  const [search, setSearch]             = useState('')
+  const [filterStatus, setFilter]       = useState<FilterStatus>('active')
+  const [testModalConfig, setTestModal] = useState<TestModalConfig>(null)
 
   async function load() {
     setLoading(true)
@@ -178,9 +178,7 @@ export function ProductList() {
   useEffect(() => { load() }, [])
 
   function handleRegisterTest(productName: string, productCost: number) {
-    setPrefill(productName)
-    setPrefillCost(productCost)
-    setTimeout(() => testSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    setTestModal({ prefillProduct: productName, prefillCost: productCost })
   }
 
   async function handleToggleStatus(p: Product) {
@@ -295,6 +293,13 @@ export function ProductList() {
         </div>
 
         <button
+          onClick={() => setTestModal({})}
+          className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap"
+        >
+          <FlaskConical className="size-4" /> Testes &amp; Perdas
+        </button>
+
+        <button
           onClick={() => { setEditing(null); setShowForm(true) }}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
         >
@@ -336,13 +341,13 @@ export function ProductList() {
         </div>
       )}
 
-      {/* Test prints & waste */}
-      <div ref={testSectionRef}>
-        <TestPrintsSection
-          prefillProduct={prefillProduct}
-          prefillCost={prefillCost}
+      {testModalConfig !== null && (
+        <TestPrintsModal
+          prefillProduct={testModalConfig.prefillProduct ?? null}
+          prefillCost={testModalConfig.prefillCost ?? null}
+          onClose={() => setTestModal(null)}
         />
-      </div>
+      )}
 
       {showForm && (
         <ProductForm
