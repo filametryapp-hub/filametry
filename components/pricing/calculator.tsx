@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check, Boxes, Trash2, Save, FolderOpen, Clock, Pencil } from 'lucide-react'
+import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check, Trash2, Save, FolderOpen, Clock, Pencil } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import { BambuImportModal } from './bambu-import-modal'
@@ -982,6 +982,25 @@ export function PricingCalculator() {
         {/* ── Left: inputs ──────────────────────────────────── */}
         <div className="lg:col-span-3 space-y-4">
 
+          {/* ── Unidades por chapa ── */}
+          <div className="flex items-center gap-4 rounded-xl border border-orange-500/30 bg-orange-500/5 px-5 py-3.5">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Unidades produzidas por chapa</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Quantas peças saem de uma vez nesta configuração de impressão
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="number" min={1} step={1}
+                value={unitsPerRun}
+                onChange={e => setUnitsPerRun(Math.max(1, +e.target.value))}
+                className="w-16 h-9 rounded-md border border-orange-500/40 bg-background px-2 text-center text-lg font-bold text-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-sm text-muted-foreground">un/chapa</span>
+            </div>
+          </div>
+
           {/* Build plates */}
           <Card>
             <CardHeader className="pb-3 pt-4 px-5">
@@ -1244,105 +1263,6 @@ export function PricingCalculator() {
                 </>
               )}
 
-              {/* ── Kit / Quantity table ── */}
-              <Separator />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="size-3.5 text-orange-500" />
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      {t.pricing.quoteKits}
-                    </p>
-                  </div>
-                  {/* unitsPerRun */}
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="whitespace-nowrap">Unid/chapa</span>
-                    <input
-                      type="number" min={1} step={1}
-                      value={unitsPerRun}
-                      onChange={e => setUnitsPerRun(Math.max(1, +e.target.value))}
-                      className="w-12 h-6 rounded border border-input bg-background px-1.5 text-center text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground/70">
-                  Material escala por unidade · Energia+máquina escala por chapa ({unitsPerRun}/chapa)
-                </p>
-
-                {/* Table */}
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="grid grid-cols-4 bg-muted/30 px-3 py-1.5">
-                    {['Qtd', 'Chapa(s)', 'Unit. preço', 'vs 1x'].map(h => (
-                      <span key={h} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-right first:text-left">{h}</span>
-                    ))}
-                  </div>
-                  {quantityTiers.sort((a, b) => a - b).map(qty => {
-                    const r = calculateForQty(qty, result, shared, unitsPerRun, priceOverride !== null ? null : undefined)
-                    const base1 = calculateForQty(1, result, shared, 1, priceOverride !== null ? null : undefined)
-                    const savingsPct = qty > 1 ? ((base1.unitPrice - r.unitPrice) / base1.unitPrice) * 100 : 0
-                    const isBase = qty === 1
-                    return (
-                      <div key={qty} className={`grid grid-cols-4 px-3 py-2 border-t border-border items-center ${isBase ? 'bg-muted/10' : 'hover:bg-muted/10 transition-colors'}`}>
-                        <span className="text-sm font-semibold">{qty}×</span>
-                        <span className="text-xs text-muted-foreground text-right tabular-nums">{r.runs}</span>
-                        <span className={`text-sm font-mono font-bold text-right ${isBase ? 'text-orange-500' : 'text-green-400'}`}>
-                          {fmt(r.unitPrice)}
-                        </span>
-                        <div className="flex items-center justify-end gap-1">
-                          {savingsPct > 0 ? (
-                            <span className="text-xs font-medium text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full tabular-nums">
-                              -{savingsPct.toFixed(0)}%
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                          {quantityTiers.length > 1 && (
-                            <button
-                              onClick={() => setQuantityTiers(prev => prev.filter(q => q !== qty))}
-                              className="ml-1 text-muted-foreground/40 hover:text-red-400 transition-colors"
-                            >
-                              <X className="size-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Add tier */}
-                <div className="flex gap-2">
-                  <input
-                    type="number" min={1} step={1} placeholder="Qtd…"
-                    value={newTierInput}
-                    onChange={e => setNewTierInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        const n = parseInt(newTierInput)
-                        if (n > 0 && !quantityTiers.includes(n)) {
-                          setQuantityTiers(prev => [...prev, n])
-                          setNewTierInput('')
-                        }
-                      }
-                    }}
-                    className="w-20 h-7 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const n = parseInt(newTierInput)
-                      if (n > 0 && !quantityTiers.includes(n)) {
-                        setQuantityTiers(prev => [...prev, n])
-                        setNewTierInput('')
-                      }
-                    }}
-                    className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 border border-dashed border-orange-500/40 hover:border-orange-500/70 rounded-md px-2.5 h-7 transition-colors"
-                  >
-                    <Plus className="size-3" /> {t.pricing.addKit}
-                  </button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
