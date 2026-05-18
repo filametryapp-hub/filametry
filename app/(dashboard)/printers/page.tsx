@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BarChart3, Receipt } from 'lucide-react'
 import {
-  getUserPrinters, addPrinter, deletePrinter,
+  getUserPrinters, addPrinter, deletePrinter, updatePrinter,
   addEquipmentPayment, deleteEquipmentPayment,
   getAmortizationData,
 } from '@/lib/actions/printers'
@@ -19,6 +19,7 @@ type Payment = { id: string; payer_name: string; amount_paid: number; paid_at: s
 type PrinterRow = {
   id: string; name: string; brand: string; model: string; watts: number
   purchase_value: number; purchase_date?: string | null; lifespan_hours: number
+  purchase_expense_recorded?: boolean
   equipment_payments: Payment[]
 }
 type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
@@ -80,7 +81,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   const [payForm, setPayForm] = useState({ payer_name: partners[0]?.name ?? '', amount_paid: 0, paid_at: new Date().toISOString().slice(0, 10) })
   const [savingPay, setSavingPay] = useState(false)
   const [payError, setPayError] = useState('')
-  const [expenseRecorded, setExpenseRecorded] = useState(false)
+  const [expenseRecorded, setExpenseRecorded] = useState(printer.purchase_expense_recorded ?? false)
   const [recordingExpense, setRecordingExpense] = useState(false)
   const [expensePaidBy, setExpensePaidBy] = useState<'company' | 'partner'>('company')
 
@@ -95,6 +96,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         paid_at:     printer.purchase_date ?? new Date().toISOString().slice(0, 10),
         paid_by:     expensePaidBy,
       })
+      await updatePrinter(printer.id, { purchase_expense_recorded: true })
       setExpenseRecorded(true)
     } catch { /* silent */ } finally {
       setRecordingExpense(false)
