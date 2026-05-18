@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Layers, Pencil, Trash2, ChevronDown, ChevronUp, Wallet, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
+import { BatchEntryModal } from './batch-entry-modal'
 import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 import {
@@ -277,11 +278,12 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
 export function FilamentList() {
   const { t, fmtCurrency } = useT()
   const m = t.materials
-  const [spools, setSpools]     = useState<SpoolWithPayments[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing]   = useState<FilamentSpool | null>(null)
-  const [saving, setSaving]     = useState(false)
+  const [spools, setSpools]         = useState<SpoolWithPayments[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [showForm, setShowForm]     = useState(false)
+  const [showBatch, setShowBatch]   = useState(false)
+  const [editing, setEditing]       = useState<FilamentSpool | null>(null)
+  const [saving, setSaving]         = useState(false)
 
   async function load() {
     setLoading(true)
@@ -353,14 +355,22 @@ export function FilamentList() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground">{m.itemsInStock(spools.length)}</p>
-        <button
-          onClick={() => { setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
-        >
-          <Plus className="size-4" /> {m.addItem}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBatch(true)}
+            className="flex items-center gap-2 border border-orange-500 text-orange-500 hover:bg-orange-500/10 text-sm font-medium px-4 py-2 rounded-md transition-colors"
+          >
+            <Plus className="size-4" /> Entrada em Lote
+          </button>
+          <button
+            onClick={() => { setEditing(null); setShowForm(true) }}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+          >
+            <Plus className="size-4" /> {m.addItem}
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -383,7 +393,7 @@ export function FilamentList() {
         </div>
       )}
 
-      {/* Form modal */}
+      {/* Single-item form modal */}
       {showForm && (
         <FilamentForm
           key={editing?.id ?? 'new'}
@@ -391,6 +401,14 @@ export function FilamentList() {
           onSave={save}
           onClose={() => { setShowForm(false); setEditing(null) }}
           saving={saving}
+        />
+      )}
+
+      {/* Batch entry modal */}
+      {showBatch && (
+        <BatchEntryModal
+          onSaved={load}
+          onClose={() => setShowBatch(false)}
         />
       )}
     </div>
