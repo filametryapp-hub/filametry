@@ -82,7 +82,7 @@ function ProductCard({ product, onEdit, onDelete, onRegisterTest }: {
         )}
 
         <div className="text-xs text-muted-foreground flex gap-3">
-          <span>{product.material}</span>
+          <span>{typeof product.material === 'string' && !product.material.includes('[object') ? product.material : '—'}</span>
           <span>·</span>
           <span>{product.weightG}g</span>
           <span>·</span>
@@ -125,6 +125,7 @@ export function ProductList() {
   const [saving, setSaving]           = useState(false)
   const [search, setSearch]           = useState('')
   const [prefillProduct, setPrefill]  = useState<string | null>(null)
+  const [prefillCost, setPrefillCost] = useState<number | null>(null)
   const testSectionRef                = useRef<HTMLDivElement>(null)
 
   async function load() {
@@ -139,9 +140,9 @@ export function ProductList() {
 
   useEffect(() => { load() }, [])
 
-  function handleRegisterTest(productName: string) {
+  function handleRegisterTest(productName: string, productCost: number) {
     setPrefill(productName)
-    // Small delay so the section can open and mount before scrolling
+    setPrefillCost(productCost)
     setTimeout(() => testSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
@@ -238,7 +239,7 @@ export function ProductList() {
               product={p}
               onEdit={() => { setEditing(p); setShowForm(true) }}
               onDelete={() => remove(p.id)}
-              onRegisterTest={() => handleRegisterTest(p.name)}
+              onRegisterTest={() => handleRegisterTest(p.name, p.costUSD)}
             />
           ))}
         </div>
@@ -248,6 +249,7 @@ export function ProductList() {
       <div ref={testSectionRef}>
         <TestPrintsSection
           prefillProduct={prefillProduct}
+          prefillCost={prefillCost}
         />
       </div>
 

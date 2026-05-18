@@ -16,8 +16,18 @@ import type { BambuPrint } from '@/lib/actions/bambu'
 import { useT } from '@/lib/i18n'
 import { upsertProduct } from '@/lib/actions/products'
 import { getAmortizationData, getTestPrints } from '@/lib/actions/printers'
+import { getFilaments } from '@/lib/actions/filaments'
 
 // ── Types ──────────────────────────────────────────────────────
+
+interface CatalogFilament {
+  id: string
+  label: string       // display: "Bambu PLA Silk · Marine Blue"
+  material: string
+  colorHex: string
+  priceUSD: number
+  weightG: number
+}
 
 export interface BatchFilament {
   id: string
@@ -361,16 +371,45 @@ function CostRow({ label, value, total, accent = false }: { label: string; value
 function FilamentRow({
   filament,
   canRemove,
+  catalog,
   onUpdate,
   onRemove,
 }: {
   filament: BatchFilament
   canRemove: boolean
+  catalog: CatalogFilament[]
   onUpdate: (id: string, field: keyof BatchFilament, value: string | number) => void
   onRemove: (id: string) => void
 }) {
+  function applyFromCatalog(catId: string) {
+    const cat = catalog.find(c => c.id === catId)
+    if (!cat) return
+    onUpdate(filament.id, 'type',          cat.material)
+    onUpdate(filament.id, 'color',         cat.colorHex)
+    onUpdate(filament.id, 'spoolPriceUSD', cat.priceUSD)
+    onUpdate(filament.id, 'spoolWeightG',  cat.weightG)
+  }
+
   return (
-    <div className="flex items-end gap-2 rounded-md bg-muted/30 border border-border/50 p-2">
+    <div className="rounded-md bg-muted/30 border border-border/50 p-2 space-y-2">
+      {/* Catalog picker row */}
+      {catalog.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground shrink-0">Do estoque:</span>
+          <select
+            defaultValue=""
+            onChange={e => { if (e.target.value) applyFromCatalog(e.target.value) }}
+            className="flex-1 h-6 text-[11px] rounded border border-border/60 bg-background px-1.5 outline-none focus:border-orange-500 transition-colors"
+          >
+            <option value="">— selecionar filamento —</option>
+            {catalog.map(c => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {/* Fields row */}
+      <div className="flex items-end gap-2">
       {/* Color dot + picker */}
       <div className="shrink-0 flex flex-col items-center gap-1">
         <label className="cursor-pointer" title="Pick color">
@@ -433,6 +472,7 @@ function FilamentRow({
           <X className="size-3" />
         </button>
       )}
+      </div>{/* end fields row */}
     </div>
   )
 }
@@ -454,6 +494,7 @@ function BatchRow({
   importFileLabel,
   defaultSpoolPrice,
   defaultSpoolWeight,
+  catalog,
 }: {
   batch: Batch
   index: number
@@ -469,6 +510,7 @@ function BatchRow({
   importFileLabel: string
   defaultSpoolPrice: number
   defaultSpoolWeight: number
+  catalog: CatalogFilament[]
 }) {
   const totalWeight = batch.filaments.reduce((s, f) => s + f.weightG, 0)
   const isMultiColor = batch.filaments.length > 1
@@ -547,6 +589,7 @@ function BatchRow({
             key={f.id}
             filament={f}
             canRemove={batch.filaments.length > 1}
+            catalog={catalog}
             onUpdate={(fid, field, val) => onUpdateFilament(batch.id, fid, field, val)}
             onRemove={fid => onRemoveFilament(batch.id, fid)}
           />
@@ -595,23 +638,40 @@ export function PricingCalculator() {
   const [priceInput, setPriceInput]       = useState('')
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [bambuTargetBatch, setBambuTargetBatch] = useState<string | null>(null)
+  const [catalogFilaments, setCatalogFilaments] = useState<CatalogFilament[]>([])
 
-  // ── Auto-load test overhead rate on mount ─────────────────
+  // ── Auto-load test overhead + filament catalog on mount ───
   useEffect(() => {
-    async function loadOverhead() {
+    async function loadData() {
       try {
-        const [amort, tests] = await Promise.all([getAmortizationData(), getTestPrints()])
+        const [amort, tests, filamentRows] = await Promise.all([
+          getAmortizationData(),
+          getTestPrints(),
+          getFilaments(),
+        ])
         const totalHours = amort.totalProductHours
-        const totalCost  = tests.reduce((s, t) => s + t.amount, 0)
+        const totalCost  = tests.reduce((s: number, t: { amount: number }) => s + t.amount, 0)
         if (totalHours > 0 && totalCost > 0) {
           const rate = totalCost / totalHours
           setShared(prev => ({ ...prev, testOverheadRate: parseFloat(rate.toFixed(4)) }))
         }
+        // Map filament rows to a simple catalog shape
+        const catalog: CatalogFilament[] = (filamentRows ?? [])
+          .filter((f: Record<string, unknown>) => Number(f.remaining_g ?? f.weight_g ?? 0) > 0)
+          .map((f: Record<string, unknown>) => ({
+            id:           String(f.id),
+            label:        `${f.brand} ${f.material} · ${f.color}`,
+            material:     String(f.material ?? 'PLA'),
+            colorHex:     String(f.color_hex ?? '#888888'),
+            priceUSD:     Number(f.price_usd ?? 0),
+            weightG:      Number(f.weight_g ?? 1000),
+          }))
+        setCatalogFilaments(catalog)
       } catch {
-        // silently ignore — test overhead stays at 0
+        // silently ignore
       }
     }
-    loadOverhead()
+    loadData()
   }, [])
 
   // ── Shared setters ─────────────────────────────────────────
@@ -745,6 +805,7 @@ export function PricingCalculator() {
                   importFileLabel={pr.importFile}
                   defaultSpoolPrice={shared.defaultSpoolPrice}
                   defaultSpoolWeight={shared.defaultSpoolWeight}
+                  catalog={catalogFilaments}
                 />
               ))}
               <Button

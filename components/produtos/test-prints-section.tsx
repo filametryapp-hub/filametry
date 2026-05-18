@@ -14,7 +14,13 @@ function fmtCurrency(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-export function TestPrintsSection({ prefillProduct }: { prefillProduct?: string | null }) {
+export function TestPrintsSection({
+  prefillProduct,
+  prefillCost,
+}: {
+  prefillProduct?: string | null
+  prefillCost?: number | null
+}) {
   const [testPrints, setTestPrints]             = useState<TestPrintEntry[]>([])
   const [totalProductHours, setTotalProductHours] = useState(0)
   const [loading, setLoading]                   = useState(true)
@@ -43,15 +49,18 @@ export function TestPrintsSection({ prefillProduct }: { prefillProduct?: string 
     load()
   }, [])
 
-  // When a product card triggers "Registrar Teste", open the form pre-filled
+  // When a product card triggers "Registrar Teste", open form pre-filled with name + cost
   useEffect(() => {
     if (prefillProduct) {
-      setForm(f => ({ ...f, description: prefillProduct }))
+      setForm(f => ({
+        ...f,
+        description: prefillProduct,
+        amount: prefillCost && prefillCost > 0 ? parseFloat(prefillCost.toFixed(2)) : f.amount,
+      }))
       setAdding(true)
-      // Scroll to form
       setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80)
     }
-  }, [prefillProduct])
+  }, [prefillProduct, prefillCost])
 
   const totalWaste   = testPrints.reduce((s, e) => s + e.amount, 0)
   const overheadRate = totalProductHours > 0 && totalWaste > 0 ? totalWaste / totalProductHours : 0
