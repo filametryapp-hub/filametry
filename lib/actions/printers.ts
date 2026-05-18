@@ -137,3 +137,64 @@ export async function deleteEquipmentPayment(id: string) {
   if (error) throw error
   revalidatePath('/printers')
 }
+
+// ── Amortization data ─────────────────────────────────────────
+// Returns total print_hours from the products catalog + per-printer amortization stats
+export async function getAmortizationData() {
+  const supabase = await createClient()
+
+  // Sum of all product print_hours (hours the printer has been "used" for catalog products)
+  const { data: products } = await supabase.from('products').select('print_hours')
+  const totalProductHours = (products ?? []).reduce(
+    (s: number, p: { print_hours: number | null }) => s + Number(p.print_hours ?? 0), 0
+  )
+
+  const { data: printers } = await supabase
+    .from('user_printers')
+    .select('id, name, brand, model, purchase_value, lifespan_hours')
+    .order('created_at', { ascending: true })
+
+  return {
+    totalProductHours,
+    printers: (printers ?? []).map((p: Record<string, unknown>) => {
+      const purchaseValue  = Number(p.purchase_value ?? 0)
+      const lifespanHours  = Number(p.lifespan_hours ?? 0)
+      const hourlyRate     = lifespanHours > 0 ? purchaseValue / lifespanHours : 0
+      const amortizedValue = Math.min(totalProductHours * hourlyRate, purchaseValue)
+      const remaining      = Math.max(purchaseValue - amortizedValue, 0)
+      const pct            = purchaseValue > 0 ? (amortizedValue / purchaseValue) * 100 : 0
+      return {
+        id: String(p.id),
+        label: `${p.brand} ${p.model} — ${p.name}`,
+        purchaseValue,
+        lifespanHours,
+        hourlyRate,
+        amortizedValue,
+        remaining,
+        pct,
+      }
+    }),
+  }
+}
+
+// ── Test prints / waste ───────────────────────────────────────
+export async function getTestPrints() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('expenses')
+    .select('id, description, amount, paid_at, notes')
+    .eq('category', 'test_print')
+    .order('paid_at', { ascending: false })
+    .limit(50)
+
+  return (data ?? []).map((e: Record<string, unknown>) => ({
+    id: String(e.id),
+    description: String(e.description ?? ''),
+    amount: Number(e.amount),
+    paid_at: String(e.paid_at ?? ''),
+    notes: e.notes ? String(e.notes) : undefined,
+  }))
+}

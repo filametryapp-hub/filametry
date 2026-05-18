@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,7 @@ import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import type { SlicerData } from '@/lib/parse-gcode'
 import { useT } from '@/lib/i18n'
 import { upsertProduct } from '@/lib/actions/products'
+import { getAmortizationData, getTestPrints } from '@/lib/actions/printers'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ interface SharedValues {
   hourlyRate: number
   failureRate: number
   marginPct: number
+  testOverheadRate: number
   // Defaults for new filaments
   defaultSpoolPrice: number
   defaultSpoolWeight: number
@@ -46,11 +48,12 @@ interface SharedValues {
 // ── Defaults ───────────────────────────────────────────────────
 
 const DEFAULT_SHARED: SharedValues = {
-  printerWatts:     120,
-  electricityCost:  0.15,
-  hourlyRate:       2,
-  failureRate:      10,
-  marginPct:        40,
+  printerWatts:      120,
+  electricityCost:   0.15,
+  hourlyRate:        2,
+  failureRate:       10,
+  marginPct:         40,
+  testOverheadRate:  0,
   defaultSpoolPrice: 20,
   defaultSpoolWeight: 1000,
 }
@@ -82,13 +85,14 @@ function calculate(batches: Batch[], s: SharedValues) {
     (sum, b) => sum + b.filaments.reduce(
       (s2, f) => s2 + f.weightG * (f.spoolPriceUSD / Math.max(f.spoolWeightG, 1)), 0), 0)
 
-  const energy   = (totalHours * s.printerWatts / 1000) * s.electricityCost
-  const machine  = totalHours * s.hourlyRate
-  const subtotal = (material + energy + machine) * (1 + s.failureRate / 100)
-  const salePrice = s.marginPct >= 100 ? subtotal * 2 : subtotal / (1 - s.marginPct / 100)
-  const profit   = salePrice - subtotal
+  const energy     = (totalHours * s.printerWatts / 1000) * s.electricityCost
+  const machine    = totalHours * s.hourlyRate
+  const testWaste  = totalHours * s.testOverheadRate
+  const subtotal   = (material + energy + machine + testWaste) * (1 + s.failureRate / 100)
+  const salePrice  = s.marginPct >= 100 ? subtotal * 2 : subtotal / (1 - s.marginPct / 100)
+  const profit     = salePrice - subtotal
 
-  return { material, energy, machine, subtotal, salePrice, profit, totalWeight, totalHours }
+  return { material, energy, machine, testWaste, subtotal, salePrice, profit, totalWeight, totalHours }
 }
 
 // ── Formatting ─────────────────────────────────────────────────
@@ -112,6 +116,7 @@ const SHARED_FIELDS: Field[] = [
   { id: 'hourlyRate',        label: 'Equipment amortization', unit: '$/h',  min: 0,    step: 0.001, tip: 'Auto-filled from equipment value ÷ lifespan when you select a printer.' },
   { id: 'failureRate',       label: 'Failure / waste',        unit: '%',    min: 0,    step: 1,     tip: 'Buffer for failed prints and material waste.' },
   { id: 'marginPct',         label: 'Profit margin',          unit: '%',    min: 0,    step: 5,     tip: 'Your desired profit margin on top of all costs.' },
+  { id: 'testOverheadRate',  label: 'Test overhead',          unit: '$/h',  min: 0,    step: 0.001, tip: 'Waste cost spread across production hours. Auto-filled from test print logs in Equipment.' },
 ]
 
 const SPOOL_DEFAULTS: Field[] = [
@@ -558,6 +563,24 @@ export function PricingCalculator() {
   const [priceInput, setPriceInput]       = useState('')
   const [showSaveModal, setShowSaveModal] = useState(false)
 
+  // ── Auto-load test overhead rate on mount ─────────────────
+  useEffect(() => {
+    async function loadOverhead() {
+      try {
+        const [amort, tests] = await Promise.all([getAmortizationData(), getTestPrints()])
+        const totalHours = amort.totalProductHours
+        const totalCost  = tests.reduce((s, t) => s + t.amount, 0)
+        if (totalHours > 0 && totalCost > 0) {
+          const rate = totalCost / totalHours
+          setShared(prev => ({ ...prev, testOverheadRate: parseFloat(rate.toFixed(4)) }))
+        }
+      } catch {
+        // silently ignore — test overhead stays at 0
+      }
+    }
+    loadOverhead()
+  }, [])
+
   // ── Shared setters ─────────────────────────────────────────
   const setSharedField = (id: keyof SharedValues) => (v: number) => {
     setShared(prev => ({ ...prev, [id]: v }))
@@ -725,7 +748,7 @@ export function PricingCalculator() {
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.marginOverhead}</CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-3">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {SHARED_FIELDS.slice(2).map(f => (
                   <NumInput key={f.id} id={f.id} label={f.label} unit={f.unit}
                     value={shared[f.id]} min={f.min} step={f.step} tip={f.tip}
@@ -754,9 +777,12 @@ export function PricingCalculator() {
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{pr.costBreakdown}</CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-3">
-              <CostRow label={pr.filament}   value={result.material} total={result.subtotal} />
-              <CostRow label={pr.timeEnergy} value={result.energy}   total={result.subtotal} />
-              <CostRow label={pr.equipAmort} value={result.machine}  total={result.subtotal} />
+              <CostRow label={pr.filament}    value={result.material}   total={result.subtotal} />
+              <CostRow label={pr.timeEnergy} value={result.energy}    total={result.subtotal} />
+              <CostRow label={pr.equipAmort} value={result.machine}   total={result.subtotal} />
+              {result.testWaste > 0 && (
+                <CostRow label={pr.testOverhead} value={result.testWaste} total={result.subtotal} />
+              )}
 
               <Separator />
 

@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, FlaskConical, BarChart3 } from 'lucide-react'
 import {
   getUserPrinters, addPrinter, deletePrinter,
   addEquipmentPayment, deleteEquipmentPayment,
+  getAmortizationData, getTestPrints,
 } from '@/lib/actions/printers'
+import { createExpense } from '@/lib/actions/expenses'
 import { getPartners } from '@/lib/actions/company'
 import { getProfile } from '@/lib/actions/billing'
 import { TRIAL_PRINTER_LIMIT } from '@/lib/stripe/plans'
@@ -19,6 +21,8 @@ type PrinterRow = {
   purchase_value: number; purchase_date?: string | null; lifespan_hours: number
   equipment_payments: Payment[]
 }
+type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
+type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
 
@@ -62,9 +66,10 @@ function DebtSummary({ printer, partners }: { printer: PrinterRow; partners: Par
 }
 
 // ── Single printer card ────────────────────────────────────────
-function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDeleted }: {
+function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded, onPaymentDeleted }: {
   printer: PrinterRow
   partners: Partner[]
+  amortPrinter?: AmortPrinter
   onDelete: () => void
   onPaymentAdded: (payment: { payer_name: string; amount_paid: number; paid_at: string }) => void
   onPaymentDeleted: (paymentId: string) => void
@@ -165,6 +170,32 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
             </div>
           </div>
 
+          {/* Amortization progress */}
+          {amortPrinter && printer.purchase_value > 0 && printer.lifespan_hours > 0 && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <BarChart3 className="size-3 text-orange-500" />
+                  {eq.amortProgress}
+                </p>
+                <span className="text-xs font-mono font-semibold text-orange-500">
+                  {Math.min(amortPrinter.pct, 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min(amortPrinter.pct, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{eq.amortized}: <span className="font-medium text-foreground">{fmtCurrency(amortPrinter.amortizedValue)}</span></span>
+                <span>{eq.remaining}: <span className="font-medium text-foreground">{fmtCurrency(amortPrinter.remaining)}</span></span>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60">{eq.amortNote}</p>
+            </div>
+          )}
+
           {/* Partner debt summary */}
           {partners.length > 0 && printer.purchase_value > 0 && (
             <DebtSummary printer={printer} partners={partners} />
@@ -243,6 +274,185 @@ function PrinterCard({ printer, partners, onDelete, onPaymentAdded, onPaymentDel
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Test prints & waste section ────────────────────────────────
+function TestPrintsSection({
+  testPrints,
+  totalProductHours,
+  onAdded,
+  onDeleted,
+}: {
+  testPrints: TestPrintEntry[]
+  totalProductHours: number
+  onAdded: (entry: TestPrintEntry) => void
+  onDeleted: (id: string) => void
+}) {
+  const { t, fmtCurrency } = useT()
+  const eq = t.equipment
+  const [adding, setAdding] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    description: '',
+    amount: 0,
+    paid_at: new Date().toISOString().slice(0, 10),
+    notes: '',
+  })
+  const [error, setError] = useState('')
+
+  const totalWaste = testPrints.reduce((s, e) => s + e.amount, 0)
+  const overheadRate = totalProductHours > 0 && totalWaste > 0
+    ? totalWaste / totalProductHours : 0
+
+  async function handleAdd() {
+    if (!form.description || !form.amount) { setError('Descrição e custo são obrigatórios.'); return }
+    setSaving(true)
+    setError('')
+    try {
+      await createExpense({
+        category: 'test_print',
+        description: form.description,
+        amount: form.amount,
+        paid_at: form.paid_at,
+        notes: form.notes || undefined,
+      })
+      const newEntry: TestPrintEntry = {
+        id: crypto.randomUUID(),
+        description: form.description,
+        amount: form.amount,
+        paid_at: form.paid_at,
+        notes: form.notes || undefined,
+      }
+      onAdded(newEntry)
+      setForm({ description: '', amount: 0, paid_at: new Date().toISOString().slice(0, 10), notes: '' })
+      setAdding(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.common.error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-red-500/10 shrink-0">
+            <FlaskConical className="size-4 text-red-400" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">{eq.testPrints}</p>
+            <p className="text-xs text-muted-foreground">
+              {eq.totalWaste}: <span className="font-medium text-foreground">{fmtCurrency(totalWaste)}</span>
+              {overheadRate > 0 && (
+                <span className="ml-2 text-orange-400">
+                  · {eq.wasteOverhead}: <span className="font-mono">{fmtCurrency(overheadRate)}/h</span>
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 transition-colors"
+          >
+            <Plus className="size-3.5" /> {eq.addTestPrint}
+          </button>
+        )}
+      </div>
+
+      <div className="px-5 py-4 space-y-3">
+        {/* Add form */}
+        {adding && (
+          <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/20">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">{eq.testDesc} *</label>
+                <input
+                  className={INPUT + ' mt-1 text-xs py-1.5'}
+                  placeholder="e.g. Prototype failure — benchy"
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">{eq.testCost} *</label>
+                <CurrencyInput
+                  value={form.amount}
+                  onChange={v => setForm(f => ({ ...f, amount: v }))}
+                  className={INPUT + ' mt-1 text-xs py-1.5'}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">{eq.testDate}</label>
+                <input
+                  type="date"
+                  className={INPUT + ' mt-1 text-xs py-1.5'}
+                  value={form.paid_at}
+                  onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">{t.common.notes}</label>
+                <input
+                  className={INPUT + ' mt-1 text-xs py-1.5'}
+                  placeholder="Optional notes…"
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
+            </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => { setAdding(false); setError('') }}
+                className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">
+                {t.common.cancel}
+              </button>
+              <button onClick={handleAdd} disabled={saving}
+                className="text-xs px-3 py-1.5 rounded-md bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-colors">
+                {saving ? t.common.saving : eq.addTestPrint}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* List */}
+        {testPrints.length === 0 && !adding ? (
+          <p className="text-xs text-muted-foreground text-center py-2">{eq.noTestPrints}</p>
+        ) : testPrints.length > 0 ? (
+          <div className="rounded-lg border border-border divide-y divide-border">
+            {testPrints.map(entry => (
+              <div key={entry.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <span className="font-medium truncate block">{entry.description}</span>
+                  <span className="text-muted-foreground">{entry.paid_at}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono font-semibold text-red-400">{fmtCurrency(entry.amount)}</span>
+                  <button
+                    onClick={() => onDeleted(entry.id)}
+                    className="text-muted-foreground hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Overhead note */}
+        {overheadRate > 0 && (
+          <p className="text-[11px] text-muted-foreground/60 flex items-start gap-1 pt-1">
+            <span className="inline-block size-1.5 rounded-full bg-orange-400 shrink-0 mt-1" />
+            {eq.wasteOverheadTip}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -376,22 +586,36 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 export default function PrintersPage() {
   const { t, fmtCurrency } = useT()
   const eq = t.equipment
-  const [printers, setPrinters] = useState<PrinterRow[]>([])
-  const [partners, setPartners] = useState<Partner[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [limit, setLimit]       = useState(TRIAL_PRINTER_LIMIT)
+  const [printers, setPrinters]     = useState<PrinterRow[]>([])
+  const [partners, setPartners]     = useState<Partner[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [limit, setLimit]           = useState(TRIAL_PRINTER_LIMIT)
+  const [amortMap, setAmortMap]     = useState<Record<string, AmortPrinter>>({})
+  const [testPrints, setTestPrints] = useState<TestPrintEntry[]>([])
+  const [totalProductHours, setTotalProductHours] = useState(0)
 
   useEffect(() => {
     async function load() {
       try {
-        const [rows, plist, profile] = await Promise.all([
+        const [rows, plist, profile, amort, tests] = await Promise.all([
           getUserPrinters(),
           getPartners(),
           getProfile(),
+          getAmortizationData(),
+          getTestPrints(),
         ])
         setPrinters((rows ?? []) as PrinterRow[])
         setPartners((plist ?? []) as Partner[])
         setLimit(profile?.printer_limit ?? TRIAL_PRINTER_LIMIT)
+
+        // Build amort map keyed by printer id
+        const map: Record<string, AmortPrinter> = {}
+        for (const p of amort.printers) {
+          map[p.id] = { id: p.id, amortizedValue: p.amortizedValue, remaining: p.remaining, pct: p.pct }
+        }
+        setAmortMap(map)
+        setTotalProductHours(amort.totalProductHours)
+        setTestPrints((tests ?? []) as TestPrintEntry[])
       } catch {
         // silently fail — page will show empty state
       } finally {
@@ -456,6 +680,7 @@ export default function PrintersPage() {
             key={printer.id}
             printer={printer}
             partners={partners}
+            amortPrinter={amortMap[printer.id]}
             onDelete={() => handleDelete(printer.id)}
             onPaymentAdded={(pay) => {
               setPrinters(prev => prev.map(p =>
@@ -476,6 +701,14 @@ export default function PrintersPage() {
 
         <AddPrinterForm atLimit={atLimit} onAdd={p => setPrinters(prev => [...prev, p])} />
       </div>
+
+      {/* Test prints & waste */}
+      <TestPrintsSection
+        testPrints={testPrints}
+        totalProductHours={totalProductHours}
+        onAdded={entry => setTestPrints(prev => [entry, ...prev])}
+        onDeleted={id => setTestPrints(prev => prev.filter(e => e.id !== id))}
+      />
     </div>
   )
 }
