@@ -41,7 +41,8 @@ export interface Order {
   notes?: string
   createdAt: string
   updatedAt: string
-  quoteTiers?: QuoteTier[]   // multi-quantity proposal table
+  quoteTiers?: QuoteTier[]         // multi-quantity proposal table
+  showDiscountOnPrint?: boolean    // whether discount % column shows when printing
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {

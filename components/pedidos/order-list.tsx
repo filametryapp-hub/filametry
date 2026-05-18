@@ -33,15 +33,16 @@ function fromRow(row: Record<string, unknown>): Order {
     : undefined
 
   return {
-    id:          String(row.id),
-    clientName:  String(row.client_name),
-    clientEmail: row.client_email ? String(row.client_email) : undefined,
-    status:      String(row.status) as Order['status'],
-    notes:       row.notes ? String(row.notes) : undefined,
+    id:                  String(row.id),
+    clientName:          String(row.client_name),
+    clientEmail:         row.client_email ? String(row.client_email) : undefined,
+    status:              String(row.status) as Order['status'],
+    notes:               row.notes ? String(row.notes) : undefined,
     items,
     quoteTiers,
-    createdAt:   String(row.created_at ?? '').slice(0, 10),
-    updatedAt:   String(row.updated_at ?? row.created_at ?? '').slice(0, 10),
+    showDiscountOnPrint: Boolean(row.show_discount_on_print ?? false),
+    createdAt:           String(row.created_at ?? '').slice(0, 10),
+    updatedAt:           String(row.updated_at ?? row.created_at ?? '').slice(0, 10),
   }
 }
 
@@ -93,10 +94,11 @@ export function OrderList() {
       client_name:  order.clientName,
       client_email: order.clientEmail,
       notes:        order.notes,
-      quote_tiers:  order.quoteTiers?.map(t => ({
+      quote_tiers:           order.quoteTiers?.map(t => ({
         qty:        t.qty,
         unit_price: t.unitPrice,
       })) ?? null,
+      show_discount_on_print: order.showDiscountOnPrint ?? false,
       items: order.items.map(i => ({
         product_id:   i.productId || undefined,
         product_name: i.productName,

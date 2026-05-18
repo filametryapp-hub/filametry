@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, ChevronDown, FileText } from 'lucide-react'
+import { X, Plus, Trash2, ChevronDown, FileText, Printer } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@/lib/product-types'
@@ -49,9 +49,12 @@ export function OrderForm({ onSave, onClose }: Props) {
   // Selected product
   const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)
 
-  // Quote tiers: qty + unitPrice (editable)
+  // Quote tiers: qty + unitPrice
   const [tiers, setTiers] = useState<QuoteTier[]>([])
   const [newQty, setNewQty] = useState('')
+
+  // Print option
+  const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -88,9 +91,7 @@ export function OrderForm({ onSave, onClose }: Props) {
   function selectProduct(productId: string) {
     const prod = products.find(p => p.id === productId) ?? null
     setSelectedProd(prod)
-
     if (prod) {
-      // Build default tiers from DEFAULT_QTYS, auto-resolving price via volumePrices
       const initial = DEFAULT_QTYS.map(qty => ({
         qty,
         unitPrice: resolveUnitPrice(prod.priceUSD, prod.volumePrices, qty),
@@ -103,8 +104,7 @@ export function OrderForm({ onSave, onClose }: Props) {
 
   function addTier() {
     const qty = parseInt(newQty, 10)
-    if (!qty || qty < 1) return
-    if (tiers.some(t => t.qty === qty)) return
+    if (!qty || qty < 1 || tiers.some(t => t.qty === qty)) return
     const unitPrice = selectedProd
       ? resolveUnitPrice(selectedProd.priceUSD, selectedProd.volumePrices, qty)
       : 0
@@ -118,6 +118,12 @@ export function OrderForm({ onSave, onClose }: Props) {
 
   function updateTierPrice(qty: number, price: number) {
     setTiers(prev => prev.map(t => t.qty === qty ? { ...t, unitPrice: price } : t))
+  }
+
+  function updateTierDiscount(qty: number, discountPct: number) {
+    if (!selectedProd) return
+    const newPrice = selectedProd.priceUSD * (1 - discountPct / 100)
+    setTiers(prev => prev.map(t => t.qty === qty ? { ...t, unitPrice: Math.max(0, newPrice) } : t))
   }
 
   function selectClient(clientId: string) {
@@ -139,7 +145,6 @@ export function OrderForm({ onSave, onClose }: Props) {
       clientName,
       clientEmail: clientEmail || undefined,
       notes: notes || undefined,
-      // Keep one item for order total/reference (smallest qty tier)
       items: [{
         productId:   selectedProd.id,
         productName: selectedProd.name,
@@ -147,6 +152,7 @@ export function OrderForm({ onSave, onClose }: Props) {
         unitPrice:   smallestTier.unitPrice,
       }],
       quoteTiers: tiers,
+      showDiscountOnPrint,
       status: 'draft',
       createdAt: now,
       updatedAt: now,
@@ -197,21 +203,13 @@ export function OrderForm({ onSave, onClose }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t.orders.clientName} *</Label>
-              <Input
-                value={clientName}
-                onChange={e => setClientName(e.target.value)}
-                placeholder="Nome completo"
-                required
-              />
+              <Input value={clientName} onChange={e => setClientName(e.target.value)}
+                placeholder="Nome completo" required />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t.orders.clientEmail}</Label>
-              <Input
-                type="email"
-                value={clientEmail}
-                onChange={e => setClientEmail(e.target.value)}
-                placeholder="email@exemplo.com"
-              />
+              <Input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)}
+                placeholder="email@exemplo.com" />
             </div>
           </div>
         </div>
@@ -262,7 +260,6 @@ export function OrderForm({ onSave, onClose }: Props) {
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                 Tabela de Quantidades
               </Label>
-              <span className="text-[11px] text-muted-foreground">preço/un · total · desconto</span>
             </div>
 
             {tiers.length === 0 && (
@@ -274,24 +271,24 @@ export function OrderForm({ onSave, onClose }: Props) {
             {tiers.length > 0 && (
               <div className="rounded-lg border border-border overflow-hidden">
                 {/* Column headers */}
-                <div className="grid grid-cols-[60px_1fr_80px_60px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
+                <div className="grid grid-cols-[52px_1fr_80px_72px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
                   <span className="text-[10px] text-muted-foreground font-medium">Qtd</span>
                   <span className="text-[10px] text-muted-foreground font-medium">Preço/un</span>
                   <span className="text-[10px] text-muted-foreground font-medium text-right">Total</span>
-                  <span className="text-[10px] text-muted-foreground font-medium text-center">Desc.</span>
+                  <span className="text-[10px] text-muted-foreground font-medium text-center">Desconto</span>
                   <span />
                 </div>
 
                 {tiers.map((tier, idx) => {
                   const discountPct = basePrice > 0
-                    ? ((basePrice - tier.unitPrice) / basePrice * 100)
+                    ? Math.max(0, (basePrice - tier.unitPrice) / basePrice * 100)
                     : 0
                   const total = tier.qty * tier.unitPrice
 
                   return (
                     <div
                       key={tier.qty}
-                      className={`grid grid-cols-[60px_1fr_80px_60px_28px] gap-2 px-3 py-2 items-center ${
+                      className={`grid grid-cols-[52px_1fr_80px_72px_28px] gap-2 px-3 py-2 items-center ${
                         idx !== 0 ? 'border-t border-border/60' : ''
                       }`}
                     >
@@ -300,9 +297,7 @@ export function OrderForm({ onSave, onClose }: Props) {
 
                       {/* Unit price (editable) */}
                       <input
-                        type="number"
-                        min={0}
-                        step="any"
+                        type="number" min={0} step="any"
                         value={tier.unitPrice}
                         onChange={e => updateTierPrice(tier.qty, parseFloat(e.target.value) || 0)}
                         className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -313,12 +308,20 @@ export function OrderForm({ onSave, onClose }: Props) {
                         {fmtCurrency(total)}
                       </span>
 
-                      {/* Discount */}
-                      <span className={`text-[11px] font-medium text-center tabular-nums ${
-                        discountPct > 0 ? 'text-green-400' : 'text-muted-foreground'
-                      }`}>
-                        {discountPct > 0 ? `-${discountPct.toFixed(0)}%` : '—'}
-                      </span>
+                      {/* Discount % (editable, linked to price) */}
+                      <div className="relative flex items-center">
+                        <input
+                          type="number" min={0} max={100} step="0.1"
+                          value={discountPct > 0 ? parseFloat(discountPct.toFixed(1)) : 0}
+                          onChange={e => updateTierDiscount(tier.qty, parseFloat(e.target.value) || 0)}
+                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            discountPct > 0
+                              ? 'border-green-500/40 text-green-400'
+                              : 'border-input text-muted-foreground'
+                          }`}
+                        />
+                        <span className="absolute right-1.5 text-[10px] text-muted-foreground pointer-events-none">%</span>
+                      </div>
 
                       {/* Remove */}
                       <button
@@ -337,9 +340,7 @@ export function OrderForm({ onSave, onClose }: Props) {
             {/* Add custom qty */}
             <div className="flex items-center gap-2">
               <input
-                type="number"
-                min={1}
-                step={1}
+                type="number" min={1} step={1}
                 value={newQty}
                 onChange={e => setNewQty(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTier() } }}
@@ -373,6 +374,30 @@ export function OrderForm({ onSave, onClose }: Props) {
                   {qty}
                 </button>
               ))}
+            </div>
+
+            {/* Print option */}
+            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Printer className="size-3.5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs font-medium">Mostrar desconto na impressão</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Por padrão a coluna de desconto não aparece no orçamento impresso
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDiscountOnPrint(v => !v)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                  showDiscountOnPrint ? 'bg-orange-500' : 'bg-muted-foreground/30'
+                }`}
+              >
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${
+                  showDiscountOnPrint ? 'translate-x-4' : 'translate-x-0'
+                }`} />
+              </button>
             </div>
           </div>
         )}

@@ -19,6 +19,7 @@ export async function createOrder(order: {
   client_email?: string
   notes?: string
   quote_tiers?: { qty: number; unit_price: number }[] | null
+  show_discount_on_print?: boolean
   items: Array<{
     product_id?: string
     product_name: string
@@ -33,12 +34,13 @@ export async function createOrder(order: {
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
     .insert({
-      user_id:      user.id,
-      client_name:  order.client_name,
-      client_email: order.client_email,
-      notes:        order.notes,
-      quote_tiers:  order.quote_tiers ?? null,
-      status:       'draft',
+      user_id:               user.id,
+      client_name:           order.client_name,
+      client_email:          order.client_email,
+      notes:                 order.notes,
+      quote_tiers:           order.quote_tiers ?? null,
+      show_discount_on_print: order.show_discount_on_print ?? false,
+      status:                'draft',
     })
     .select()
     .single()

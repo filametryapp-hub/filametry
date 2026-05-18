@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, Trash2, FileText } from 'lucide-react'
+import { X, ChevronRight, Trash2, FileText, Printer } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
   type Order,
@@ -36,12 +36,11 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
   const currentIdx = FLOW.indexOf(order.status)
 
   const hasQuote = order.quoteTiers && order.quoteTiers.length > 0
-  // Base price = first item's unit price (1 unit, no discount)
-  const basePrice = order.items[0]?.unitPrice ?? 0
-  // For discount calculation: use the max unitPrice among tiers (= smallest qty = highest price)
+  const showDiscount = order.showDiscountOnPrint ?? false
+  // For discount calculation: max unitPrice among tiers = smallest qty = highest price (base)
   const maxTierPrice = hasQuote
     ? Math.max(...order.quoteTiers!.map(t => t.unitPrice))
-    : basePrice
+    : (order.items[0]?.unitPrice ?? 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -99,11 +98,11 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
 
             <div className="rounded-lg border border-orange-500/20 overflow-hidden">
               {/* Column headers */}
-              <div className="grid grid-cols-[60px_1fr_80px_56px] gap-2 px-3 py-2 bg-orange-500/10 border-b border-orange-500/20">
+              <div className={`grid gap-2 px-3 py-2 bg-orange-500/10 border-b border-orange-500/20 ${showDiscount ? 'grid-cols-[60px_1fr_80px_56px]' : 'grid-cols-[60px_1fr_80px]'}`}>
                 <span className="text-[10px] font-semibold text-orange-500 uppercase">Qtd</span>
                 <span className="text-[10px] font-semibold text-orange-500 uppercase">Preço/un</span>
                 <span className="text-[10px] font-semibold text-orange-500 uppercase text-right">Total</span>
-                <span className="text-[10px] font-semibold text-orange-500 uppercase text-center">Desc.</span>
+                {showDiscount && <span className="text-[10px] font-semibold text-orange-500 uppercase text-center">Desc.</span>}
               </div>
 
               {order.quoteTiers!.map((tier, idx) => {
@@ -115,7 +114,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
                 return (
                   <div
                     key={tier.qty}
-                    className={`grid grid-cols-[60px_1fr_80px_56px] gap-2 px-3 py-2.5 items-center ${
+                    className={`grid gap-2 px-3 py-2.5 items-center ${showDiscount ? 'grid-cols-[60px_1fr_80px_56px]' : 'grid-cols-[60px_1fr_80px]'} ${
                       idx !== 0 ? 'border-t border-border/50' : ''
                     }`}
                   >
@@ -126,18 +125,28 @@ export function OrderDetail({ order, onStatusChange, onDelete, onClose }: Props)
                     <span className="text-sm font-mono text-orange-500 font-semibold text-right">
                       {fmtCurrency(rowTotal)}
                     </span>
-                    <div className="flex justify-center">
-                      {discountPct > 0 ? (
-                        <span className="text-[11px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full tabular-nums">
-                          -{discountPct.toFixed(0)}%
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">base</span>
-                      )}
-                    </div>
+                    {showDiscount && (
+                      <div className="flex justify-center">
+                        {discountPct > 0 ? (
+                          <span className="text-[11px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full tabular-nums">
+                            -{discountPct.toFixed(0)}%
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">base</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
+
+              {/* Print hint */}
+              <div className="px-3 py-2 border-t border-border/30 flex items-center gap-1.5">
+                <Printer className="size-3 text-muted-foreground/50" />
+                <span className="text-[10px] text-muted-foreground/60">
+                  {showDiscount ? 'Desconto incluído na impressão' : 'Desconto oculto na impressão'}
+                </span>
+              </div>
             </div>
           </div>
         ) : (
