@@ -39,6 +39,13 @@ export async function upsertProduct(product: {
   revalidatePath('/produtos')
 }
 
+export async function setProductStatus(id: string, status: 'active' | 'failed') {
+  const supabase = await createClient()
+  const { error } = await supabase.from('products').update({ status }).eq('id', id)
+  if (error) throw error
+  revalidatePath('/produtos')
+}
+
 export async function deleteProduct(id: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('products').delete().eq('id', id)

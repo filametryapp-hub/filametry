@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Package, Pencil, Trash2, FlaskConical } from 'lucide-react'
+import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle, ChevronDown } from 'lucide-react'
 import { ProductForm } from './product-form'
 import { TestPrintsSection } from './test-prints-section'
-import { getProducts, upsertProduct, deleteProduct } from '@/lib/actions/products'
+import { getProducts, upsertProduct, deleteProduct, setProductStatus } from '@/lib/actions/products'
 import type { Product } from '@/lib/product-types'
 
 // Map DB row (snake_case) → Product (camelCase)
@@ -21,6 +21,7 @@ function fromRow(row: Record<string, unknown>): Product {
     imageUrl:     row.image_url ? String(row.image_url) : undefined,
     tags:         Array.isArray(row.tags) ? (row.tags as string[]) : [],
     createdAt:    String(row.created_at ?? ''),
+    status:       (row.status as 'active' | 'failed') ?? 'active',
     volumePrices: Array.isArray(row.volume_prices)
       ? (row.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
           minQty: t.min_qty, priceUSD: t.price_usd,
@@ -38,85 +39,115 @@ function margin(cost: number, price: number) {
   return ((price - cost) / price) * 100
 }
 
-function ProductCard({ product, onEdit, onDelete, onRegisterTest }: {
+type FilterStatus = 'all' | 'active' | 'failed'
+
+function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus }: {
   product: Product
   onEdit: () => void
   onDelete: () => void
   onRegisterTest: () => void
+  onToggleStatus: () => void
 }) {
-  const m = margin(product.costUSD, product.priceUSD)
+  const m      = margin(product.costUSD, product.priceUSD)
   const profit = product.priceUSD - product.costUSD
+  const isFailed = product.status === 'failed'
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden hover:border-orange-500/30 transition-colors group">
-      <div className="h-36 bg-muted/40 flex items-center justify-center border-b border-border">
-        <Package className="size-10 text-muted-foreground/30" />
+    <div className={`group flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isFailed ? 'opacity-60' : ''}`}>
+
+      {/* Status indicator */}
+      <div className="shrink-0">
+        {isFailed ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+            <XCircle className="size-2.5" /> Não aprovado
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
+            <CheckCircle className="size-2.5" /> Ativo
+          </span>
+        )}
       </div>
 
-      <div className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-semibold text-sm leading-tight">{product.name}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{product.description}</p>
-          </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <button
-              onClick={onRegisterTest}
-              title="Registrar teste / perda"
-              className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
-            >
-              <FlaskConical className="size-3.5" />
-            </button>
-            <button onClick={onEdit}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-              <Pencil className="size-3.5" />
-            </button>
-            <button onClick={onDelete}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors">
-              <Trash2 className="size-3.5" />
-            </button>
-          </div>
+      {/* Name + tags */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-semibold truncate ${isFailed ? 'line-through text-muted-foreground' : ''}`}>
+            {product.name}
+          </span>
+          {product.volumePrices?.length ? (
+            <span className="text-[10px] text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">🏷️ volume</span>
+          ) : null}
         </div>
-
-        {product.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {product.tags.map(t => (
-              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
-            ))}
-          </div>
-        )}
-
-        <div className="text-xs text-muted-foreground flex gap-3">
-          <span>{typeof product.material === 'string' && !product.material.includes('[object') ? product.material : '—'}</span>
-          <span>·</span>
-          <span>{product.weightG}g</span>
-          <span>·</span>
-          <span>{product.printHours}h</span>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[11px] text-muted-foreground">
+            {product.material} · {product.weightG}g · {product.printHours}h
+          </span>
+          {product.tags.slice(0, 2).map(t => (
+            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
+          ))}
         </div>
+      </div>
 
-        <div className="pt-2 border-t border-border grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cost</p>
-            <p className="text-sm font-mono font-medium">{fmt(product.costUSD)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Profit</p>
-            <p className="text-sm font-mono font-medium text-green-400">{fmt(profit)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Price</p>
-            <p className="text-sm font-mono font-bold text-orange-500">{fmt(product.priceUSD)}</p>
-          </div>
-        </div>
+      {/* Cost */}
+      <div className="w-20 text-right shrink-0 hidden sm:block">
+        <p className="text-[10px] text-muted-foreground uppercase">Custo</p>
+        <p className="text-sm font-mono">{fmt(product.costUSD)}</p>
+      </div>
 
-        <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Margin</span><span>{m.toFixed(0)}%</span>
-          </div>
-          <div className="h-1 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${Math.min(100, m)}%` }} />
-          </div>
+      {/* Profit */}
+      <div className="w-20 text-right shrink-0 hidden md:block">
+        <p className="text-[10px] text-muted-foreground uppercase">Lucro</p>
+        <p className="text-sm font-mono text-green-400">{fmt(profit)}</p>
+      </div>
+
+      {/* Price */}
+      <div className="w-20 text-right shrink-0">
+        <p className="text-[10px] text-muted-foreground uppercase">Preço</p>
+        <p className="text-sm font-mono font-bold text-orange-500">{fmt(product.priceUSD)}</p>
+      </div>
+
+      {/* Margin bar */}
+      <div className="w-16 shrink-0 hidden lg:block">
+        <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+          <span>Margem</span><span>{m.toFixed(0)}%</span>
         </div>
+        <div className="h-1 rounded-full bg-muted overflow-hidden">
+          <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${Math.min(100, m)}%` }} />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={onToggleStatus}
+          title={isFailed ? 'Marcar como ativo' : 'Marcar como não aprovado'}
+          className={`p-1.5 rounded-md transition-colors ${
+            isFailed
+              ? 'text-green-400 hover:bg-green-400/10'
+              : 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10'
+          }`}
+        >
+          {isFailed ? <CheckCircle className="size-3.5" /> : <XCircle className="size-3.5" />}
+        </button>
+        <button
+          onClick={onRegisterTest}
+          title="Registrar teste / perda"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
+        >
+          <FlaskConical className="size-3.5" />
+        </button>
+        <button
+          onClick={onEdit}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
       </div>
     </div>
   )
@@ -129,6 +160,7 @@ export function ProductList() {
   const [editing, setEditing]         = useState<Product | null>(null)
   const [saving, setSaving]           = useState(false)
   const [search, setSearch]           = useState('')
+  const [filterStatus, setFilter]     = useState<FilterStatus>('active')
   const [prefillProduct, setPrefill]  = useState<string | null>(null)
   const [prefillCost, setPrefillCost] = useState<number | null>(null)
   const testSectionRef                = useRef<HTMLDivElement>(null)
@@ -151,15 +183,31 @@ export function ProductList() {
     setTimeout(() => testSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.material.toLowerCase().includes(search.toLowerCase()) ||
-    p.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
-  )
+  async function handleToggleStatus(p: Product) {
+    const next: 'active' | 'failed' = p.status === 'failed' ? 'active' : 'failed'
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, status: next } : x))
+    await setProductStatus(p.id, next)
+  }
 
-  const totalValue = products.reduce((s, p) => s + p.priceUSD, 0)
-  const avgMargin  = products.length
-    ? products.reduce((s, p) => s + margin(p.costUSD, p.priceUSD), 0) / products.length
+  const activeCount = products.filter(p => p.status !== 'failed').length
+  const failedCount = products.filter(p => p.status === 'failed').length
+
+  const filtered = products
+    .filter(p => {
+      if (filterStatus === 'active') return p.status !== 'failed'
+      if (filterStatus === 'failed') return p.status === 'failed'
+      return true
+    })
+    .filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.material.toLowerCase().includes(search.toLowerCase()) ||
+      p.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    )
+
+  const activeProducts = products.filter(p => p.status !== 'failed')
+  const totalValue = activeProducts.reduce((s, p) => s + p.priceUSD, 0)
+  const avgMargin  = activeProducts.length
+    ? activeProducts.reduce((s, p) => s + margin(p.costUSD, p.priceUSD), 0) / activeProducts.length
     : 0
 
   async function save(data: Product) {
@@ -201,11 +249,12 @@ export function ProductList() {
 
   return (
     <div className="space-y-6">
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Products',      value: products.length.toString() },
-          { label: 'Catalog value', value: fmt(totalValue) },
-          { label: 'Avg margin',    value: `${avgMargin.toFixed(0)}%` },
+          { label: 'Produtos ativos', value: activeCount.toString() },
+          { label: 'Valor do catálogo', value: fmt(totalValue) },
+          { label: 'Margem média', value: `${avgMargin.toFixed(0)}%` },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-card px-5 py-4">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -214,38 +263,74 @@ export function ProductList() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
         <input
           type="search"
-          placeholder="Search products…"
+          placeholder="Buscar produtos…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+          className="flex-1 min-w-40 h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
         />
+
+        {/* Status filter */}
+        <div className="flex gap-1">
+          {([
+            { key: 'active', label: `Ativos (${activeCount})` },
+            { key: 'failed', label: `Não aprovados (${failedCount})` },
+            { key: 'all',    label: 'Todos' },
+          ] as { key: FilterStatus; label: string }[]).map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                filterStatus === f.key
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
         >
-          <Plus className="size-4" /> Add product
+          <Plus className="size-4" /> Adicionar produto
         </button>
       </div>
 
+      {/* List */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Package className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
           <p className="text-sm text-muted-foreground">
-            {search ? 'No products match your search.' : 'No products yet. Add your first item.'}
+            {search ? 'Nenhum produto encontrado.' : filterStatus === 'failed' ? 'Nenhum produto não aprovado.' : 'Nenhum produto ainda.'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-border overflow-hidden">
+          {/* Table header */}
+          <div className="grid grid-cols-[120px_1fr_80px_80px_80px_80px_100px] gap-4 px-4 py-2.5 bg-muted/40 border-b border-border hidden lg:grid">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Produto</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Custo</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Lucro</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Preço</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Margem</span>
+            <span />
+          </div>
+
           {filtered.map(p => (
-            <ProductCard
+            <ProductRow
               key={p.id}
               product={p}
               onEdit={() => { setEditing(p); setShowForm(true) }}
               onDelete={() => remove(p.id)}
               onRegisterTest={() => handleRegisterTest(p.name, p.costUSD)}
+              onToggleStatus={() => handleToggleStatus(p)}
             />
           ))}
         </div>

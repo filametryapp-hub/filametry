@@ -16,6 +16,7 @@ export interface Product {
   tags: string[]
   createdAt: string
   volumePrices?: VolumeTier[]
+  status?: 'active' | 'failed'   // 'failed' = tested, not approved
 }
 
 export interface OrderItem {
