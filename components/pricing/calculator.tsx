@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
+import { BambuImportModal } from './bambu-import-modal'
 import type { SlicerData } from '@/lib/parse-gcode'
+import type { BambuPrint } from '@/lib/actions/bambu'
 import { useT } from '@/lib/i18n'
 import { upsertProduct } from '@/lib/actions/products'
 import { getAmortizationData, getTestPrints } from '@/lib/actions/printers'
@@ -447,6 +449,7 @@ function BatchRow({
   onRemoveFilament,
   onAddFilament,
   onImportFilaments,
+  onBambuImport,
   platLabel,
   importFileLabel,
   defaultSpoolPrice,
@@ -461,6 +464,7 @@ function BatchRow({
   onRemoveFilament: (batchId: string, filamentId: string) => void
   onAddFilament: (batchId: string) => void
   onImportFilaments: (batchId: string, filaments: NonNullable<SlicerData['filaments']>) => void
+  onBambuImport: (batchId: string) => void
   platLabel: string
   importFileLabel: string
   defaultSpoolPrice: number
@@ -549,8 +553,8 @@ function BatchRow({
         ))}
       </div>
 
-      {/* Add color + Slicer import */}
-      <div className="flex gap-2">
+      {/* Add color + imports */}
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => onAddFilament(batch.id)}
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-orange-500/40 rounded-md px-2 py-1 transition-colors"
@@ -561,6 +565,17 @@ function BatchRow({
         <div className="flex-1">
           <SlicerImport onImport={handleImport} compact label={importFileLabel} />
         </div>
+        {/* Bambu import */}
+        <button
+          onClick={() => onBambuImport(batch.id)}
+          className="flex items-center gap-1.5 text-xs text-green-500 hover:text-green-600 border border-dashed border-green-500/30 hover:border-green-500/60 rounded-md px-2 py-1 transition-colors"
+          title="Importar do Bambu Cloud"
+        >
+          <svg className="size-3" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L4 6v12l8 4 8-4V6L12 2z" fill="#00AE42" />
+          </svg>
+          Bambu
+        </button>
       </div>
     </div>
   )
@@ -579,6 +594,7 @@ export function PricingCalculator() {
   const [priceOverride, setPriceOverride] = useState<number | null>(null)
   const [priceInput, setPriceInput]       = useState('')
   const [showSaveModal, setShowSaveModal] = useState(false)
+  const [bambuTargetBatch, setBambuTargetBatch] = useState<string | null>(null)
 
   // ── Auto-load test overhead rate on mount ─────────────────
   useEffect(() => {
@@ -667,6 +683,26 @@ export function PricingCalculator() {
     }))
   }, [shared.defaultSpoolWeight])
 
+  // ── Bambu import handler ───────────────────────────────────
+  const handleBambuSelect = useCallback((print: BambuPrint) => {
+    if (!bambuTargetBatch) return
+    setBatches(prev => prev.map(b => {
+      if (b.id !== bambuTargetBatch) return b
+      return {
+        ...b,
+        name: b.name || print.plateName || print.title.slice(0, 30),
+        printHours: print.printHours,
+        filaments: [defaultFilament({
+          weightG: print.weightG,
+          type: print.material,
+          spoolPriceUSD: shared.defaultSpoolPrice,
+          spoolWeightG: shared.defaultSpoolWeight,
+        })],
+      }
+    }))
+    setBambuTargetBatch(null)
+  }, [bambuTargetBatch, shared.defaultSpoolPrice, shared.defaultSpoolWeight])
+
   // ── Calculation ────────────────────────────────────────────
   const result = useMemo(() => calculate(batches, shared), [batches, shared])
 
@@ -704,6 +740,7 @@ export function PricingCalculator() {
                   onRemoveFilament={removeFilament}
                   onAddFilament={addFilament}
                   onImportFilaments={importFilaments}
+                  onBambuImport={id => setBambuTargetBatch(id)}
                   platLabel={pr.plate}
                   importFileLabel={pr.importFile}
                   defaultSpoolPrice={shared.defaultSpoolPrice}
@@ -954,6 +991,14 @@ export function PricingCalculator() {
           printHours={result.totalHours}
           material={batches[0]?.filaments[0]?.type ?? 'PLA'}
           onClose={() => setShowSaveModal(false)}
+        />
+      )}
+
+      {/* Bambu import modal */}
+      {bambuTargetBatch && (
+        <BambuImportModal
+          onSelect={handleBambuSelect}
+          onClose={() => setBambuTargetBatch(null)}
         />
       )}
     </div>

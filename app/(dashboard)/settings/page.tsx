@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign } from 'lucide-react'
+import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign, Link2, Link2Off, Eye, EyeOff } from 'lucide-react'
 import {
   getCompany,
   updateCompany,
@@ -9,6 +9,12 @@ import {
   addPartner,
   removePartner,
 } from '@/lib/actions/company'
+import {
+  getBambuStatus,
+  bambuConnect,
+  bambuVerify,
+  bambuDisconnect,
+} from '@/lib/actions/bambu'
 import { useT, CURRENCIES, type CurrencyCode } from '@/lib/i18n'
 
 type Company = {
@@ -40,6 +46,175 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
       {children}
     </div>
+  )
+}
+
+// ── Bambu Lab integration card ────────────────────────────────
+function BambuSection() {
+  const [status, setStatus]           = useState<{ connected: boolean; email: string | null } | null>(null)
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
+  const [showPass, setShowPass]       = useState(false)
+  const [step, setStep]               = useState<'idle' | 'verify'>('idle')
+  const [busy, setBusy]               = useState(false)
+  const [verifyCode, setVerifyCode]   = useState('')
+  const [error, setError]             = useState('')
+
+  useEffect(() => {
+    getBambuStatus().then(setStatus).catch(() => setStatus({ connected: false, email: null }))
+  }, [])
+
+  async function handleConnect() {
+    if (!email.trim() || !password.trim()) { setError('Email e senha são obrigatórios.'); return }
+    setError('')
+    setBusy(true)
+    const result = await bambuConnect(email.trim(), password)
+    setBusy(false)
+    if (result.type === 'ok') {
+      setStatus({ connected: true, email: email.trim() })
+      setPassword('')
+    } else if (result.type === 'verify') {
+      setStep('verify')
+    } else {
+      setError(result.msg)
+    }
+  }
+
+  async function handleVerify() {
+    if (!verifyCode.trim()) { setError('Digite o código.'); return }
+    setError('')
+    setBusy(true)
+    const result = await bambuVerify(email.trim(), verifyCode.trim())
+    setBusy(false)
+    if (result.type === 'ok') {
+      setStatus({ connected: true, email: email.trim() })
+      setVerifyCode('')
+      setPassword('')
+      setStep('idle')
+    } else {
+      setError(result.msg)
+    }
+  }
+
+  async function handleDisconnect() {
+    await bambuDisconnect()
+    setStatus({ connected: false, email: null })
+    setEmail('')
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
+      <div className="flex items-center gap-2.5">
+        <div className="p-2 rounded-lg bg-green-500/10">
+          <svg className="size-4" viewBox="0 0 24 24" fill="none" aria-label="Bambu Lab">
+            <path d="M12 2L4 6v12l8 4 8-4V6L12 2z" fill="#00AE42" opacity=".9" />
+            <path d="M12 2v20M4 6l8 4 8-4" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="font-semibold">Bambu Lab</h2>
+          <p className="text-xs text-muted-foreground">Importe o histórico de impressões direto do Bambu Cloud</p>
+        </div>
+        {status?.connected && (
+          <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 flex items-center gap-1">
+            <span className="size-1.5 rounded-full bg-green-400 animate-pulse" />
+            Conectado
+          </span>
+        )}
+      </div>
+
+      {status === null ? (
+        <div className="h-8 flex items-center">
+          <div className="size-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : status.connected ? (
+        /* ── Connected state ── */
+        <div className="flex items-center justify-between rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium">{status.email}</p>
+            <p className="text-xs text-muted-foreground">Conta Bambu Lab conectada</p>
+          </div>
+          <button
+            onClick={handleDisconnect}
+            className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-500 transition-colors"
+          >
+            <Link2Off className="size-3.5" />
+            Desconectar
+          </button>
+        </div>
+      ) : step === 'verify' ? (
+        /* ── 2FA verification ── */
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Um código de verificação foi enviado para <span className="font-medium text-foreground">{email}</span>. Digite-o abaixo.
+          </p>
+          <input
+            className={INPUT}
+            placeholder="Código de 6 dígitos"
+            value={verifyCode}
+            maxLength={8}
+            onChange={e => setVerifyCode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleVerify()}
+          />
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => { setStep('idle'); setError('') }}
+              className="text-sm px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
+              Voltar
+            </button>
+            <button onClick={handleVerify} disabled={busy}
+              className="flex-1 flex items-center justify-center gap-2 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+              {busy
+                ? <><div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verificando…</>
+                : <>Verificar código</>}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* ── Login form ── */
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              className={INPUT}
+              type="email"
+              placeholder="Email da conta Bambu Lab"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+            <div className="relative">
+              <input
+                className={INPUT + ' pr-10'}
+                type={showPass ? 'text' : 'password'}
+                placeholder="Senha"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleConnect()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <button
+            onClick={handleConnect}
+            disabled={busy}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+          >
+            {busy
+              ? <><div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Conectando…</>
+              : <><Link2 className="size-4" /> Conectar Bambu Lab</>}
+          </button>
+          <p className="text-xs text-muted-foreground">
+            Suas credenciais são usadas apenas para obter um token de acesso que fica armazenado de forma segura.
+          </p>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -274,6 +449,9 @@ export default function SettingsPage() {
           {saved ? 'Saved!' : saving ? 'Saving…' : 'Save changes'}
         </button>
       </section>
+
+      {/* Bambu Lab */}
+      <BambuSection />
 
       {/* Partners */}
       {form.is_partnership && (
