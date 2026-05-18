@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check, Boxes, Trash2 } from 'lucide-react'
+import { Info, Plus, X, Layers, RotateCcw, Palette, PackagePlus, Check, Boxes, Trash2, Save, FolderOpen, Clock, Pencil } from 'lucide-react'
 import { SlicerImport } from './slicer-import'
 import { PrinterSelect, type SelectedPrinter } from './printer-select'
 import { BambuImportModal } from './bambu-import-modal'
@@ -17,6 +17,10 @@ import { useT } from '@/lib/i18n'
 import { upsertProduct } from '@/lib/actions/products'
 import { getAmortizationData, getTestPrints } from '@/lib/actions/printers'
 import { getFilaments } from '@/lib/actions/filaments'
+import {
+  getPricingSessions, savePricingSession, deletePricingSession, renamePricingSession,
+  type SavedSession,
+} from '@/lib/actions/pricing-sessions'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -664,15 +668,25 @@ export function PricingCalculator() {
   const [quantityTiers,  setQuantityTiers]  = useState<number[]>([1, 3, 5, 10])
   const [newTierInput,   setNewTierInput]   = useState('')
 
+  // ── Saved sessions ─────────────────────────────────────────
+  const [sessions,        setSessions]       = useState<SavedSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [showSessions,    setShowSessions]   = useState(false)
+  const [savingSession,   setSavingSession]  = useState(false)
+  const [sessionName,     setSessionName]    = useState('')
+  const [editingName,     setEditingName]    = useState(false)
+
   // ── Auto-load test overhead + filament catalog on mount ───
   useEffect(() => {
     async function loadData() {
       try {
-        const [amort, tests, filamentRows] = await Promise.all([
+        const [amort, tests, filamentRows, savedSessions] = await Promise.all([
           getAmortizationData(),
           getTestPrints(),
           getFilaments(),
+          getPricingSessions(),
         ])
+        setSessions(savedSessions)
         const totalHours = amort.totalProductHours
         const totalCost  = tests.reduce((s: number, t: { amount: number }) => s + t.amount, 0)
         if (totalHours > 0 && totalCost > 0) {
@@ -787,6 +801,66 @@ export function PricingCalculator() {
     setBambuTargetBatch(null)
   }, [bambuTargetBatch, shared.defaultSpoolPrice, shared.defaultSpoolWeight])
 
+  // ── Session save / load ────────────────────────────────────
+  async function handleSaveSession() {
+    setSavingSession(true)
+    try {
+      const name = sessionName.trim() || `Cálculo ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+      const saved = await savePricingSession({
+        id:            activeSessionId ?? undefined,
+        name,
+        batches,
+        shared,
+        price_override: priceOverride,
+        units_per_run:  unitsPerRun,
+        quantity_tiers: quantityTiers,
+        result_cost:    result.subtotal,
+        result_price:   priceOverride ?? result.salePrice,
+      })
+      if (saved) {
+        setActiveSessionId(saved.id)
+        setSessionName(saved.name)
+        setSessions(prev => {
+          const exists = prev.find(s => s.id === saved.id)
+          return exists
+            ? prev.map(s => s.id === saved.id ? saved : s)
+            : [saved, ...prev]
+        })
+        setEditingName(false)
+      }
+    } finally {
+      setSavingSession(false)
+    }
+  }
+
+  function handleLoadSession(s: SavedSession) {
+    setBatches((s.batches as Batch[]).map(b => ({ ...b, id: b.id || crypto.randomUUID() })))
+    setShared(s.shared as SharedValues)
+    setPriceOverride(s.price_override)
+    setPriceInput(s.price_override ? s.price_override.toFixed(2) : '')
+    setUnitsPerRun(s.units_per_run ?? 1)
+    setQuantityTiers(Array.isArray(s.quantity_tiers) ? s.quantity_tiers : [1, 3, 5, 10])
+    setActiveSessionId(s.id)
+    setSessionName(s.name)
+    setShowSessions(false)
+  }
+
+  async function handleDeleteSession(id: string) {
+    await deletePricingSession(id)
+    setSessions(prev => prev.filter(s => s.id !== id))
+    if (activeSessionId === id) {
+      setActiveSessionId(null)
+      setSessionName('')
+    }
+  }
+
+  async function handleRenameSession(id: string, name: string) {
+    await renamePricingSession(id, name)
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, name } : s))
+    if (activeSessionId === id) setSessionName(name)
+    setEditingName(false)
+  }
+
   // ── Calculation ────────────────────────────────────────────
   const result = useMemo(() => calculate(batches, shared), [batches, shared])
 
@@ -797,6 +871,113 @@ export function PricingCalculator() {
 
   return (
     <div className="space-y-4">
+
+      {/* ── Session toolbar ──────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Current session name */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          {editingName ? (
+            <input
+              autoFocus
+              value={sessionName}
+              onChange={e => setSessionName(e.target.value)}
+              onBlur={() => {
+                if (activeSessionId && sessionName.trim()) handleRenameSession(activeSessionId, sessionName.trim())
+                else setEditingName(false)
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && activeSessionId && sessionName.trim()) handleRenameSession(activeSessionId, sessionName.trim())
+                if (e.key === 'Escape') setEditingName(false)
+              }}
+              className="h-7 rounded-md border border-orange-500 bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 min-w-0 flex-1 max-w-xs"
+            />
+          ) : (
+            <button onClick={() => setEditingName(true)} title="Clique para renomear"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors truncate max-w-xs">
+              <span className="truncate">{sessionName || 'Cálculo sem nome'}</span>
+              {activeSessionId && <Pencil className="size-3 shrink-0 opacity-50" />}
+            </button>
+          )}
+        </div>
+
+        {/* Saved sessions dropdown */}
+        <div className="relative">
+          <button onClick={() => setShowSessions(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 h-7 transition-colors">
+            <FolderOpen className="size-3.5" />
+            Salvos
+            {sessions.length > 0 && (
+              <span className="bg-orange-500 text-white text-[10px] rounded-full px-1.5 leading-4 font-medium">
+                {sessions.length}
+              </span>
+            )}
+          </button>
+
+          {showSessions && (
+            <>
+              {/* backdrop */}
+              <div className="fixed inset-0 z-40" onClick={() => setShowSessions(false)} />
+              <div className="absolute left-0 top-8 z-50 w-72 rounded-xl border border-border bg-background shadow-2xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-border bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cálculos salvos</p>
+                </div>
+                {sessions.length === 0 ? (
+                  <p className="px-4 py-6 text-xs text-muted-foreground text-center">Nenhum cálculo salvo ainda.</p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                    {sessions.map(s => (
+                      <div key={s.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/40 transition-colors group">
+                        <button onClick={() => handleLoadSession(s)} className="flex-1 text-left min-w-0">
+                          <p className={`text-xs font-medium truncate ${s.id === activeSessionId ? 'text-orange-500' : ''}`}>{s.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                            <Clock className="size-2.5" />
+                            {new Date(s.updated_at).toLocaleDateString('pt-BR')}
+                            {s.result_price != null && (
+                              <span className="text-orange-400 font-mono">
+                                · {Number(s.result_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <button onClick={() => handleDeleteSession(s.id)}
+                          className="p-1 rounded text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="px-3 py-2 border-t border-border">
+                  <button
+                    onClick={() => {
+                      setBatches([newBatch()])
+                      setShared(DEFAULT_SHARED)
+                      setPriceOverride(null)
+                      setPriceInput('')
+                      setUnitsPerRun(1)
+                      setQuantityTiers([1, 3, 5, 10])
+                      setActiveSessionId(null)
+                      setSessionName('')
+                      setShowSessions(false)
+                    }}
+                    className="w-full text-xs text-muted-foreground hover:text-foreground py-1 transition-colors"
+                  >
+                    + Novo cálculo em branco
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Save button */}
+        <button onClick={handleSaveSession} disabled={savingSession}
+          className="flex items-center gap-1.5 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 h-7 rounded-md transition-colors">
+          <Save className="size-3.5" />
+          {savingSession ? 'Salvando…' : activeSessionId ? 'Atualizar' : 'Salvar cálculo'}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* ── Left: inputs ──────────────────────────────────── */}
         <div className="lg:col-span-3 space-y-4">
