@@ -133,6 +133,9 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
   // ── Items list ─────────────────────────────────────────────
   const [items, setItems] = useState<BatchItem[]>([newItem(1000, 0, 'PLA')])
 
+  // ── Payment ────────────────────────────────────────────────
+  const [paidBy, setPaidBy] = useState<'company' | 'partner'>('company')
+
   // ── Submission ─────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
@@ -181,7 +184,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
         notes:        item.notes || undefined,
         category,
         unit,
-      })))
+      })), paidBy)
       onSaved()
       onClose()
     } catch (e) {
@@ -277,6 +280,23 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                   className="rounded border-border accent-orange-500" />
                 Aplicar mesmo preço a todos
               </label>
+            </div>
+          </div>
+
+          {/* Paid by */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pago por</Label>
+            <div className="flex gap-2">
+              {(['company', 'partner'] as const).map(opt => (
+                <button key={opt} type="button" onClick={() => setPaidBy(opt)}
+                  className={`flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                    paidBy === opt
+                      ? 'border-orange-500 bg-orange-500/10 text-orange-500'
+                      : 'border-border text-muted-foreground hover:border-orange-500/40'
+                  }`}>
+                  {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
+                </button>
+              ))}
             </div>
           </div>
 

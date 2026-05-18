@@ -316,6 +316,7 @@ export function FilamentList() {
         notes:        data.notes,
         category:     data.category ?? 'Filament',
         unit:         data.unit ?? 'g',
+        paid_by:      data.paidBy ?? 'company',
       })
       await load()
     } finally {

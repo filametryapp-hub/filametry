@@ -14,6 +14,7 @@ export interface FilamentSpool {
   notes?: string
   category?: MaterialCategory
   unit?: MaterialUnit
+  paidBy?: string
 }
 
 // ── Full material list (2024-2025) ─────────────────────────────

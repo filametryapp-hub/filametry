@@ -37,6 +37,7 @@ export async function upsertFilament(filament: {
   notes?: string
   category?: string
   unit?: string
+  paid_by?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -44,9 +45,11 @@ export async function upsertFilament(filament: {
 
   const isNew = !filament.id || filament.id === ''
 
+  // paid_by is not a filament column — exclude from DB insert
+  const { paid_by, ...filamentRow } = filament
   const { error } = await supabase
     .from('filaments')
-    .upsert({ ...filament, user_id: user.id }, { onConflict: 'id' })
+    .upsert({ ...filamentRow, user_id: user.id }, { onConflict: 'id' })
 
   if (error) throw error
 
@@ -59,6 +62,7 @@ export async function upsertFilament(filament: {
         description,
         amount: filament.price_usd,
         paid_at: filament.purchased_at ?? new Date().toISOString().slice(0, 10),
+        paid_by: paid_by ?? 'company',
       })
     } catch {
       // expense creation failure must not break material save
@@ -70,19 +74,22 @@ export async function upsertFilament(filament: {
   revalidatePath('/cash-flow')
 }
 
-export async function batchUpsertFilaments(items: Array<{
-  brand: string
-  material: string
-  color: string
-  color_hex: string
-  weight_g: number
-  remaining_g: number
-  price_usd: number
-  purchased_at?: string
-  notes?: string
-  category?: string
-  unit?: string
-}>) {
+export async function batchUpsertFilaments(
+  items: Array<{
+    brand: string
+    material: string
+    color: string
+    color_hex: string
+    weight_g: number
+    remaining_g: number
+    price_usd: number
+    purchased_at?: string
+    notes?: string
+    category?: string
+    unit?: string
+  }>,
+  paid_by = 'company',
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -101,6 +108,7 @@ export async function batchUpsertFilaments(items: Array<{
           description: `${f.brand} ${f.color}${f.material ? ` (${f.material})` : ''}`,
           amount: f.price_usd,
           paid_at: f.purchased_at ?? date,
+          paid_by,
         })
       } catch { /* ignore — material already saved */ }
     }

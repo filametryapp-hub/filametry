@@ -30,6 +30,7 @@ const BLANK: Omit<FilamentSpool, 'id'> = {
   priceUSD: 20,
   purchasedAt: new Date().toISOString().slice(0, 10),
   notes: '',
+  paidBy: 'company',
 }
 
 export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
@@ -194,6 +195,29 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
             <span className="font-mono font-semibold text-orange-500">
               {fmtCurrency(form.priceUSD / form.weightG)}/{form.unit ?? 'g'}
             </span>
+          </div>
+        )}
+
+        {/* Paid by — only relevant on new items (expense is created on insert) */}
+        {!initial && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Pago por</Label>
+            <div className="flex gap-2">
+              {(['company', 'partner'] as const).map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => set('paidBy', opt)}
+                  className={`flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                    (form.paidBy ?? 'company') === opt
+                      ? 'border-orange-500 bg-orange-500/10 text-orange-500'
+                      : 'border-border text-muted-foreground hover:border-orange-500/40'
+                  }`}
+                >
+                  {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

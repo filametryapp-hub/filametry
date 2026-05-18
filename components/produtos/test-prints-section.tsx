@@ -32,6 +32,7 @@ export function TestPrintsSection({
     amount: 0,
     paid_at: new Date().toISOString().slice(0, 10),
     notes: '',
+    paid_by: 'company' as 'company' | 'partner',
   })
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -76,6 +77,7 @@ export function TestPrintsSection({
         amount:      form.amount,
         paid_at:     form.paid_at,
         notes:       form.notes || undefined,
+        paid_by:     form.paid_by,
       })
       const newEntry: TestPrintEntry = {
         id:          crypto.randomUUID(),
@@ -85,7 +87,7 @@ export function TestPrintsSection({
         notes:       form.notes || undefined,
       }
       setTestPrints(prev => [newEntry, ...prev])
-      setForm({ description: '', amount: 0, paid_at: new Date().toISOString().slice(0, 10), notes: '' })
+      setForm({ description: '', amount: 0, paid_at: new Date().toISOString().slice(0, 10), notes: '', paid_by: 'company' })
       setAdding(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao salvar.')
@@ -163,6 +165,22 @@ export function TestPrintsSection({
                   value={form.paid_at}
                   onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
                 />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">Pago por</label>
+                <div className="flex gap-2 mt-1">
+                  {(['company', 'partner'] as const).map(opt => (
+                    <button key={opt} type="button"
+                      onClick={() => setForm(f => ({ ...f, paid_by: opt }))}
+                      className={`flex-1 py-1 rounded border text-xs font-medium transition-colors ${
+                        form.paid_by === opt
+                          ? 'border-red-500 bg-red-500/10 text-red-400'
+                          : 'border-border text-muted-foreground hover:border-red-400/40'
+                      }`}>
+                      {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-muted-foreground">Observações</label>

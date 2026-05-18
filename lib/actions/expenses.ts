@@ -42,6 +42,7 @@ export async function createExpense(expense: {
   paid_at: string
   supplier_id?: string
   notes?: string
+  paid_by?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -86,6 +87,7 @@ export async function updateExpense(id: string, expense: {
   paid_at?: string
   supplier_id?: string
   notes?: string
+  paid_by?: string
 }) {
   const supabase = await createClient()
   const { error } = await supabase

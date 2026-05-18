@@ -13,6 +13,7 @@ type Expense = {
   description: string
   amount: number
   paid_at: string
+  paid_by?: string | null
   supplier_id?: string | null
   notes?: string | null
   suppliers?: { name: string } | null
@@ -52,6 +53,7 @@ function ExpenseModal({
   const [description, setDescription] = useState(initial?.description ?? '')
   const [amount, setAmount] = useState<number>(initial?.amount ?? 0)
   const [paidAt, setPaidAt] = useState(initial?.paid_at ?? today)
+  const [paidBy, setPaidBy] = useState<'company' | 'partner'>((initial?.paid_by as 'company' | 'partner') ?? 'company')
   const [supplierId, setSupplierId] = useState(initial?.supplier_id ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
 
@@ -81,6 +83,21 @@ function ExpenseModal({
           </Field>
         </div>
 
+        <Field label="Pago por">
+          <div className="flex gap-2">
+            {(['company', 'partner'] as const).map(opt => (
+              <button key={opt} type="button" onClick={() => setPaidBy(opt)}
+                className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  paidBy === opt
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-500'
+                    : 'border-border text-muted-foreground hover:border-orange-500/40'
+                }`}>
+                {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <Field label={t.expenses.supplier}>
           <select className={INPUT} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
             <option value="">— None —</option>
@@ -105,6 +122,7 @@ function ExpenseModal({
                 description,
                 amount: amount,
                 paid_at: paidAt,
+                paid_by: paidBy,
                 supplier_id: supplierId || null,
                 notes: notes || null,
               })
@@ -162,6 +180,7 @@ export default function ExpensesPage() {
           description: data.description,
           amount: data.amount,
           paid_at: data.paid_at,
+          paid_by: data.paid_by ?? 'company',
           supplier_id: data.supplier_id ?? undefined,
           notes: data.notes ?? undefined,
         })
@@ -171,6 +190,7 @@ export default function ExpensesPage() {
           description: data.description,
           amount: data.amount,
           paid_at: data.paid_at,
+          paid_by: data.paid_by ?? 'company',
           supplier_id: data.supplier_id ?? undefined,
           notes: data.notes ?? undefined,
         })
@@ -238,7 +258,7 @@ export default function ExpensesPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                {[t.common.date, t.expenses.category, t.common.name, t.expenses.amount, 'Supplier', 'Actions'].map(h => (
+                {[t.common.date, t.expenses.category, t.common.name, t.expenses.amount, 'Pago por', 'Supplier', 'Actions'].map(h => (
                   <th key={h} className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide ${h === 'Actions' ? 'text-right' : ''} ${h === t.expenses.amount ? 'text-right' : ''}`}>{h}</th>
                 ))}
               </tr>
@@ -252,6 +272,15 @@ export default function ExpensesPage() {
                   </td>
                   <td className="px-4 py-3">{e.description}</td>
                   <td className="px-4 py-3 text-right font-mono font-semibold">{fmtCurrency(Number(e.amount))}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      e.paid_by === 'partner'
+                        ? 'bg-blue-500/10 text-blue-400'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {e.paid_by === 'partner' ? '🤝 Sócio' : '🏢 Empresa'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{e.suppliers?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

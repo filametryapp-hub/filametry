@@ -82,6 +82,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   const [payError, setPayError] = useState('')
   const [expenseRecorded, setExpenseRecorded] = useState(false)
   const [recordingExpense, setRecordingExpense] = useState(false)
+  const [expensePaidBy, setExpensePaidBy] = useState<'company' | 'partner'>('company')
 
   async function handleRecordPurchaseExpense() {
     if (!printer.purchase_value) return
@@ -92,6 +93,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         description: `${printer.brand} ${printer.model} — ${printer.name}`,
         amount:      printer.purchase_value,
         paid_at:     printer.purchase_date ?? new Date().toISOString().slice(0, 10),
+        paid_by:     expensePaidBy,
       })
       setExpenseRecorded(true)
     } catch { /* silent */ } finally {
@@ -189,21 +191,35 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
 
           {/* Register purchase as expense (retroactive) */}
           {printer.purchase_value > 0 && !expenseRecorded && (
-            <div className="rounded-lg border border-dashed border-orange-500/30 bg-orange-500/5 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="rounded-lg border border-dashed border-orange-500/30 bg-orange-500/5 px-4 py-3 space-y-2.5">
               <div>
                 <p className="text-xs font-medium text-orange-400">Compra não registrada nas Despesas</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {fmtCurrency(printer.purchase_value)} não aparece no Fluxo de Caixa nem na Carteira de despesas. Registre uma vez para corrigir.
                 </p>
               </div>
-              <button
-                onClick={handleRecordPurchaseExpense}
-                disabled={recordingExpense}
-                className="flex items-center gap-1.5 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-md transition-colors shrink-0"
-              >
-                <Receipt className="size-3.5" />
-                {recordingExpense ? 'Registrando…' : 'Registrar agora'}
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5 flex-1">
+                  {(['company', 'partner'] as const).map(opt => (
+                    <button key={opt} type="button" onClick={() => setExpensePaidBy(opt)}
+                      className={`flex-1 py-1 rounded border text-xs font-medium transition-colors ${
+                        expensePaidBy === opt
+                          ? 'border-orange-500 bg-orange-500/20 text-orange-400'
+                          : 'border-border text-muted-foreground hover:border-orange-500/40'
+                      }`}>
+                      {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleRecordPurchaseExpense}
+                  disabled={recordingExpense}
+                  className="flex items-center gap-1.5 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-md transition-colors shrink-0"
+                >
+                  <Receipt className="size-3.5" />
+                  {recordingExpense ? 'Registrando…' : 'Registrar agora'}
+                </button>
+              </div>
             </div>
           )}
           {expenseRecorded && (
