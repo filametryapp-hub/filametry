@@ -732,10 +732,15 @@ export function PricingCalculator() {
                     onChange={setSharedField(f.id)} />
                 ))}
               </div>
-              {amortLabel && (
+              {amortLabel ? (
                 <p className="text-xs text-orange-400/80 flex items-center gap-1">
                   <span className="inline-block size-1.5 rounded-full bg-orange-400" />
                   {pr.amortFrom} <span className="font-medium">{amortLabel}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
+                  <span className="inline-block size-1.5 rounded-full bg-muted-foreground/40" />
+                  {pr.amortFrom.replace(':', '')} — {t.pricing.printer.toLowerCase()} {t.common.optional.toLowerCase()}
                 </p>
               )}
             </CardContent>

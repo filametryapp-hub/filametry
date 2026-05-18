@@ -98,22 +98,17 @@ export async function getAssetDebtSummary() {
 
   if (!partners || partners.length === 0) return { totalAssets: 0, partners: [] }
 
-  // 2. Total asset value
+  // 2. Actual payments (equipment + materials) — used as primary source of truth
   const { data: printers } = await supabase.from('user_printers').select('id, purchase_value')
-  const totalPrinterValue = (printers ?? []).reduce((s, p) => s + Number(p.purchase_value ?? 0), 0)
-
-  const { data: materials } = await supabase.from('filaments').select('id, price_usd')
-  const totalMaterialValue = (materials ?? []).reduce((s, m) => s + Number(m.price_usd ?? 0), 0)
-
-  const totalAssets = totalPrinterValue + totalMaterialValue
-
-  // 3. Actual payments per partner name
   const printerIds = (printers ?? []).map((p: { id: string }) => p.id)
+
   const { data: equipPay } = printerIds.length > 0
     ? await supabase.from('equipment_payments').select('payer_name, amount_paid').in('printer_id', printerIds)
     : { data: [] }
 
+  const { data: materials } = await supabase.from('filaments').select('id, price_usd')
   const materialIds = (materials ?? []).map((m: { id: string }) => m.id)
+
   let matPay: { payer_name: string; amount_paid: number }[] = []
   try {
     const { data } = materialIds.length > 0
@@ -122,6 +117,7 @@ export async function getAssetDebtSummary() {
     matPay = data ?? []
   } catch { matPay = [] }
 
+  // 3. Aggregate actual payments per partner
   const paidMap: Record<string, number> = {}
   for (const p of (equipPay ?? [])) {
     paidMap[p.payer_name] = (paidMap[p.payer_name] ?? 0) + Number(p.amount_paid)
@@ -130,15 +126,26 @@ export async function getAssetDebtSummary() {
     paidMap[p.payer_name] = (paidMap[p.payer_name] ?? 0) + Number(p.amount_paid)
   }
 
-  // 4. Per-partner: expected vs actual → balance
+  // 4. Total: prefer sum of all actual payments; fall back to declared asset values
+  const totalActualPaid = Object.values(paidMap).reduce((s, v) => s + v, 0)
+  const totalPrinterValue = (printers ?? []).reduce((s, p) => s + Number(p.purchase_value ?? 0), 0)
+  const totalMaterialValue = (materials ?? []).reduce((s, m) => s + Number(m.price_usd ?? 0), 0)
+  const totalDeclared = totalPrinterValue + totalMaterialValue
+
+  // Use whichever is larger — handles cases where purchase_value wasn't set
+  const totalAssets = Math.max(totalActualPaid, totalDeclared)
+
+  if (totalAssets === 0) return { totalAssets: 0, partners: [] }
+
+  // 5. Per-partner: expected vs actual → balance
+  // balance > 0 → paid more than their share (others owe them)
+  // balance < 0 → paid less than their share (they owe others)
   return {
     totalAssets,
     partners: partners.map(partner => {
       const expectedShare = totalAssets * (partner.percentage / 100)
       const actualPaid   = paidMap[partner.name] ?? 0
-      // balance > 0 → paid more than expected (others owe them)
-      // balance < 0 → paid less than expected (they owe others)
-      const balance = actualPaid - expectedShare
+      const balance      = actualPaid - expectedShare
       return { name: partner.name, percentage: partner.percentage, expectedShare, actualPaid, balance }
     }),
   }

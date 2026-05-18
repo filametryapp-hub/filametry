@@ -203,83 +203,99 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Asset Investment Debts */}
-      {assetDebt.partners.length > 0 && assetDebt.totalAssets > 0 && (
-        <div className="space-y-4">
-          <div>
+      {/* ── Dívidas entre Sócios (PRIMEIRO, mais importante) ── */}
+      {assetDebt.partners.length >= 2 && assetDebt.totalAssets > 0 && (() => {
+        // Build explicit "X deve a Y" statements
+        const creditors = assetDebt.partners.filter(p => p.balance > 0.01)
+        const debtors   = assetDebt.partners.filter(p => p.balance < -0.01)
+        const allSettled = creditors.length === 0 && debtors.length === 0
+        return (
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{w.assetDebts}</h2>
               <span className="text-xs text-muted-foreground">
                 {w.totalAssets}: <span className="font-semibold text-foreground">{fmtCurrency(assetDebt.totalAssets)}</span>
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{w.assetDebtsSubtitle}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-            {assetDebt.partners.map(partner => {
-              const owes    = partner.balance < -0.01   // paid less → owes others
-              const isOwed  = partner.balance > 0.01    // paid more → others owe them
-              const settled = !owes && !isOwed
-              return (
-                <div key={partner.name} className="px-5 py-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-sm">{partner.name}</p>
-                      <p className="text-xs text-muted-foreground">{partner.percentage}% {w.share}</p>
-                    </div>
-                    {settled ? (
-                      <span className="text-xs bg-green-500/10 text-green-400 px-2.5 py-0.5 rounded-full font-medium">{w.settledUp}</span>
-                    ) : owes ? (
-                      <span className="text-xs bg-red-500/10 text-red-400 px-2.5 py-0.5 rounded-full font-medium">
-                        {w.partnerOwes} {fmtCurrency(Math.abs(partner.balance))}
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-0.5 rounded-full font-medium">
-                        {w.partnerIsOwed} {fmtCurrency(partner.balance)}
-                      </span>
-                    )}
+
+            {/* Explicit debt summary banner */}
+            {!allSettled && debtors.map(debtor =>
+              creditors.map(creditor => (
+                <div key={`${debtor.name}-${creditor.name}`}
+                  className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/5 px-5 py-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold">
+                      <span className="text-red-400">{debtor.name}</span>
+                      {' '}{w.partnerOwes}{' '}
+                      <span className="text-foreground">{creditor.name}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">{w.assetDebtsSubtitle}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg bg-muted/40 px-3 py-2">
+                  <p className="text-2xl font-bold text-red-400">{fmtCurrency(Math.abs(debtor.balance))}</p>
+                </div>
+              ))
+            )}
+
+            {allSettled && (
+              <div className="rounded-xl border border-green-500/30 bg-green-500/5 px-5 py-4 text-center">
+                <p className="text-sm font-semibold text-green-400">{w.settledUp}</p>
+              </div>
+            )}
+
+            {/* Per-partner detail table */}
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {assetDebt.partners.map(partner => {
+                const owes   = partner.balance < -0.01
+                const isOwed = partner.balance > 0.01
+                return (
+                  <div key={partner.name} className="px-5 py-3 grid grid-cols-4 gap-2 items-center text-sm">
+                    <div>
+                      <p className="font-semibold">{partner.name}</p>
+                      <p className="text-xs text-muted-foreground">{partner.percentage}%</p>
+                    </div>
+                    <div className="text-center">
                       <p className="text-xs text-muted-foreground">{w.expectedShare}</p>
-                      <p className="text-sm font-mono font-semibold">{fmtCurrency(partner.expectedShare)}</p>
+                      <p className="font-mono font-medium">{fmtCurrency(partner.expectedShare)}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 px-3 py-2">
+                    <div className="text-center">
                       <p className="text-xs text-muted-foreground">{w.actualPaid}</p>
-                      <p className="text-sm font-mono font-semibold">{fmtCurrency(partner.actualPaid)}</p>
+                      <p className="font-mono font-medium">{fmtCurrency(partner.actualPaid)}</p>
                     </div>
-                    <div className={`rounded-lg px-3 py-2 ${owes ? 'bg-red-500/10' : isOwed ? 'bg-blue-500/10' : 'bg-green-500/10'}`}>
-                      <p className={`text-xs ${owes ? 'text-red-400/80' : isOwed ? 'text-blue-400/80' : 'text-green-400/80'}`}>{w.difference}</p>
-                      <p className={`text-sm font-mono font-semibold ${owes ? 'text-red-400' : isOwed ? 'text-blue-400' : 'text-green-400'}`}>
-                        {isOwed ? '+' : ''}{fmtCurrency(partner.balance)}
+                    <div className="text-right">
+                      <p className={`text-xs ${owes ? 'text-red-400/80' : isOwed ? 'text-blue-400/80' : 'text-green-400/80'}`}>
+                        {w.difference}
+                      </p>
+                      <p className={`font-mono font-semibold ${owes ? 'text-red-400' : isOwed ? 'text-blue-400' : 'text-green-400'}`}>
+                        {partner.balance > 0 ? '+' : ''}{fmtCurrency(partner.balance)}
                       </p>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Partner Balances */}
       {partners.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{w.partnerBalances}</h2>
+          <p className="text-xs text-muted-foreground -mt-2">{w.toRecoverDesc}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {partners.map(partner => {
               const { totalInvested, totalReceived, balance } = getPartnerBalance(partner.name)
-              const companyOwes = balance > 0 // partner invested more than received
+              const toRecover = balance > 0 // invested more than received back
               const months = recoveryMonths(balance)
               return (
-                <div key={partner.id} className={`rounded-xl border bg-card px-5 py-4 space-y-3 ${companyOwes ? 'border-red-500/30' : 'border-green-500/30'}`}>
+                <div key={partner.id} className={`rounded-xl border bg-card px-5 py-4 space-y-3 ${toRecover ? 'border-orange-500/20' : 'border-green-500/30'}`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-sm">{partner.name}</p>
                       <p className="text-xs text-muted-foreground">{partner.percentage}% {w.share}</p>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${companyOwes ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                      {companyOwes ? w.owes : w.recovered}
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${toRecover ? 'bg-orange-500/10 text-orange-400' : 'bg-green-500/10 text-green-400'}`}>
+                      {toRecover ? w.owes : w.recovered}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -291,10 +307,10 @@ export default function WalletPage() {
                       <p className="text-xs text-muted-foreground mb-0.5">{w.received}</p>
                       <p className="text-sm font-semibold font-mono">{fmtCurrency(totalReceived)}</p>
                     </div>
-                    <div className={`rounded-lg p-2 ${companyOwes ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
-                      <p className={`text-xs mb-0.5 ${companyOwes ? 'text-red-400/80' : 'text-green-400/80'}`}>{w.balance}</p>
-                      <p className={`text-sm font-semibold font-mono ${companyOwes ? 'text-red-400' : 'text-green-400'}`}>
-                        {companyOwes ? fmtCurrency(balance) : `-${fmtCurrency(Math.abs(balance))}`}
+                    <div className={`rounded-lg p-2 ${toRecover ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
+                      <p className={`text-xs mb-0.5 ${toRecover ? 'text-orange-400/80' : 'text-green-400/80'}`}>{w.balance}</p>
+                      <p className={`text-sm font-semibold font-mono ${toRecover ? 'text-orange-400' : 'text-green-400'}`}>
+                        {toRecover ? fmtCurrency(balance) : `-${fmtCurrency(Math.abs(balance))}`}
                       </p>
                     </div>
                   </div>
