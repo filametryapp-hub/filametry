@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle } from 'lucide-react'
+import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle, Microscope } from 'lucide-react'
 import { ProductForm } from './product-form'
 import { TestPrintsModal } from './test-prints-modal'
 import { getProducts, upsertProduct, deleteProduct, setProductStatus } from '@/lib/actions/products'
@@ -136,21 +136,32 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button
           onClick={onToggleStatus}
-          title={isDimmed ? 'Marcar como ativo' : 'Marcar como não aprovado'}
+          title={
+            product.status === 'active' || !product.status ? 'Marcar como teste'
+            : product.status === 'test' ? 'Marcar como não aprovado'
+            : 'Reativar produto'
+          }
           className={`p-1.5 rounded-md transition-colors ${
-            isDimmed
+            product.status === 'failed'
               ? 'text-green-400 hover:bg-green-400/10'
-              : 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10'
+              : product.status === 'test'
+              ? 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10'
+              : 'text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10'
           }`}
         >
-          {isDimmed ? <CheckCircle className="size-3.5" /> : <XCircle className="size-3.5" />}
+          {product.status === 'failed'
+            ? <CheckCircle className="size-3.5" />
+            : product.status === 'test'
+            ? <XCircle className="size-3.5" />
+            : <FlaskConical className="size-3.5" />
+          }
         </button>
         <button
           onClick={onRegisterTest}
-          title="Registrar teste / perda"
+          title="Registrar perda de material"
           className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
         >
-          <FlaskConical className="size-3.5" />
+          <Microscope className="size-3.5" />
         </button>
         <button
           onClick={onEdit}
@@ -198,7 +209,13 @@ export function ProductList() {
   }
 
   async function handleToggleStatus(p: Product) {
-    const next: 'active' | 'failed' | 'test' = (p.status === 'failed' || p.status === 'test') ? 'active' : 'failed'
+    // Cycle: active → test → failed → active
+    const cycle: Record<string, 'active' | 'test' | 'failed'> = {
+      active: 'test',
+      test:   'failed',
+      failed: 'active',
+    }
+    const next = cycle[p.status ?? 'active'] ?? 'test'
     setProducts(prev => prev.map(x => x.id === p.id ? { ...x, status: next } : x))
     await setProductStatus(p.id, next)
   }

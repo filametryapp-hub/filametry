@@ -77,30 +77,6 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
           </button>
         </div>
 
-        {/* Purpose toggle */}
-        <div className="flex gap-2 p-1 rounded-lg bg-muted/40 border border-border">
-          {([
-            { value: 'active', label: '🛒 Para venda', desc: 'Aparece no catálogo' },
-            { value: 'test',   label: '🧪 Apenas teste', desc: 'Protótipo / não para venda' },
-          ] as const).map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => set('status', opt.value)}
-              className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors text-left ${
-                form.status === opt.value
-                  ? opt.value === 'test'
-                    ? 'bg-orange-500/15 border border-orange-500/40 text-orange-400'
-                    : 'bg-background border border-border text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <span className="block">{opt.label}</span>
-              <span className="block text-[10px] font-normal opacity-70 mt-0.5">{opt.desc}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           {/* Name */}
           <div className="col-span-2 space-y-1.5">
