@@ -17,6 +17,9 @@ export interface Product {
   createdAt: string
   volumePrices?: VolumeTier[]
   status?: 'active' | 'failed'   // 'failed' = tested, not approved
+  productCode?: string            // e.g. '001'
+  unitsPerRun?: number            // units per print plate
+  batches?: number                // typical number of plates per run
 }
 
 export interface OrderItem {

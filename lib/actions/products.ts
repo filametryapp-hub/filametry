@@ -26,14 +26,35 @@ export async function upsertProduct(product: {
   image_url?: string
   tags: string[]
   volume_prices?: { min_qty: number; price_usd: number }[] | null
+  product_code?: string
+  units_per_run?: number
+  batches?: number | null
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  // Auto-generate code for new products
+  let productCode = product.product_code
+  if (!product.id && !productCode) {
+    const { data: last } = await supabase
+      .from('products')
+      .select('product_code')
+      .not('product_code', 'is', null)
+      .order('product_code', { ascending: false })
+      .limit(1)
+      .single()
+    const nextNum = last?.product_code ? parseInt(last.product_code, 10) + 1 : 1
+    productCode = String(nextNum).padStart(3, '0')
+  }
+
   const { error } = await supabase
     .from('products')
-    .upsert({ ...product, user_id: user.id }, { onConflict: 'id' })
+    .upsert({
+      ...product,
+      user_id: user.id,
+      product_code: productCode,
+    }, { onConflict: 'id' })
 
   if (error) throw error
   revalidatePath('/produtos')

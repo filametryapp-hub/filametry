@@ -27,6 +27,9 @@ function fromRow(row: Record<string, unknown>): Product {
           minQty: t.min_qty, priceUSD: t.price_usd,
         }))
       : undefined,
+    productCode:  row.product_code ? String(row.product_code) : undefined,
+    unitsPerRun:  row.units_per_run ? Number(row.units_per_run) : 1,
+    batches:      row.batches ? Number(row.batches) : undefined,
   }
 }
 
@@ -71,6 +74,11 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
       {/* Name + tags */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          {product.productCode && (
+            <span className="text-[10px] font-mono font-semibold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded shrink-0">
+              #{product.productCode}
+            </span>
+          )}
           <span className={`text-sm font-semibold truncate ${isFailed ? 'line-through text-muted-foreground' : ''}`}>
             {product.name}
           </span>
@@ -81,6 +89,8 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">
             {product.material} · {product.weightG}g · {product.printHours}h
+            {product.batches ? ` · ${product.batches} chapas` : ''}
+            {(product.unitsPerRun ?? 1) > 1 ? ` · ${product.unitsPerRun} un/chapa` : ''}
           </span>
           {product.tags.slice(0, 2).map(t => (
             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
@@ -223,6 +233,9 @@ export function ProductList() {
         image_url:     data.imageUrl,
         tags:          data.tags,
         volume_prices: data.volumePrices?.map(t => ({ min_qty: t.minQty, price_usd: t.priceUSD })) ?? null,
+        product_code:  data.productCode,
+        units_per_run: data.unitsPerRun ?? 1,
+        batches:       data.batches ?? null,
       })
       await load()
     } finally {

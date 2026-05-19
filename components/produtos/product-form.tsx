@@ -27,6 +27,8 @@ const BLANK: Omit<Product, 'id' | 'createdAt'> = {
   priceUSD: 0,
   tags: [],
   imageUrl: '',
+  unitsPerRun: 1,
+  batches: undefined,
 }
 
 export function ProductForm({ initial, onSave, onClose, saving }: Props) {
@@ -124,6 +126,22 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             <Label className="text-xs text-muted-foreground">{t.products.printHours}</Label>
             <Input type="number" min={0.1} step={0.25} value={form.printHours}
               onChange={e => set('printHours', +e.target.value)} />
+          </div>
+
+          {/* Units per plate */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Un. por chapa</Label>
+            <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
+              onChange={e => set('unitsPerRun', Math.max(1, +e.target.value))} />
+          </div>
+
+          {/* Batches */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Nº de chapas</Label>
+            <Input type="number" min={1} step={1}
+              value={form.batches ?? ''}
+              placeholder="—"
+              onChange={e => set('batches', e.target.value ? Math.max(1, +e.target.value) : undefined)} />
           </div>
 
           {/* Cost */}
