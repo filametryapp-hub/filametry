@@ -42,7 +42,7 @@ function margin(cost: number, price: number) {
   return ((price - cost) / price) * 100
 }
 
-type FilterStatus = 'all' | 'active' | 'failed'
+type FilterStatus = 'all' | 'active' | 'failed' | 'test'
 
 function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus }: {
   product: Product
@@ -54,15 +54,21 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
   const m      = margin(product.costUSD, product.priceUSD)
   const profit = product.priceUSD - product.costUSD
   const isFailed = product.status === 'failed'
+  const isTest   = product.status === 'test'
+  const isDimmed = isFailed || isTest
 
   return (
-    <div className={`group flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isFailed ? 'opacity-60' : ''}`}>
+    <div className={`group flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isDimmed ? 'opacity-60' : ''}`}>
 
       {/* Status indicator */}
       <div className="shrink-0">
         {isFailed ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
             <XCircle className="size-2.5" /> Não aprovado
+          </span>
+        ) : isTest ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+            <FlaskConical className="size-2.5" /> Teste
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
@@ -130,14 +136,14 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button
           onClick={onToggleStatus}
-          title={isFailed ? 'Marcar como ativo' : 'Marcar como não aprovado'}
+          title={isDimmed ? 'Marcar como ativo' : 'Marcar como não aprovado'}
           className={`p-1.5 rounded-md transition-colors ${
-            isFailed
+            isDimmed
               ? 'text-green-400 hover:bg-green-400/10'
               : 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10'
           }`}
         >
-          {isFailed ? <CheckCircle className="size-3.5" /> : <XCircle className="size-3.5" />}
+          {isDimmed ? <CheckCircle className="size-3.5" /> : <XCircle className="size-3.5" />}
         </button>
         <button
           onClick={onRegisterTest}
@@ -192,18 +198,20 @@ export function ProductList() {
   }
 
   async function handleToggleStatus(p: Product) {
-    const next: 'active' | 'failed' = p.status === 'failed' ? 'active' : 'failed'
+    const next: 'active' | 'failed' | 'test' = (p.status === 'failed' || p.status === 'test') ? 'active' : 'failed'
     setProducts(prev => prev.map(x => x.id === p.id ? { ...x, status: next } : x))
     await setProductStatus(p.id, next)
   }
 
-  const activeCount = products.filter(p => p.status !== 'failed').length
+  const activeCount = products.filter(p => !p.status || p.status === 'active').length
   const failedCount = products.filter(p => p.status === 'failed').length
+  const testCount   = products.filter(p => p.status === 'test').length
 
   const filtered = products
     .filter(p => {
-      if (filterStatus === 'active') return p.status !== 'failed'
+      if (filterStatus === 'active') return !p.status || p.status === 'active'
       if (filterStatus === 'failed') return p.status === 'failed'
+      if (filterStatus === 'test')   return p.status === 'test'
       return true
     })
     .filter(p =>
@@ -212,7 +220,7 @@ export function ProductList() {
       p.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
     )
 
-  const activeProducts = products.filter(p => p.status !== 'failed')
+  const activeProducts = products.filter(p => !p.status || p.status === 'active')
   const totalValue = activeProducts.reduce((s, p) => s + p.priceUSD, 0)
   const avgMargin  = activeProducts.length
     ? activeProducts.reduce((s, p) => s + margin(p.costUSD, p.priceUSD), 0) / activeProducts.length
@@ -236,6 +244,7 @@ export function ProductList() {
         product_code:  data.productCode,
         units_per_run: data.unitsPerRun ?? 1,
         batches:       data.batches ?? null,
+        status:        data.status ?? 'active',
       })
       await load()
     } finally {
@@ -288,6 +297,7 @@ export function ProductList() {
         <div className="flex gap-1">
           {([
             { key: 'active', label: `Ativos (${activeCount})` },
+            { key: 'test',   label: `Testes (${testCount})` },
             { key: 'failed', label: `Não aprovados (${failedCount})` },
             { key: 'all',    label: 'Todos' },
           ] as { key: FilterStatus; label: string }[]).map(f => (
@@ -325,7 +335,13 @@ export function ProductList() {
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <Package className="size-8 text-muted-foreground mx-auto mb-3 opacity-40" />
           <p className="text-sm text-muted-foreground">
-            {search ? 'Nenhum produto encontrado.' : filterStatus === 'failed' ? 'Nenhum produto não aprovado.' : 'Nenhum produto ainda.'}
+            {search
+              ? 'Nenhum produto encontrado.'
+              : filterStatus === 'failed'
+              ? 'Nenhum produto não aprovado.'
+              : filterStatus === 'test'
+              ? 'Nenhum produto de teste ainda.'
+              : 'Nenhum produto ainda.'}
           </p>
         </div>
       ) : (

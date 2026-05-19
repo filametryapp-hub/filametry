@@ -16,7 +16,7 @@ export interface Product {
   tags: string[]
   createdAt: string
   volumePrices?: VolumeTier[]
-  status?: 'active' | 'failed'   // 'failed' = tested, not approved
+  status?: 'active' | 'failed' | 'test'  // 'failed' = tested/not approved, 'test' = prototype only
   productCode?: string            // e.g. '001'
   unitsPerRun?: number            // units per print plate
   batches?: number                // typical number of plates per run

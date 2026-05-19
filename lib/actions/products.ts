@@ -29,6 +29,7 @@ export async function upsertProduct(product: {
   product_code?: string
   units_per_run?: number
   batches?: number | null
+  status?: 'active' | 'failed' | 'test'
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -60,7 +61,7 @@ export async function upsertProduct(product: {
   revalidatePath('/produtos')
 }
 
-export async function setProductStatus(id: string, status: 'active' | 'failed') {
+export async function setProductStatus(id: string, status: 'active' | 'failed' | 'test') {
   const supabase = await createClient()
   const { error } = await supabase.from('products').update({ status }).eq('id', id)
   if (error) throw error

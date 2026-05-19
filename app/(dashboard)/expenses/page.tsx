@@ -162,8 +162,10 @@ export default function ExpensesPage() {
     })
   }, [])
 
-  const filtered = activeTab === 'all' ? expenses : expenses.filter(e => e.category === activeTab)
-  const monthTotal = summary.reduce((s, r) => s + r.total, 0)
+  // test_print entries are tracked separately in Products > Testes & Perdas, not shown here
+  const visibleExpenses = expenses.filter(e => e.category !== 'test_print')
+  const filtered = activeTab === 'all' ? visibleExpenses : visibleExpenses.filter(e => e.category === activeTab)
+  const monthTotal = summary.filter(r => r.category !== 'test_print').reduce((s, r) => s + r.total, 0)
 
   function reload() {
     Promise.all([getExpenses(), getExpenseSummary()]).then(([e, sum]) => {
