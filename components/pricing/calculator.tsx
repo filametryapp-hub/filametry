@@ -66,7 +66,7 @@ interface SharedValues {
 const DEFAULT_SHARED: SharedValues = {
   printerWatts:      120,
   electricityCost:   0.15,
-  hourlyRate:        2,
+  hourlyRate:        0.05,   // conservative default; auto-filled from printer lifespan when selected
   failureRate:       10,
   marginPct:         40,
   testOverheadRate:  0,
@@ -1100,9 +1100,9 @@ export function PricingCalculator() {
                   {pr.amortFrom} <span className="font-medium">{amortLabel}</span>
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
-                  <span className="inline-block size-1.5 rounded-full bg-muted-foreground/40" />
-                  {pr.amortFrom.replace(':', '')} — {t.pricing.printer.toLowerCase()} {t.common.optional.toLowerCase()}
+                <p className="text-xs text-yellow-500/80 flex items-center gap-1.5">
+                  <span className="inline-block size-1.5 rounded-full bg-yellow-500/60" />
+                  Nenhuma impressora selecionada — valor manual. Para calcular automaticamente, cadastre e selecione sua impressora acima.
                 </p>
               )}
             </CardContent>
