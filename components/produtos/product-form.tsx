@@ -40,7 +40,13 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
       : { ...BLANK, id: '', createdAt: new Date().toISOString().slice(0, 10) }
   )
   const [tagInput, setTagInput] = useState(initial?.tags.join(', ') ?? '')
-  const [volumeTiers, setVolumeTiers] = useState<VolumeTier[]>(initial?.volumePrices ?? [])
+
+  // Local tier type with a stable ID for React keying
+  type LocalTier = VolumeTier & { _id: string }
+  const toLocal = (t: VolumeTier): LocalTier => ({ ...t, _id: crypto.randomUUID() })
+  const [volumeTiers, setVolumeTiers] = useState<LocalTier[]>(
+    (initial?.volumePrices ?? []).map(toLocal)
+  )
 
   const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
     setForm(prev => ({ ...prev, [k]: v }))
@@ -52,14 +58,16 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
-    onSave({ ...form, tags, volumePrices: volumeTiers.length ? volumeTiers : undefined })
+    // strip local _id before persisting
+    const cleanTiers: VolumeTier[] = volumeTiers.map(({ _id: _, ...rest }) => rest)
+    onSave({ ...form, tags, volumePrices: cleanTiers.length ? cleanTiers : undefined })
   }
 
   function addTier() {
     const nextQty = volumeTiers.length === 0
       ? 5
       : Math.max(...volumeTiers.map(t => t.minQty)) + 5
-    setVolumeTiers(prev => [...prev, { minQty: nextQty, priceUSD: form.priceUSD * 0.9 }])
+    setVolumeTiers(prev => [...prev, { _id: crypto.randomUUID(), minQty: nextQty, priceUSD: form.priceUSD * 0.9 }])
   }
 
   return (
@@ -200,18 +208,18 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             </p>
           )}
 
-          {volumeTiers.sort((a, b) => a.minQty - b.minQty).map((tier, idx) => {
+          {[...volumeTiers].sort((a, b) => a.minQty - b.minQty).map((tier) => {
             const discountPct = form.priceUSD > 0
               ? ((form.priceUSD - tier.priceUSD) / form.priceUSD * 100)
               : 0
             return (
-              <div key={idx} className="grid grid-cols-[80px_1fr_56px_24px] gap-2 items-center">
+              <div key={tier._id} className="grid grid-cols-[80px_1fr_56px_24px] gap-2 items-center">
                 <div className="space-y-0.5">
                   <Label className="text-[10px] text-muted-foreground">A partir de</Label>
                   <input
                     type="number" min={2} step={1}
                     value={tier.minQty}
-                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, minQty: +e.target.value } : t))}
+                    onChange={e => setVolumeTiers(prev => prev.map(t => t._id === tier._id ? { ...t, minQty: +e.target.value } : t))}
                     className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
@@ -220,7 +228,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                   <input
                     type="number" min={0} step="any"
                     value={tier.priceUSD}
-                    onChange={e => setVolumeTiers(prev => prev.map((t, i) => i === idx ? { ...t, priceUSD: parseFloat(e.target.value) || 0 } : t))}
+                    onChange={e => setVolumeTiers(prev => prev.map(t => t._id === tier._id ? { ...t, priceUSD: parseFloat(e.target.value) || 0 } : t))}
                     className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
@@ -228,7 +236,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                   {discountPct > 0 ? `-${discountPct.toFixed(0)}%` : '—'}
                 </span>
                 <button type="button"
-                  onClick={() => setVolumeTiers(prev => prev.filter((_, i) => i !== idx))}
+                  onClick={() => setVolumeTiers(prev => prev.filter(t => t._id !== tier._id))}
                   className="text-muted-foreground hover:text-red-400 transition-colors">
                   <Trash2 className="size-3.5" />
                 </button>
