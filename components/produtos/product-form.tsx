@@ -137,25 +137,40 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
               onChange={e => set('printHours', +e.target.value)} />
           </div>
 
-          {/* Units per plate */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Un. por chapa</Label>
-            <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
-              onChange={e => set('unitsPerRun', Math.max(1, +e.target.value))} />
-          </div>
-
-          {/* Batches */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Nº de chapas</Label>
-            <Input type="number" min={1} step={1}
-              value={form.batches ?? ''}
-              placeholder="—"
-              onChange={e => set('batches', e.target.value ? Math.max(1, +e.target.value) : undefined)} />
+          {/* Units per plate + batch count — affect cost per unit */}
+          <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Produção por chapa</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Un. por chapa</Label>
+                <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
+                  onChange={e => {
+                    const newUnits = Math.max(1, +e.target.value)
+                    const plateCost = form.costUSD * (form.unitsPerRun ?? 1)
+                    setForm(prev => ({ ...prev, unitsPerRun: newUnits, costUSD: parseFloat((plateCost / newUnits).toFixed(4)) }))
+                  }} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Nº de chapas</Label>
+                <Input type="number" min={1} step={1}
+                  value={form.batches ?? ''}
+                  placeholder="—"
+                  onChange={e => set('batches', e.target.value ? Math.max(1, +e.target.value) : undefined)} />
+              </div>
+            </div>
+            {/* Plate cost preview */}
+            {form.costUSD > 0 && (form.unitsPerRun ?? 1) > 1 && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
+                Custo por chapa: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
+                <span className="text-muted-foreground/60">÷ {form.unitsPerRun} un = {fmtCurrency(form.costUSD)}/un</span>
+              </p>
+            )}
           </div>
 
           {/* Cost */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">{t.products.costUSD}</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.costUSD} (por unidade)</Label>
             <CurrencyInput
               value={form.costUSD}
               onChange={v => set('costUSD', v)}

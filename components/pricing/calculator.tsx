@@ -167,6 +167,8 @@ function SaveProductModal({
   weightG,
   printHours,
   material,
+  unitsPerRun,
+  batchCount,
   onClose,
 }: {
   costUSD: number
@@ -174,6 +176,8 @@ function SaveProductModal({
   weightG: number
   printHours: number
   material: string
+  unitsPerRun: number
+  batchCount: number
   onClose: () => void
 }) {
   const { t } = useT()
@@ -199,6 +203,8 @@ function SaveProductModal({
         cost_usd: cost,
         price_usd: price,
         tags: [],
+        units_per_run: unitsPerRun,
+        batches: batchCount > 1 ? batchCount : undefined,
       })
       setSaved(true)
       setTimeout(onClose, 1200)
@@ -1282,6 +1288,8 @@ export function PricingCalculator() {
           weightG={result.totalWeight}
           printHours={result.totalHours}
           material={batches[0]?.filaments[0]?.type ?? 'PLA'}
+          unitsPerRun={unitsPerRun}
+          batchCount={batches.length}
           onClose={() => setShowSaveModal(false)}
         />
       )}
