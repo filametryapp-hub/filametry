@@ -147,3 +147,15 @@ export async function deleteMaterialPayment(id: string) {
   if (error) throw error
   revalidatePath('/filamentos')
 }
+
+export async function getPartners(): Promise<{ name: string }[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  // Fetch from partners table (used by Carteira)
+  const { data } = await supabase
+    .from('partners')
+    .select('name')
+    .order('name')
+  return (data ?? []) as { name: string }[]
+}

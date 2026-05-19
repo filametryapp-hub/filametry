@@ -13,6 +13,7 @@ interface Props {
   onSave: (data: FilamentSpool) => void
   onClose: () => void
   saving?: boolean
+  partners?: { name: string }[]
 }
 
 const CATEGORIES: MaterialCategory[] = ['Filament', 'Tool', 'Packaging', 'Accessory', 'Other']
@@ -33,7 +34,7 @@ const BLANK: Omit<FilamentSpool, 'id'> = {
   paidBy: 'company',
 }
 
-export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
+export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }: Props) {
   const { t, fmtCurrency, currencySymbol } = useT()
   const m = t.materials
 
@@ -200,8 +201,10 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
 
         {/* Paid by — only relevant on new items (expense is created on insert) */}
         {!initial && (
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Pago por</Label>
+          <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pagamento</Label>
+
+            {/* Company / Partner toggle */}
             <div className="flex gap-2">
               {(['company', 'partner'] as const).map(opt => (
                 <button
@@ -218,14 +221,56 @@ export function FilamentForm({ initial, onSave, onClose, saving }: Props) {
                 </button>
               ))}
             </div>
-          </div>
-        )}
 
-        {form.priceUSD > 0 && !initial && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-[10px]">✓</span>
-            A purchase expense will be recorded automatically.
-          </p>
+            {/* Partner details — show when partner is selected */}
+            {form.paidBy === 'partner' && (
+              <div className="grid grid-cols-2 gap-2">
+                {/* Partner name dropdown */}
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[11px] text-muted-foreground">Sócio</label>
+                  {partners.length > 0 ? (
+                    <select
+                      value={form.paidByName ?? ''}
+                      onChange={e => set('paidByName', e.target.value)}
+                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    >
+                      <option value="">Selecionar sócio…</option>
+                      {partners.map(p => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={form.paidByName ?? ''}
+                      onChange={e => set('paidByName', e.target.value)}
+                      placeholder="Nome do sócio"
+                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    />
+                  )}
+                </div>
+                {/* Amount paid */}
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[11px] text-muted-foreground">Valor pago</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={form.paidByAmount ?? form.priceUSD}
+                    onChange={e => set('paidByAmount', parseFloat(e.target.value) || 0)}
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {form.priceUSD > 0 && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <span className="size-3 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-[9px]">✓</span>
+                Despesa registrada automaticamente.
+                {form.paidBy === 'partner' && form.paidByName && ' Pagamento do sócio também será registrado.'}
+              </p>
+            )}
+          </div>
         )}
 
         <div className="flex gap-3 pt-1">

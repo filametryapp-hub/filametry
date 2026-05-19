@@ -5,7 +5,7 @@ import { Plus, Layers, Pencil, Trash2, ChevronDown, ChevronUp, Wallet, X } from 
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
 import { BatchEntryModal } from './batch-entry-modal'
-import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment } from '@/lib/actions/filaments'
+import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment, getPartners } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 import {
   type FilamentSpool,
@@ -56,7 +56,7 @@ function pctColor(pct: number) {
   return 'bg-red-500'
 }
 
-function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefresh: () => void }) {
+function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments; onRefresh: () => void; partners: { name: string }[] }) {
   const { fmtCurrency } = useT()
   const totalPaid   = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
   const cost        = spool.price_usd_raw
@@ -140,14 +140,27 @@ function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefres
 
       {/* Add payment form */}
       <form onSubmit={submit} className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Record payment</p>
+        <p className="text-xs font-medium text-muted-foreground">Registrar pagamento</p>
         <div className="grid grid-cols-2 gap-2">
-          <input
-            value={payerName}
-            onChange={e => setPayerName(e.target.value)}
-            placeholder="Partner name"
-            className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
-          />
+          {partners.length > 0 ? (
+            <select
+              value={payerName}
+              onChange={e => setPayerName(e.target.value)}
+              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              <option value="">Selecionar sócio…</option>
+              {partners.map(p => (
+                <option key={p.name} value={p.name}>{p.name}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={payerName}
+              onChange={e => setPayerName(e.target.value)}
+              placeholder="Nome do sócio"
+              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            />
+          )}
           <input
             type="number"
             value={amount}
@@ -183,11 +196,12 @@ function PaymentPanel({ spool, onRefresh }: { spool: SpoolWithPayments; onRefres
   )
 }
 
-function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
+function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
   spool: SpoolWithPayments
   onEdit: () => void
   onDelete: () => void
   onRefresh: () => void
+  partners: { name: string }[]
 }) {
   const { fmtCurrency } = useT()
   const pct      = remainingPct(spool)
@@ -270,7 +284,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh }: {
         {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
       </button>
 
-      {expanded && <PaymentPanel spool={spool} onRefresh={onRefresh} />}
+      {expanded && <PaymentPanel spool={spool} onRefresh={onRefresh} partners={partners ?? []} />}
     </div>
   )
 }
@@ -279,6 +293,7 @@ export function FilamentList() {
   const { t, fmtCurrency } = useT()
   const m = t.materials
   const [spools, setSpools]         = useState<SpoolWithPayments[]>([])
+  const [partners, setPartners]     = useState<{ name: string }[]>([])
   const [loading, setLoading]       = useState(true)
   const [showForm, setShowForm]     = useState(false)
   const [showBatch, setShowBatch]   = useState(false)
@@ -288,8 +303,9 @@ export function FilamentList() {
   async function load() {
     setLoading(true)
     try {
-      const rows = await getFilaments()
+      const [rows, pts] = await Promise.all([getFilaments(), getPartners()])
       setSpools((rows ?? []).map(r => fromRow(r as Record<string, unknown>)))
+      setPartners(pts)
     } finally {
       setLoading(false)
     }
@@ -318,6 +334,26 @@ export function FilamentList() {
         unit:         data.unit ?? 'g',
         paid_by:      data.paidBy ?? 'company',
       })
+
+      // Record partner payment if specified at creation time
+      if (!data.id && data.paidBy === 'partner' && data.paidByName && (data.paidByAmount ?? 0) > 0) {
+        try {
+          // Re-load to get the new ID, then record payment
+          const rows = await getFilaments()
+          const fresh = (rows ?? []).map(r => fromRow(r as Record<string, unknown>))
+          setSpools(fresh)
+          const newSpool = fresh[0] // most recent = just inserted
+          if (newSpool) {
+            await addMaterialPayment({
+              material_id: newSpool.id,
+              payer_name:  data.paidByName,
+              amount_paid: data.paidByAmount ?? data.priceUSD,
+              paid_at:     data.purchasedAt ?? new Date().toISOString().slice(0, 10),
+            })
+          }
+        } catch { /* payment recording failure must not break the flow */ }
+      }
+
       await load()
     } finally {
       setSaving(false)
@@ -389,6 +425,7 @@ export function FilamentList() {
               onEdit={() => { setEditing(spool); setShowForm(true) }}
               onDelete={() => remove(spool.id)}
               onRefresh={load}
+              partners={partners}
             />
           ))}
         </div>
@@ -402,6 +439,7 @@ export function FilamentList() {
           onSave={save}
           onClose={() => { setShowForm(false); setEditing(null) }}
           saving={saving}
+          partners={partners}
         />
       )}
 

@@ -15,6 +15,9 @@ export interface FilamentSpool {
   category?: MaterialCategory
   unit?: MaterialUnit
   paidBy?: string
+  // transient: initial partner payment recorded at creation time (not stored in filaments table)
+  paidByName?: string
+  paidByAmount?: number
 }
 
 // ── Full material list (2024-2025) ─────────────────────────────
