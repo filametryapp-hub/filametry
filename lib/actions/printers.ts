@@ -178,6 +178,32 @@ export async function getAmortizationData() {
   }
 }
 
+// ── Test overhead settings (payback period) ───────────────────
+export async function getTestSettings(): Promise<{ months: number | null; hoursPerDay: number | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { months: null, hoursPerDay: null }
+  const { data } = await supabase
+    .from('user_settings')
+    .select('test_payback_months, test_hours_per_day')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  return {
+    months:      data?.test_payback_months ?? null,
+    hoursPerDay: data?.test_hours_per_day  ?? null,
+  }
+}
+
+export async function saveTestSettings(months: number, hoursPerDay: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  await supabase.from('user_settings').upsert(
+    { user_id: user.id, test_payback_months: months, test_hours_per_day: hoursPerDay, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  )
+}
+
 // ── Test prints / waste ───────────────────────────────────────
 export async function getTestPrints() {
   const supabase = await createClient()

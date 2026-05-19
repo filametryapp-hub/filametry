@@ -1,34 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, FlaskConical } from 'lucide-react'
+import { X, Plus, Trash2, FlaskConical, Clock } from 'lucide-react'
 import { createExpense, deleteExpense } from '@/lib/actions/expenses'
-import { getTestPrints, getAmortizationData } from '@/lib/actions/printers'
+import { getTestPrints, getTestSettings, saveTestSettings } from '@/lib/actions/printers'
 import { CurrencyInput } from '@/components/ui/currency-input'
 
 type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const NUM_INPUT = 'w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center font-semibold outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
 function fmtCurrency(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
 interface Props {
-  // When opened from a product button, pre-fills the form
   prefillProduct?: string | null
   prefillCost?: number | null
   onClose: () => void
 }
 
 export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props) {
-  const [testPrints, setTestPrints]               = useState<TestPrintEntry[]>([])
-  const [totalProductHours, setTotalProductHours] = useState(0)
-  const [loading, setLoading]                     = useState(true)
-  const [saving, setSaving]                       = useState(false)
-  const [error, setError]                         = useState('')
+  const [testPrints, setTestPrints] = useState<TestPrintEntry[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState('')
 
-  // Start in "add" mode when coming from a product button
+  // Payback period settings
+  const [paybackMonths,  setPaybackMonths]  = useState<number>(6)
+  const [hoursPerDay,    setHoursPerDay]    = useState<number>(4)
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [settingsSaved,  setSettingsSaved]  = useState(false)
+
   const [showForm, setShowForm] = useState(Boolean(prefillProduct))
 
   const [form, setForm] = useState({
@@ -42,9 +46,10 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
   useEffect(() => {
     async function load() {
       try {
-        const [tests, amort] = await Promise.all([getTestPrints(), getAmortizationData()])
+        const [tests, settings] = await Promise.all([getTestPrints(), getTestSettings()])
         setTestPrints((tests ?? []) as TestPrintEntry[])
-        setTotalProductHours(amort.totalProductHours)
+        if (settings.months)      setPaybackMonths(settings.months)
+        if (settings.hoursPerDay) setHoursPerDay(settings.hoursPerDay)
       } catch { /* silent */ } finally {
         setLoading(false)
       }
@@ -52,8 +57,20 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
     load()
   }, [])
 
-  const totalWaste   = testPrints.reduce((s, e) => s + e.amount, 0)
-  const overheadRate = totalProductHours > 0 && totalWaste > 0 ? totalWaste / totalProductHours : 0
+  const totalWaste    = testPrints.reduce((s, e) => s + e.amount, 0)
+  const targetHours   = paybackMonths * 30 * hoursPerDay
+  const overheadRate  = targetHours > 0 && totalWaste > 0 ? totalWaste / targetHours : 0
+
+  async function handleSaveSettings() {
+    setSavingSettings(true)
+    try {
+      await saveTestSettings(paybackMonths, hoursPerDay)
+      setSettingsSaved(true)
+      setTimeout(() => setSettingsSaved(false), 2000)
+    } finally {
+      setSavingSettings(false)
+    }
+  }
 
   async function handleAdd() {
     if (!form.description || !form.amount) { setError('Descrição e custo são obrigatórios.'); return }
@@ -132,6 +149,62 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+
+          {/* ── Payback period settings ── */}
+          <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Clock className="size-3.5 text-orange-400 shrink-0" />
+              <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Prazo de retorno</p>
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center">Meses</label>
+                <input
+                  type="number" min={1} max={120} step={1}
+                  value={paybackMonths}
+                  onChange={e => setPaybackMonths(Math.max(1, +e.target.value))}
+                  className={NUM_INPUT}
+                />
+              </div>
+              <span className="text-muted-foreground text-[10px] pt-4">×</span>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center">h/dia</label>
+                <input
+                  type="number" min={0.5} max={24} step={0.5}
+                  value={hoursPerDay}
+                  onChange={e => setHoursPerDay(Math.max(0.5, +e.target.value))}
+                  className={NUM_INPUT}
+                />
+              </div>
+              <span className="text-muted-foreground text-[10px] pt-4">30d</span>
+            </div>
+
+            {/* Preview */}
+            <div className="rounded-md bg-background border border-border px-3 py-2 text-xs space-y-0.5">
+              <p className="text-muted-foreground">
+                {paybackMonths} meses × 30 dias × {hoursPerDay}h
+                {' = '}
+                <span className="font-semibold text-foreground">{targetHours.toLocaleString('pt-BR')}h totais</span>
+              </p>
+              {totalWaste > 0 && targetHours > 0 && (
+                <p className="text-orange-400 font-mono font-semibold">
+                  → Overhead: {fmtCurrency(overheadRate)}/h aplicado na precificação
+                </p>
+              )}
+              {totalWaste === 0 && (
+                <p className="text-muted-foreground/60">Registre perdas abaixo para calcular o overhead.</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              className="w-full text-xs font-medium py-1.5 rounded-md border border-orange-500/40 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50 transition-colors"
+            >
+              {savingSettings ? 'Salvando…' : settingsSaved ? '✓ Salvo!' : 'Salvar configuração'}
+            </button>
+          </div>
 
           {/* Add form */}
           {showForm && (
@@ -215,7 +288,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
               <div className="size-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : testPrints.length === 0 && !showForm ? (
-            <p className="text-xs text-muted-foreground text-center py-8">
+            <p className="text-xs text-muted-foreground text-center py-4">
               Nenhum teste registrado ainda.
             </p>
           ) : testPrints.length > 0 ? (
@@ -240,14 +313,6 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
               ))}
             </div>
           ) : null}
-
-          {/* Overhead note */}
-          {overheadRate > 0 && (
-            <p className="text-[11px] text-muted-foreground/60 flex items-start gap-1">
-              <span className="inline-block size-1.5 rounded-full bg-orange-400 shrink-0 mt-1" />
-              Overhead aplicado automaticamente na precificação ({fmtCurrency(overheadRate)}/h).
-            </p>
-          )}
         </div>
       </div>
     </div>

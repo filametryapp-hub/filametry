@@ -15,7 +15,7 @@ import type { SlicerData } from '@/lib/parse-gcode'
 import type { BambuPrint } from '@/lib/actions/bambu'
 import { useT } from '@/lib/i18n'
 import { upsertProduct } from '@/lib/actions/products'
-import { getAmortizationData, getTestPrints } from '@/lib/actions/printers'
+import { getAmortizationData, getTestPrints, getTestSettings } from '@/lib/actions/printers'
 import { getFilaments } from '@/lib/actions/filaments'
 import {
   getPricingSessions, savePricingSession, deletePricingSession, renamePricingSession,
@@ -680,18 +680,24 @@ export function PricingCalculator() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [amort, tests, filamentRows, savedSessions] = await Promise.all([
+        const [amort, tests, testSettings, filamentRows, savedSessions] = await Promise.all([
           getAmortizationData(),
           getTestPrints(),
+          getTestSettings(),
           getFilaments(),
           getPricingSessions(),
         ])
         setSessions(savedSessions)
-        const totalHours = amort.totalProductHours
-        const totalCost  = tests.reduce((s: number, t: { amount: number }) => s + t.amount, 0)
-        if (totalHours > 0 && totalCost > 0) {
-          const rate = totalCost / totalHours
-          setShared(prev => ({ ...prev, testOverheadRate: parseFloat(rate.toFixed(4)) }))
+        const totalCost = tests.reduce((s: number, t: { amount: number }) => s + t.amount, 0)
+        if (totalCost > 0) {
+          // Use user-defined payback period if set, otherwise fall back to product hours
+          const targetHours = (testSettings.months && testSettings.hoursPerDay)
+            ? testSettings.months * 30 * testSettings.hoursPerDay
+            : amort.totalProductHours
+          if (targetHours > 0) {
+            const rate = totalCost / targetHours
+            setShared(prev => ({ ...prev, testOverheadRate: parseFloat(rate.toFixed(4)) }))
+          }
         }
         // Map filament rows to a simple catalog shape
         const catalog: CatalogFilament[] = (filamentRows ?? [])
