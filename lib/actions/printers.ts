@@ -140,15 +140,32 @@ export async function deleteEquipmentPayment(id: string) {
 }
 
 // ── Amortization data ─────────────────────────────────────────
-// Returns total print_hours from the products catalog + per-printer amortization stats
+// Returns total print_hours from COMPLETED SALES only (status = 'done')
+// Catalog products and test prints do NOT count toward amortization
 export async function getAmortizationData() {
   const supabase = await createClient()
 
-  // Sum of all product print_hours (hours the printer has been "used" for catalog products)
-  const { data: products } = await supabase.from('products').select('print_hours')
-  const totalProductHours = (products ?? []).reduce(
-    (s: number, p: { print_hours: number | null }) => s + Number(p.print_hours ?? 0), 0
-  )
+  // Only count hours from orders that have been delivered (done)
+  const { data: doneOrders } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('status', 'done')
+
+  const doneOrderIds = (doneOrders ?? []).map((o: { id: string }) => o.id)
+
+  let totalProductHours = 0
+  if (doneOrderIds.length > 0) {
+    const { data: soldItems } = await supabase
+      .from('order_items')
+      .select('quantity, products(print_hours)')
+      .in('order_id', doneOrderIds)
+
+    totalProductHours = (soldItems ?? []).reduce((sum: number, item: Record<string, unknown>) => {
+      const prod = item.products as { print_hours: number | null } | null
+      const hours = Number(prod?.print_hours ?? 0)
+      return sum + Number(item.quantity) * hours
+    }, 0)
+  }
 
   const { data: printers } = await supabase
     .from('user_printers')
@@ -156,7 +173,7 @@ export async function getAmortizationData() {
     .order('created_at', { ascending: true })
 
   return {
-    totalProductHours,
+    totalProductHours, // hours from completed sales only
     printers: (printers ?? []).map((p: Record<string, unknown>) => {
       const purchaseValue  = Number(p.purchase_value ?? 0)
       const lifespanHours  = Number(p.lifespan_hours ?? 0)

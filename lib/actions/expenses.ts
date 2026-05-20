@@ -59,21 +59,23 @@ export async function createExpense(expense: {
 
   if (expenseError) throw expenseError
 
-  // Also record in cash_flow
-  const { error: cfError } = await supabase
-    .from('cash_flow')
-    .insert({
-      company_id: companyId,
-      user_id: user.id,
-      type: 'expense',
-      category: expense.category,
-      description: expense.description,
-      amount: expense.amount,
-      date: expense.paid_at,
-      reference_id: newExpense.id,
-    })
+  // Test prints are tracked separately (Testes & Perdas) — don't pollute cash flow
+  if (expense.category !== 'test_print') {
+    const { error: cfError } = await supabase
+      .from('cash_flow')
+      .insert({
+        company_id: companyId,
+        user_id: user.id,
+        type: 'expense',
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        date: expense.paid_at,
+        reference_id: newExpense.id,
+      })
 
-  if (cfError) throw cfError
+    if (cfError) throw cfError
+  }
 
   revalidatePath('/expenses')
   revalidatePath('/cash-flow')
