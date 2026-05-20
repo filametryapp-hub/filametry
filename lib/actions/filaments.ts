@@ -148,6 +148,37 @@ export async function deleteMaterialPayment(id: string) {
   revalidatePath('/filamentos')
 }
 
+/** Decrement remaining_g on a spool (used when registering test prints / waste) */
+export async function consumeFilamentG(spoolId: string, grams: number) {
+  if (!spoolId || grams <= 0) return
+  const supabase = await createClient()
+  const { data: spool } = await supabase
+    .from('filaments')
+    .select('remaining_g')
+    .eq('id', spoolId)
+    .single()
+  if (!spool) return
+  const newRemaining = Math.max(0, Number(spool.remaining_g) - grams)
+  await supabase.from('filaments').update({ remaining_g: newRemaining }).eq('id', spoolId)
+  revalidatePath('/filamentos')
+}
+
+/** Lightweight list for dropdowns — only id + label fields */
+export async function getFilamentSpools(): Promise<{ id: string; label: string; remaining_g: number }[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await supabase
+    .from('filaments')
+    .select('id, brand, color, material, remaining_g')
+    .order('brand')
+  return (data ?? []).map((f: Record<string, unknown>) => ({
+    id:          String(f.id),
+    label:       `${f.brand} ${f.color} (${f.material}) — ${Number(f.remaining_g).toFixed(0)}g`,
+    remaining_g: Number(f.remaining_g),
+  }))
+}
+
 export async function getPartners(): Promise<{ name: string }[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

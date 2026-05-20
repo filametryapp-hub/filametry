@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, FlaskConical, Clock } from 'lucide-react'
+import { X, Plus, Trash2, FlaskConical, Clock, Package } from 'lucide-react'
 import { createExpense, deleteExpense } from '@/lib/actions/expenses'
 import { getTestPrints, getTestSettings, saveTestSettings } from '@/lib/actions/printers'
+import { consumeFilamentG, getFilamentSpools } from '@/lib/actions/filaments'
 import { CurrencyInput } from '@/components/ui/currency-input'
 
-type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string }
+type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string; usedG?: number; spoolLabel?: string }
+type Spool = { id: string; label: string; remaining_g: number }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
 const NUM_INPUT = 'w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center font-semibold outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
@@ -18,11 +20,13 @@ function fmtCurrency(n: number) {
 interface Props {
   prefillProduct?: string | null
   prefillCost?: number | null
+  prefillWeightG?: number | null
   onClose: () => void
 }
 
-export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props) {
+export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, onClose }: Props) {
   const [testPrints, setTestPrints] = useState<TestPrintEntry[]>([])
+  const [spools, setSpools]         = useState<Spool[]>([])
   const [loading, setLoading]       = useState(true)
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
@@ -41,13 +45,20 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
     paid_at:     new Date().toISOString().slice(0, 10),
     notes:       '',
     paid_by:     'company' as 'company' | 'partner',
+    spoolId:     '',
+    usedG:       prefillWeightG && prefillWeightG > 0 ? parseFloat(prefillWeightG.toFixed(1)) : 0,
   })
 
   useEffect(() => {
     async function load() {
       try {
-        const [tests, settings] = await Promise.all([getTestPrints(), getTestSettings()])
+        const [tests, settings, spoolList] = await Promise.all([
+          getTestPrints(),
+          getTestSettings(),
+          getFilamentSpools(),
+        ])
         setTestPrints((tests ?? []) as TestPrintEntry[])
+        setSpools(spoolList)
         if (settings.months)      setPaybackMonths(settings.months)
         if (settings.hoursPerDay) setHoursPerDay(settings.hoursPerDay)
       } catch { /* silent */ } finally {
@@ -60,6 +71,8 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
   const totalWaste    = testPrints.reduce((s, e) => s + e.amount, 0)
   const targetHours   = paybackMonths * 30 * hoursPerDay
   const overheadRate  = targetHours > 0 && totalWaste > 0 ? totalWaste / targetHours : 0
+
+  const selectedSpool = spools.find(s => s.id === form.spoolId)
 
   async function handleSaveSettings() {
     setSavingSettings(true)
@@ -77,22 +90,42 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
     setSaving(true)
     setError('')
     try {
+      const notesWithSpool = [
+        form.notes || '',
+        form.spoolId && form.usedG > 0 ? `filament_spool_id:${form.spoolId}|used_g:${form.usedG}` : '',
+      ].filter(Boolean).join(' | ')
+
       await createExpense({
         category:    'test_print',
         description: form.description,
         amount:      form.amount,
         paid_at:     form.paid_at,
-        notes:       form.notes || undefined,
+        notes:       notesWithSpool || undefined,
         paid_by:     form.paid_by,
       })
+
+      // Deduct from spool stock
+      if (form.spoolId && form.usedG > 0) {
+        await consumeFilamentG(form.spoolId, form.usedG)
+        // Update local spool remaining for display
+        setSpools(prev => prev.map(s =>
+          s.id === form.spoolId
+            ? { ...s, remaining_g: Math.max(0, s.remaining_g - form.usedG) }
+            : s
+        ))
+      }
+
       setTestPrints(prev => [{
         id:          crypto.randomUUID(),
         description: form.description,
         amount:      form.amount,
         paid_at:     form.paid_at,
         notes:       form.notes || undefined,
+        usedG:       form.usedG > 0 ? form.usedG : undefined,
+        spoolLabel:  selectedSpool?.label,
       }, ...prev])
-      setForm({ description: '', amount: 0, paid_at: new Date().toISOString().slice(0, 10), notes: '', paid_by: 'company' })
+
+      setForm({ description: '', amount: 0, paid_at: new Date().toISOString().slice(0, 10), notes: '', paid_by: 'company', spoolId: '', usedG: 0 })
       setShowForm(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao salvar.')
@@ -237,6 +270,48 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
                     onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))}
                   />
                 </div>
+
+                {/* Filament spool + grams used */}
+                <div className="col-span-2 rounded-md border border-border bg-background p-2.5 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="size-3 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filamento consumido</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_80px] gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">Rolo</label>
+                      <select
+                        value={form.spoolId}
+                        onChange={e => setForm(f => ({ ...f, spoolId: e.target.value }))}
+                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      >
+                        <option value="">— nenhum —</option>
+                        {spools.map(s => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">Gramas (g)</label>
+                      <input
+                        type="number" min={0} step={0.1}
+                        value={form.usedG || ''}
+                        placeholder="0"
+                        onChange={e => setForm(f => ({ ...f, usedG: parseFloat(e.target.value) || 0 }))}
+                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-center font-semibold focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  {selectedSpool && form.usedG > 0 && (
+                    <p className="text-[10px] text-orange-400">
+                      Saldo atual: {selectedSpool.remaining_g.toFixed(0)}g → após baixa: <span className="font-semibold">{Math.max(0, selectedSpool.remaining_g - form.usedG).toFixed(0)}g</span>
+                    </p>
+                  )}
+                  {!form.spoolId && (
+                    <p className="text-[10px] text-muted-foreground/50">Selecione o rolo para dar baixa automática no estoque.</p>
+                  )}
+                </div>
+
                 <div className="col-span-2">
                   <label className="text-xs text-muted-foreground">Pago por</label>
                   <div className="flex gap-2 mt-1">
@@ -298,6 +373,9 @@ export function TestPrintsModal({ prefillProduct, prefillCost, onClose }: Props)
                   <div className="min-w-0">
                     <span className="font-medium truncate block">{entry.description}</span>
                     <span className="text-muted-foreground">{entry.paid_at}</span>
+                    {entry.usedG && (
+                      <span className="text-muted-foreground/70 block">{entry.usedG}g filamento</span>
+                    )}
                     {entry.notes && <span className="text-muted-foreground/70 block truncate">{entry.notes}</span>}
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-3">
