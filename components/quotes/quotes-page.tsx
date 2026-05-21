@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Printer, Trash2, FileText, ChevronDown, X, ClipboardList } from 'lucide-react'
-import { getQuotes, upsertQuote, deleteQuote } from '@/lib/actions/quotes'
+import { Plus, Printer, Trash2, FileText, ChevronDown, X, ClipboardList, ArrowRight } from 'lucide-react'
+import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
 import { getProducts } from '@/lib/actions/products'
 import { useT } from '@/lib/i18n'
+import { useRouter } from 'next/navigation'
 import type { Quote, QuoteItem } from '@/lib/actions/quotes'
 
 // ── Types ──────────────────────────────────────────────────────
@@ -429,13 +430,15 @@ const STATUS_COLORS: Record<string, string> = {
 export function QuotesPage() {
   const { t, fmtCurrency } = useT()
   const qt = t.quotes
+  const router = useRouter()
 
-  const [quotes, setQuotes]       = useState<Quote[]>([])
-  const [products, setProducts]   = useState<ProductOption[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [formQuote, setFormQuote] = useState<Quote | null | 'new'>()
+  const [quotes, setQuotes]         = useState<Quote[]>([])
+  const [products, setProducts]     = useState<ProductOption[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [formQuote, setFormQuote]   = useState<Quote | null | 'new'>()
   const [printQuote, setPrintQuote] = useState<Quote | null>(null)
-  const [deleting, setDeleting]   = useState<string | null>(null)
+  const [deleting, setDeleting]     = useState<string | null>(null)
+  const [converting, setConverting] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -465,6 +468,17 @@ export function QuotesPage() {
     await deleteQuote(id)
     setQuotes(prev => prev.filter(q => q.id !== id))
     setDeleting(null)
+  }
+
+  async function handleConvert(quoteId: string) {
+    setConverting(quoteId)
+    try {
+      await convertQuoteToOrder(quoteId)
+      router.push('/pedidos')
+    } catch (e) {
+      console.error(e)
+      setConverting(null)
+    }
   }
 
   return (
@@ -514,9 +528,23 @@ export function QuotesPage() {
                     <p className="text-xs text-muted-foreground">{q.items.length} item{q.items.length !== 1 ? 's' : ''}</p>
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status ?? 'draft']}`}>
-                      {qt.statuses[q.status as keyof typeof qt.statuses] ?? q.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status ?? 'draft']}`}>
+                        {qt.statuses[q.status as keyof typeof qt.statuses] ?? q.status}
+                      </span>
+                      {q.status === 'accepted' && (
+                        <button
+                          onClick={() => handleConvert(q.id)}
+                          disabled={converting === q.id}
+                          className="flex items-center gap-1 text-xs font-medium text-green-400 hover:text-green-300 border border-green-500/30 bg-green-500/10 rounded-full px-2 py-0.5 transition-colors disabled:opacity-50"
+                          title="Send to Orders pipeline">
+                          {converting === q.id
+                            ? <span className="size-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
+                            : <ArrowRight className="size-3" />}
+                          {converting === q.id ? 'Sending…' : 'Send to Orders'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-right font-mono font-semibold">{fmtCurrency(q.total)}</td>
                   <td className="px-5 py-3 text-right text-muted-foreground text-xs">

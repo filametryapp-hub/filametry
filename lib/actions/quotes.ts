@@ -77,3 +77,52 @@ export async function deleteQuote(id: string) {
   if (error) throw error
   revalidatePath('/quotes')
 }
+
+/** Convert an accepted quote into an order. Returns the new order id. */
+export async function convertQuoteToOrder(quoteId: string): Promise<string> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Load quote
+  const { data: q, error } = await supabase
+    .from('quotes')
+    .select('*')
+    .eq('id', quoteId)
+    .single()
+  if (error || !q) throw new Error('Quote not found')
+
+  const quote = q as Quote
+
+  // Create order
+  const { data: order, error: orderErr } = await supabase
+    .from('orders')
+    .insert({
+      user_id:     user.id,
+      client_name: quote.client_name,
+      notes:       quote.notes ?? null,
+      status:      'accepted',
+    })
+    .select()
+    .single()
+  if (orderErr) throw orderErr
+
+  // Insert order items
+  const items = (quote.items as QuoteItem[]).map(i => ({
+    order_id:     order.id,
+    product_name: i.product_name,
+    quantity:     i.qty,
+    unit_price:   i.unit_price,
+  }))
+  if (items.length > 0) {
+    const { error: itemsErr } = await supabase.from('order_items').insert(items)
+    if (itemsErr) throw itemsErr
+  }
+
+  // Mark quote as converted
+  await supabase.from('quotes').update({ status: 'accepted', notes: (quote.notes ? quote.notes + '\n' : '') + `[order:${order.id}]` }).eq('id', quoteId)
+
+  revalidatePath('/pedidos')
+  revalidatePath('/quotes')
+  return order.id
+}
