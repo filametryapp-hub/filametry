@@ -828,21 +828,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLangState(detected)
     }
 
+    // Currency: only use stored preference, otherwise always default to USD
     const storedCurrency = localStorage.getItem('filametry_currency') as CurrencyCode | null
     if (storedCurrency && CURRENCIES.some(c => c.code === storedCurrency)) {
       setCurrencyState(storedCurrency)
-    } else {
-      // Auto-detect currency from browser locale
-      const bl = navigator.language
-      const detected: CurrencyCode =
-        bl === 'pt-BR' || bl === 'pt' ? 'BRL' :
-        bl === 'es-AR'                ? 'ARS' :
-        bl === 'es-MX'                ? 'MXN' :
-        bl === 'es-CL'                ? 'CLP' :
-        bl.startsWith('es')           ? 'EUR' :
-        'USD'
-      setCurrencyState(detected)
     }
+    // No auto-detect — USD is the default and stays USD until user changes it in Settings
   }, [])
 
   function setLang(l: Lang) {
