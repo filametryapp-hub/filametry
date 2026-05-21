@@ -1,0 +1,566 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Printer, Trash2, FileText, ChevronDown, X, ClipboardList } from 'lucide-react'
+import { getQuotes, upsertQuote, deleteQuote } from '@/lib/actions/quotes'
+import { getProducts } from '@/lib/actions/products'
+import { useT } from '@/lib/i18n'
+import type { Quote, QuoteItem } from '@/lib/actions/quotes'
+
+// ── Types ──────────────────────────────────────────────────────
+type ProductOption = { id: string; name: string; priceUSD: number }
+
+// ── Quote Form ─────────────────────────────────────────────────
+function QuoteForm({
+  initial, products, onSave, onClose
+}: {
+  initial: Quote | null
+  products: ProductOption[]
+  onSave: (q: Quote) => void
+  onClose: () => void
+}) {
+  const { t, fmtCurrency } = useT()
+  const qt = t.quotes
+
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    company_name:  initial?.company_name  ?? '',
+    company_email: initial?.company_email ?? '',
+    company_phone: initial?.company_phone ?? '',
+    client_name:   initial?.client_name   ?? '',
+    client_address: initial?.client_address ?? '',
+    discount_pct:  initial?.discount_pct  ?? 0,
+    shipping:      initial?.shipping      ?? 0,
+    packaging:     initial?.packaging     ?? 0,
+    delivery_days: initial?.delivery_days ?? 7,
+    valid_days:    initial?.valid_days    ?? 30,
+    notes:         initial?.notes         ?? '',
+    status:        initial?.status        ?? 'draft' as const,
+  })
+  const [items, setItems] = useState<QuoteItem[]>(
+    initial?.items?.length ? initial.items : [{ product_name: '', qty: 1, unit_price: 0 }]
+  )
+
+  const subtotal  = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
+  const discount  = subtotal * (form.discount_pct / 100)
+  const total     = subtotal - discount + form.shipping + form.packaging
+
+  function addItem() {
+    setItems(prev => [...prev, { product_name: '', qty: 1, unit_price: 0 }])
+  }
+  function removeItem(idx: number) {
+    setItems(prev => prev.filter((_, i) => i !== idx))
+  }
+  function updateItem(idx: number, patch: Partial<QuoteItem>) {
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it))
+  }
+  function pickProduct(idx: number, productId: string) {
+    const p = products.find(p => p.id === productId)
+    if (p) updateItem(idx, { product_name: p.name, unit_price: p.priceUSD })
+  }
+
+  async function handleSave() {
+    if (!form.client_name.trim()) return
+    setSaving(true)
+    try {
+      const id = await upsertQuote(initial?.id ?? null, { ...form, items })
+      onSave({ ...form, items, id, user_id: '', total, created_at: initial?.created_at ?? new Date().toISOString() })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+  const NUM   = 'w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-border bg-background shadow-2xl flex flex-col max-h-[92vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+          <h2 className="font-semibold text-base">{initial ? qt.saveQuote : qt.newQuote}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+
+          {/* Company */}
+          <section className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{qt.companyInfo}</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-3">
+                <label className="text-xs text-muted-foreground">{qt.companyName}</label>
+                <input className={INPUT + ' mt-1'} value={form.company_name}
+                  onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">{qt.companyEmail}</label>
+                <input className={INPUT + ' mt-1'} type="email" value={form.company_email}
+                  onChange={e => setForm(f => ({ ...f, company_email: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted-foreground">{qt.companyPhone}</label>
+                <input className={INPUT + ' mt-1'} value={form.company_phone}
+                  onChange={e => setForm(f => ({ ...f, company_phone: e.target.value }))} />
+              </div>
+            </div>
+          </section>
+
+          {/* Client */}
+          <section className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{qt.clientInfo}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">{qt.clientName} *</label>
+                <input className={INPUT + ' mt-1'} required value={form.client_name}
+                  onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">{qt.clientAddress}</label>
+                <input className={INPUT + ' mt-1'} value={form.client_address}
+                  onChange={e => setForm(f => ({ ...f, client_address: e.target.value }))} />
+              </div>
+            </div>
+          </section>
+
+          {/* Products */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{qt.products}</p>
+              <button onClick={addItem}
+                className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1">
+                <Plus className="size-3" /> {qt.addProduct}
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-muted-foreground font-medium">{qt.product}</th>
+                    <th className="text-right px-3 py-2 text-muted-foreground font-medium w-16">{qt.qty}</th>
+                    <th className="text-right px-3 py-2 text-muted-foreground font-medium w-28">{qt.unitPrice}</th>
+                    <th className="text-right px-3 py-2 text-muted-foreground font-medium w-24">{qt.subtotal}</th>
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="px-2 py-1.5">
+                        <div className="flex gap-1.5">
+                          {products.length > 0 && (
+                            <select
+                              onChange={e => pickProduct(idx, e.target.value)}
+                              className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 shrink-0"
+                              defaultValue="">
+                              <option value="">↓</option>
+                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          )}
+                          <input
+                            className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                            placeholder="Product name"
+                            value={item.product_name}
+                            onChange={e => updateItem(idx, { product_name: e.target.value })} />
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" min={1} step={1}
+                          className={NUM + ' h-8 text-center w-16'}
+                          value={item.qty}
+                          onChange={e => updateItem(idx, { qty: Math.max(1, +e.target.value) })} />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" min={0} step="any"
+                          className={NUM + ' h-8 text-right w-28'}
+                          value={item.unit_price || ''}
+                          onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })} />
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">
+                        {fmtCurrency(item.qty * item.unit_price)}
+                      </td>
+                      <td className="px-1 py-1.5 text-center">
+                        {items.length > 1 && (
+                          <button onClick={() => removeItem(idx)} className="text-muted-foreground hover:text-red-400">
+                            <X className="size-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals */}
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>{qt.subtotalProducts}</span>
+                <span className="font-mono">{fmtCurrency(subtotal)}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground">{qt.discount}</label>
+                  <input type="number" min={0} max={100} step={0.5}
+                    className={NUM + ' h-8 text-center mt-0.5'}
+                    value={form.discount_pct || ''}
+                    onChange={e => setForm(f => ({ ...f, discount_pct: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">{qt.packaging}</label>
+                  <input type="number" min={0} step="any"
+                    className={NUM + ' h-8 text-right mt-0.5'}
+                    value={form.packaging || ''}
+                    onChange={e => setForm(f => ({ ...f, packaging: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">{qt.shipping}</label>
+                  <input type="number" min={0} step="any"
+                    className={NUM + ' h-8 text-right mt-0.5'}
+                    value={form.shipping || ''}
+                    onChange={e => setForm(f => ({ ...f, shipping: parseFloat(e.target.value) || 0 }))} />
+                </div>
+              </div>
+              <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
+                <span>{qt.totalQuote}</span>
+                <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Extra */}
+          <section className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">{qt.deliveryDays}</label>
+              <input type="number" min={1} className={NUM + ' mt-1'} value={form.delivery_days}
+                onChange={e => setForm(f => ({ ...f, delivery_days: +e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">{qt.validDays}</label>
+              <input type="number" min={1} className={NUM + ' mt-1'} value={form.valid_days}
+                onChange={e => setForm(f => ({ ...f, valid_days: +e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">{qt.status}</label>
+              <select value={form.status}
+                onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
+                className="mt-1 w-full h-9 rounded-lg border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500">
+                {Object.entries(qt.statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="col-span-3">
+              <label className="text-xs text-muted-foreground">{t.common.notes}</label>
+              <textarea rows={2} className={INPUT + ' mt-1 resize-none'} value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </section>
+
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-border shrink-0">
+          <button onClick={onClose}
+            className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
+            {t.common.cancel}
+          </button>
+          <button onClick={handleSave} disabled={saving || !form.client_name.trim()}
+            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            {saving ? t.common.saving : t.common.save}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Print Preview ──────────────────────────────────────────────
+function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
+  const { fmtCurrency } = useT()
+  const printRef = useRef<HTMLDivElement>(null)
+
+  function handlePrint() {
+    window.print()
+  }
+
+  const subtotal = quote.items.reduce((s, i) => s + i.qty * i.unit_price, 0)
+  const discount = subtotal * ((quote.discount_pct ?? 0) / 100)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm print:hidden" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl flex flex-col max-h-[95vh]">
+
+        {/* Toolbar — hidden on print */}
+        <div className="flex items-center justify-between mb-3 print:hidden">
+          <button onClick={onClose} className="text-white/70 hover:text-white flex items-center gap-1.5 text-sm">
+            <X className="size-4" /> Close
+          </button>
+          <button onClick={handlePrint}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+            <Printer className="size-4" /> Print / Save PDF
+          </button>
+        </div>
+
+        {/* Paper */}
+        <div ref={printRef}
+          className="bg-white text-gray-900 rounded-xl shadow-2xl overflow-y-auto flex-1 print:shadow-none print:rounded-none print:overflow-visible"
+          style={{ fontFamily: 'system-ui, sans-serif' }}>
+          <div className="p-10 space-y-8 print:p-8">
+
+            {/* Header */}
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{quote.company_name || 'Quote'}</h1>
+                {quote.company_email && <p className="text-sm text-gray-500">{quote.company_email}</p>}
+                {quote.company_phone && <p className="text-sm text-gray-500">{quote.company_phone}</p>}
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-400">QUOTE</p>
+                <p className="text-xs text-gray-400 mt-1">{new Date(quote.created_at).toLocaleDateString()}</p>
+                {quote.valid_days && <p className="text-xs text-gray-400">Valid {quote.valid_days} days</p>}
+              </div>
+            </div>
+
+            {/* Client */}
+            <div className="border-t border-gray-100 pt-6">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">To</p>
+              <p className="font-semibold text-gray-900">{quote.client_name}</p>
+              {quote.client_address && <p className="text-sm text-gray-500">{quote.client_address}</p>}
+            </div>
+
+            {/* Items */}
+            <div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-2 text-gray-500 font-semibold">Product / Service</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-16">Qty</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Unit Price</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quote.items.map((item, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-3 text-gray-900">{item.product_name}</td>
+                      <td className="py-3 text-right text-gray-700">{item.qty}</td>
+                      <td className="py-3 text-right text-gray-700 font-mono">{fmtCurrency(item.unit_price)}</td>
+                      <td className="py-3 text-right text-gray-900 font-mono font-medium">{fmtCurrency(item.qty * item.unit_price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Totals block */}
+              <div className="mt-4 flex justify-end">
+                <div className="w-64 space-y-1.5 text-sm">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Subtotal</span>
+                    <span className="font-mono">{fmtCurrency(subtotal)}</span>
+                  </div>
+                  {(quote.discount_pct ?? 0) > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Discount ({quote.discount_pct}%)</span>
+                      <span className="font-mono text-green-600">−{fmtCurrency(discount)}</span>
+                    </div>
+                  )}
+                  {(quote.packaging ?? 0) > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Packaging</span>
+                      <span className="font-mono">{fmtCurrency(quote.packaging ?? 0)}</span>
+                    </div>
+                  )}
+                  {(quote.shipping ?? 0) > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Shipping</span>
+                      <span className="font-mono">{fmtCurrency(quote.shipping ?? 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2 text-gray-900">
+                    <span>Total</span>
+                    <span className="font-mono">{fmtCurrency(quote.total)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer info */}
+            <div className="border-t border-gray-100 pt-6 grid grid-cols-2 gap-4 text-xs text-gray-500">
+              {quote.delivery_days && (
+                <p>Estimated delivery: <span className="font-medium text-gray-700">{quote.delivery_days} business days after approval</span></p>
+              )}
+              {quote.valid_days && (
+                <p>Quote valid for: <span className="font-medium text-gray-700">{quote.valid_days} days</span></p>
+              )}
+              {quote.notes && (
+                <p className="col-span-2">Notes: <span className="text-gray-700">{quote.notes}</span></p>
+              )}
+            </div>
+
+            <p className="text-center text-xs text-gray-300 pt-4">Generated with Filametry · filametry.com</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Print-only full-page styles */}
+      <style>{`
+        @media print {
+          body > *:not(.fixed) { display: none !important; }
+          .fixed { position: static !important; background: white !important; padding: 0 !important; }
+          .print\\:hidden { display: none !important; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ── Status badge ───────────────────────────────────────────────
+const STATUS_COLORS: Record<string, string> = {
+  draft:    'bg-muted text-muted-foreground',
+  sent:     'bg-blue-500/10 text-blue-400',
+  accepted: 'bg-green-500/10 text-green-400',
+  rejected: 'bg-red-500/10 text-red-400',
+}
+
+// ── Main page ──────────────────────────────────────────────────
+export function QuotesPage() {
+  const { t, fmtCurrency } = useT()
+  const qt = t.quotes
+
+  const [quotes, setQuotes]       = useState<Quote[]>([])
+  const [products, setProducts]   = useState<ProductOption[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [formQuote, setFormQuote] = useState<Quote | null | 'new'>()
+  const [printQuote, setPrintQuote] = useState<Quote | null>(null)
+  const [deleting, setDeleting]   = useState<string | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      const [qs, prods] = await Promise.all([getQuotes(), getProducts()])
+      setQuotes(qs)
+      setProducts((prods ?? []).map((p: Record<string, unknown>) => ({
+        id: String(p.id),
+        name: String(p.name ?? ''),
+        priceUSD: Number(p.price_usd ?? p.priceUSD ?? 0),
+      })))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function handleSaved(q: Quote) {
+    setQuotes(prev => {
+      const exists = prev.find(x => x.id === q.id)
+      return exists ? prev.map(x => x.id === q.id ? q : x) : [q, ...prev]
+    })
+    setFormQuote(undefined)
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm(qt.deleteConfirm)) return
+    setDeleting(id)
+    await deleteQuote(id)
+    setQuotes(prev => prev.filter(q => q.id !== id))
+    setDeleting(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{qt.title}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{qt.subtitle}</p>
+        </div>
+        <button
+          onClick={() => setFormQuote('new')}
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <Plus className="size-4" /> {qt.newQuote}
+        </button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : quotes.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
+          <ClipboardList className="size-10 opacity-20" />
+          <p className="text-sm">{qt.noQuotes}</p>
+          <button onClick={() => setFormQuote('new')}
+            className="text-sm text-orange-500 hover:text-orange-400">{qt.newQuote}</button>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 border-b border-border">
+              <tr>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">{qt.client}</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">{qt.status}</th>
+                <th className="text-right px-5 py-3 font-medium text-muted-foreground">{qt.total}</th>
+                <th className="text-right px-5 py-3 font-medium text-muted-foreground">{qt.createdAt}</th>
+                <th className="w-20" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {quotes.map(q => (
+                <tr key={q.id} className="hover:bg-muted/20 transition-colors group">
+                  <td className="px-5 py-3">
+                    <p className="font-medium">{q.client_name}</p>
+                    <p className="text-xs text-muted-foreground">{q.items.length} item{q.items.length !== 1 ? 's' : ''}</p>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status ?? 'draft']}`}>
+                      {qt.statuses[q.status as keyof typeof qt.statuses] ?? q.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right font-mono font-semibold">{fmtCurrency(q.total)}</td>
+                  <td className="px-5 py-3 text-right text-muted-foreground text-xs">
+                    {new Date(q.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setPrintQuote(q)}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                        title="Print / PDF">
+                        <Printer className="size-3.5" />
+                      </button>
+                      <button onClick={() => setFormQuote(q)}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                        <FileText className="size-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(q.id)}
+                        disabled={deleting === q.id}
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-red-400">
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Form modal */}
+      {formQuote !== undefined && (
+        <QuoteForm
+          initial={formQuote === 'new' ? null : formQuote as Quote}
+          products={products}
+          onSave={handleSaved}
+          onClose={() => setFormQuote(undefined)}
+        />
+      )}
+
+      {/* Print modal */}
+      {printQuote && (
+        <PrintView quote={printQuote} onClose={() => setPrintQuote(null)} />
+      )}
+    </div>
+  )
+}

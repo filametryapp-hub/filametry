@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings, Globe, Wallet } from 'lucide-react'
+import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings, Globe, Wallet, FileText, Kanban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useT, type Lang } from '@/lib/i18n'
@@ -19,6 +19,8 @@ export function Sidebar() {
     { href: '/printers',     label: t.nav.equipment,  icon: Printer },
     { href: '/produtos',     label: t.nav.products,   icon: Package },
     { href: '/pedidos',      label: t.nav.orders,     icon: ClipboardList },
+    { href: '/quotes',       label: t.nav.quotes,     icon: FileText },
+    { href: '/production',   label: t.nav.production, icon: Kanban },
     { href: '/clients',      label: t.nav.clients,    icon: Users },
     { href: '/suppliers',    label: t.nav.suppliers,  icon: Truck },
     { href: '/expenses',     label: t.nav.expenses,   icon: Receipt },

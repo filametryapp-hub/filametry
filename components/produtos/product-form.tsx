@@ -139,10 +139,10 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
           {/* Units per plate + batch count — affect cost per unit */}
           <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Produção por chapa</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t.products.productionBatch}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Un. por chapa</Label>
+                <Label className="text-xs text-muted-foreground">{t.products.unitsPerPlate}</Label>
                 <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
                   onChange={e => {
                     const newUnits = Math.max(1, +e.target.value)
@@ -151,7 +151,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                   }} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Nº de chapas</Label>
+                <Label className="text-xs text-muted-foreground">{t.products.numPlates}</Label>
                 <Input type="number" min={1} step={1}
                   value={form.batches ?? ''}
                   placeholder="—"
@@ -162,8 +162,8 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             {form.costUSD > 0 && (form.unitsPerRun ?? 1) > 1 && (
               <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
-                Custo por chapa: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
-                <span className="text-muted-foreground/60">÷ {form.unitsPerRun} un = {fmtCurrency(form.costUSD)}/un</span>
+                {t.products.plateCost}: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
+                <span className="text-muted-foreground/60">÷ {form.unitsPerRun} = {fmtCurrency(form.costUSD)}/un</span>
               </p>
             )}
           </div>

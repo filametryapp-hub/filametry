@@ -20,6 +20,7 @@ const en = {
   nav: {
     dashboard: 'Dashboard', pricing: 'Pricing', materials: 'Materials',
     equipment: 'Equipment', products: 'Products', orders: 'Orders',
+    quotes: 'Quotes', production: 'Production',
     clients: 'Clients', suppliers: 'Suppliers', expenses: 'Expenses',
     cashFlow: 'Cash Flow', wallet: 'Wallet', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
   },
@@ -116,6 +117,51 @@ const en = {
     printHours: 'Print time (h)', costUSD: 'Production cost ($)', priceUSD: 'Sale price ($)',
     tags: 'Tags (comma separated)', imageUrl: 'Image URL (optional)',
     cost: 'COST', profit: 'PROFIT', price: 'PRICE', margin: 'Margin',
+    productionBatch: 'Production Batch', unitsPerPlate: 'Units/plate',
+    numPlates: 'No. of plates', plateCost: 'Plate cost',
+  },
+  testModal: {
+    title: 'Test Prints & Waste', total: 'Total', overhead: 'Overhead',
+    logEntry: 'Log entry', paybackPeriod: 'Payback Period',
+    months: 'Months', hoursPerDay: 'h/day',
+    targetHours: 'total hours', overheadApplied: '→ Overhead: applied to pricing',
+    registerWaste: 'Register waste to calculate overhead.',
+    saveSettings: 'Save settings', saving: 'Saving…', saved: '✓ Saved!',
+    newEntry: 'New entry', description: 'Description *',
+    materialCost: 'Material cost *', date: 'Date', paidBy: 'Paid by',
+    company: '🏢 Company', partner: '🤝 Partner',
+    observations: 'Notes', cancel: 'Cancel', register: 'Register',
+    registering: 'Saving…', filamentUsed: 'Filament used',
+    spool: 'Spool', grams: 'Grams (g)', noSpool: '— none —',
+    selectSpool: 'Select a spool to auto-deduct stock.',
+    stockAfter: 'Stock after deduction',
+    noEntries: 'No test prints logged yet.',
+    descRequired: 'Description and cost are required.',
+  },
+  quotes: {
+    title: 'Quotes', subtitle: 'Create professional quotes for your clients.',
+    newQuote: '+ New quote', noQuotes: 'No quotes yet.',
+    saveQuote: 'Save quote', printPDF: 'Print / PDF',
+    savedQuotes: 'Saved Quotes', templates: 'Templates',
+    companyInfo: 'Your Company', clientInfo: 'Client',
+    companyName: 'Company name', companyEmail: 'Email', companyPhone: 'Phone / WhatsApp',
+    clientName: 'Client name', clientAddress: 'Address (optional)',
+    products: 'Products', addProduct: '+ Add product',
+    product: 'Product', qty: 'Qty', unitPrice: 'Unit price', subtotal: 'Subtotal',
+    discount: 'Discount (%)', shipping: 'Shipping ($)', packaging: 'Packaging ($)',
+    deliveryDays: 'Delivery (days after approval)', notes: 'Notes',
+    subtotalProducts: 'Subtotal', totalQuote: 'Quote Total',
+    validDays: 'Valid for (days)', status: 'Status',
+    statuses: { draft: 'Draft', sent: 'Sent', accepted: 'Accepted', rejected: 'Rejected' },
+    deleteConfirm: 'Delete this quote?',
+    createdAt: 'Created', client: 'Client', total: 'Total',
+  },
+  production: {
+    title: 'Production', subtitle: 'Track each order through your production workflow.',
+    queue: 'Queue', printing: 'Printing', postProcessing: 'Post-processing', done: 'Done',
+    addToPipeline: 'Move to production', calendar: 'Production Calendar',
+    onTime: 'On time (+2d)', attention: 'Due soon (≤2d)', overdue: 'Overdue',
+    noOrders: 'No orders in this stage.',
   },
   orders: {
     title: 'Orders', subtitle: 'Track quotes and orders from draft to delivery.',
@@ -235,6 +281,7 @@ const pt: typeof en = {
   nav: {
     dashboard: 'Painel', pricing: 'Precificação', materials: 'Materiais',
     equipment: 'Equipamentos', products: 'Produtos', orders: 'Pedidos',
+    quotes: 'Orçamentos', production: 'Produção',
     clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Despesas',
     cashFlow: 'Fluxo de Caixa', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
   },
@@ -331,6 +378,51 @@ const pt: typeof en = {
     printHours: 'Tempo de impressão (h)', costUSD: 'Custo de produção (R$)', priceUSD: 'Preço de venda (R$)',
     tags: 'Tags (separadas por vírgula)', imageUrl: 'URL da imagem (opcional)',
     cost: 'CUSTO', profit: 'LUCRO', price: 'PREÇO', margin: 'Margem',
+    productionBatch: 'Produção por chapa', unitsPerPlate: 'Un. por chapa',
+    numPlates: 'Nº de chapas', plateCost: 'Custo por chapa',
+  },
+  testModal: {
+    title: 'Testes & Perdas', total: 'Total', overhead: 'Overhead',
+    logEntry: 'Registrar', paybackPeriod: 'Prazo de retorno',
+    months: 'Meses', hoursPerDay: 'h/dia',
+    targetHours: 'h totais', overheadApplied: '→ Overhead: aplicado na precificação',
+    registerWaste: 'Registre perdas abaixo para calcular o overhead.',
+    saveSettings: 'Salvar configuração', saving: 'Salvando…', saved: '✓ Salvo!',
+    newEntry: 'Novo registro', description: 'Descrição *',
+    materialCost: 'Custo do material *', date: 'Data', paidBy: 'Pago por',
+    company: '🏢 Empresa', partner: '🤝 Sócio',
+    observations: 'Observações', cancel: 'Cancelar', register: 'Registrar',
+    registering: 'Salvando…', filamentUsed: 'Filamento consumido',
+    spool: 'Rolo', grams: 'Gramas (g)', noSpool: '— nenhum —',
+    selectSpool: 'Selecione o rolo para dar baixa automática no estoque.',
+    stockAfter: 'Saldo após baixa',
+    noEntries: 'Nenhum teste registrado ainda.',
+    descRequired: 'Descrição e custo são obrigatórios.',
+  },
+  quotes: {
+    title: 'Orçamentos', subtitle: 'Crie orçamentos profissionais para seus clientes.',
+    newQuote: '+ Novo orçamento', noQuotes: 'Nenhum orçamento ainda.',
+    saveQuote: 'Salvar orçamento', printPDF: 'Imprimir / PDF',
+    savedQuotes: 'Orçamentos Salvos', templates: 'Templates',
+    companyInfo: 'Sua Empresa', clientInfo: 'Cliente',
+    companyName: 'Nome da empresa', companyEmail: 'E-mail', companyPhone: 'Telefone / WhatsApp',
+    clientName: 'Nome do cliente', clientAddress: 'Endereço (opcional)',
+    products: 'Produtos', addProduct: '+ Adicionar produto',
+    product: 'Produto', qty: 'Qtd', unitPrice: 'Preço unitário', subtotal: 'Subtotal',
+    discount: 'Desconto (%)', shipping: 'Frete (R$)', packaging: 'Embalagem (R$)',
+    deliveryDays: 'Prazo de entrega (dias após aprovação)', notes: 'Observações',
+    subtotalProducts: 'Subtotal produtos', totalQuote: 'Total do Orçamento',
+    validDays: 'Válido por (dias)', status: 'Status',
+    statuses: { draft: 'Rascunho', sent: 'Enviado', accepted: 'Aceito', rejected: 'Recusado' },
+    deleteConfirm: 'Excluir este orçamento?',
+    createdAt: 'Criado em', client: 'Cliente', total: 'Total',
+  },
+  production: {
+    title: 'Produção', subtitle: 'Acompanhe cada pedido no fluxo de produção.',
+    queue: 'Fila', printing: 'Em Impressão', postProcessing: 'Pós-processamento', done: 'Concluído',
+    addToPipeline: 'Mover para produção', calendar: 'Calendário de Produção',
+    onTime: 'No prazo (+2d)', attention: 'Atenção (≤2d)', overdue: 'Vencido',
+    noOrders: 'Nenhum pedido nessa etapa.',
   },
   orders: {
     title: 'Pedidos', subtitle: 'Acompanhe orçamentos e pedidos do rascunho à entrega.',
@@ -450,6 +542,7 @@ const es: typeof en = {
   nav: {
     dashboard: 'Panel', pricing: 'Precios', materials: 'Materiales',
     equipment: 'Equipos', products: 'Productos', orders: 'Pedidos',
+    quotes: 'Presupuestos', production: 'Producción',
     clients: 'Clientes', suppliers: 'Proveedores', expenses: 'Gastos',
     cashFlow: 'Flujo de Caja', wallet: 'Billetera', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',
   },
@@ -546,6 +639,51 @@ const es: typeof en = {
     printHours: 'Tiempo de impresión (h)', costUSD: 'Costo de producción ($)', priceUSD: 'Precio de venta ($)',
     tags: 'Etiquetas (separadas por coma)', imageUrl: 'URL de imagen (opcional)',
     cost: 'COSTO', profit: 'GANANCIA', price: 'PRECIO', margin: 'Margen',
+    productionBatch: 'Lote de producción', unitsPerPlate: 'Unidades/placa',
+    numPlates: 'Nº de placas', plateCost: 'Costo por placa',
+  },
+  testModal: {
+    title: 'Pruebas & Pérdidas', total: 'Total', overhead: 'Overhead',
+    logEntry: 'Registrar', paybackPeriod: 'Período de retorno',
+    months: 'Meses', hoursPerDay: 'h/día',
+    targetHours: 'h totales', overheadApplied: '→ Overhead: aplicado en precios',
+    registerWaste: 'Registra pérdidas para calcular el overhead.',
+    saveSettings: 'Guardar configuración', saving: 'Guardando…', saved: '✓ ¡Guardado!',
+    newEntry: 'Nuevo registro', description: 'Descripción *',
+    materialCost: 'Costo del material *', date: 'Fecha', paidBy: 'Pagado por',
+    company: '🏢 Empresa', partner: '🤝 Socio',
+    observations: 'Notas', cancel: 'Cancelar', register: 'Registrar',
+    registering: 'Guardando…', filamentUsed: 'Filamento consumido',
+    spool: 'Carrete', grams: 'Gramos (g)', noSpool: '— ninguno —',
+    selectSpool: 'Selecciona el carrete para descontar el stock automáticamente.',
+    stockAfter: 'Stock tras descuento',
+    noEntries: 'Sin pruebas registradas aún.',
+    descRequired: 'Descripción y costo son obligatorios.',
+  },
+  quotes: {
+    title: 'Presupuestos', subtitle: 'Crea presupuestos profesionales para tus clientes.',
+    newQuote: '+ Nuevo presupuesto', noQuotes: 'Sin presupuestos aún.',
+    saveQuote: 'Guardar presupuesto', printPDF: 'Imprimir / PDF',
+    savedQuotes: 'Presupuestos Guardados', templates: 'Plantillas',
+    companyInfo: 'Tu Empresa', clientInfo: 'Cliente',
+    companyName: 'Nombre de la empresa', companyEmail: 'Correo', companyPhone: 'Teléfono / WhatsApp',
+    clientName: 'Nombre del cliente', clientAddress: 'Dirección (opcional)',
+    products: 'Productos', addProduct: '+ Agregar producto',
+    product: 'Producto', qty: 'Cant.', unitPrice: 'Precio unitario', subtotal: 'Subtotal',
+    discount: 'Descuento (%)', shipping: 'Envío ($)', packaging: 'Empaque ($)',
+    deliveryDays: 'Entrega (días tras aprobación)', notes: 'Notas',
+    subtotalProducts: 'Subtotal productos', totalQuote: 'Total del Presupuesto',
+    validDays: 'Válido por (días)', status: 'Estado',
+    statuses: { draft: 'Borrador', sent: 'Enviado', accepted: 'Aceptado', rejected: 'Rechazado' },
+    deleteConfirm: '¿Eliminar este presupuesto?',
+    createdAt: 'Creado', client: 'Cliente', total: 'Total',
+  },
+  production: {
+    title: 'Producción', subtitle: 'Sigue cada pedido en el flujo de producción.',
+    queue: 'Cola', printing: 'Imprimiendo', postProcessing: 'Posprocesamiento', done: 'Completado',
+    addToPipeline: 'Mover a producción', calendar: 'Calendario de Producción',
+    onTime: 'A tiempo (+2d)', attention: 'Atención (≤2d)', overdue: 'Vencido',
+    noOrders: 'Sin pedidos en esta etapa.',
   },
   orders: {
     title: 'Pedidos', subtitle: 'Sigue presupuestos y pedidos desde borrador hasta entrega.',
@@ -677,15 +815,33 @@ const I18nContext = createContext<{
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>('en')
-  const [currency, setCurrencyState] = useState<CurrencyCode>('BRL')
+  const [currency, setCurrencyState] = useState<CurrencyCode>('USD')
 
   useEffect(() => {
     const storedLang = localStorage.getItem('filametry_lang') as Lang | null
-    if (storedLang && dicts[storedLang]) setLangState(storedLang)
+    if (storedLang && dicts[storedLang]) {
+      setLangState(storedLang)
+    } else {
+      // Auto-detect from browser locale
+      const bl = navigator.language
+      const detected: Lang = bl.startsWith('pt') ? 'pt' : bl.startsWith('es') ? 'es' : 'en'
+      setLangState(detected)
+    }
 
     const storedCurrency = localStorage.getItem('filametry_currency') as CurrencyCode | null
     if (storedCurrency && CURRENCIES.some(c => c.code === storedCurrency)) {
       setCurrencyState(storedCurrency)
+    } else {
+      // Auto-detect currency from browser locale
+      const bl = navigator.language
+      const detected: CurrencyCode =
+        bl === 'pt-BR' || bl === 'pt' ? 'BRL' :
+        bl === 'es-AR'                ? 'ARS' :
+        bl === 'es-MX'                ? 'MXN' :
+        bl === 'es-CL'                ? 'CLP' :
+        bl.startsWith('es')           ? 'EUR' :
+        'USD'
+      setCurrencyState(detected)
     }
   }, [])
 
