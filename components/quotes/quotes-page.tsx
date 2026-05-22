@@ -1,15 +1,18 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Printer, Trash2, FileText, ChevronDown, X, ClipboardList, ArrowRight } from 'lucide-react'
+import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'lucide-react'
 import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
 import { getProducts } from '@/lib/actions/products'
 import { useT } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
-import type { Quote, QuoteItem } from '@/lib/actions/quotes'
+import type { Quote, QuoteItem, QuoteTier } from '@/lib/actions/quotes'
+import { type VolumeTier, resolveUnitPrice } from '@/lib/product-types'
 
 // ── Types ──────────────────────────────────────────────────────
-type ProductOption = { id: string; name: string; priceUSD: number }
+const DEFAULT_QTYS = [10, 20, 50, 100, 200]
+
+type ProductOption = { id: string; name: string; priceUSD: number; volumePrices?: VolumeTier[] }
 
 // ── Quote Form ─────────────────────────────────────────────────
 function QuoteForm({
@@ -42,6 +45,49 @@ function QuoteForm({
     initial?.items?.length ? initial.items : [{ product_name: '', qty: 1, unit_price: 0 }]
   )
 
+  // ── Volume tiers ───────────────────────────────────────────
+  const [tierProduct, setTierProduct] = useState<ProductOption | null>(null)
+  const [tiers, setTiers] = useState<QuoteTier[]>(initial?.volume_tiers ?? [])
+  const [newQty, setNewQty] = useState('')
+  const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(initial?.show_discount_on_print ?? false)
+
+  function selectTierProduct(productId: string) {
+    const prod = products.find(p => p.id === productId) ?? null
+    setTierProduct(prod)
+    if (prod) {
+      setTiers(DEFAULT_QTYS.map(qty => ({
+        qty,
+        unitPrice: resolveUnitPrice(prod.priceUSD, prod.volumePrices, qty),
+      })))
+    } else {
+      setTiers([])
+    }
+  }
+
+  function addTier() {
+    const qty = parseInt(newQty, 10)
+    if (!qty || qty < 1 || tiers.some(t => t.qty === qty)) return
+    const unitPrice = tierProduct
+      ? resolveUnitPrice(tierProduct.priceUSD, tierProduct.volumePrices, qty)
+      : 0
+    setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
+    setNewQty('')
+  }
+
+  function removeTier(qty: number) {
+    setTiers(prev => prev.filter(t => t.qty !== qty))
+  }
+
+  function updateTierPrice(qty: number, price: number) {
+    setTiers(prev => prev.map(t => t.qty === qty ? { ...t, unitPrice: price } : t))
+  }
+
+  function updateTierDiscount(qty: number, discountPct: number) {
+    if (!tierProduct) return
+    const newPrice = tierProduct.priceUSD * (1 - discountPct / 100)
+    setTiers(prev => prev.map(t => t.qty === qty ? { ...t, unitPrice: Math.max(0, newPrice) } : t))
+  }
+
   const subtotal  = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
   const discount  = subtotal * (form.discount_pct / 100)
   const total     = subtotal - discount + form.shipping + form.packaging
@@ -64,8 +110,14 @@ function QuoteForm({
     if (!form.client_name.trim()) return
     setSaving(true)
     try {
-      const id = await upsertQuote(initial?.id ?? null, { ...form, items })
-      onSave({ ...form, items, id, user_id: '', total, created_at: initial?.created_at ?? new Date().toISOString() })
+      const payload = {
+        ...form,
+        items,
+        volume_tiers: tiers.length > 0 ? tiers : undefined,
+        show_discount_on_print: showDiscountOnPrint,
+      }
+      const id = await upsertQuote(initial?.id ?? null, payload)
+      onSave({ ...payload, id, user_id: '', total, created_at: initial?.created_at ?? new Date().toISOString() })
     } finally {
       setSaving(false)
     }
@@ -232,6 +284,130 @@ function QuoteForm({
             </div>
           </section>
 
+          {/* Volume Pricing Table */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{qt.volumeTable}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{qt.volumeTableDesc}</p>
+              </div>
+            </div>
+
+            {/* Product selector for tiers */}
+            <div className="flex items-center gap-2">
+              <select
+                value={tierProduct?.id ?? ''}
+                onChange={e => selectTierProduct(e.target.value)}
+                className="flex-1 h-8 rounded-lg border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
+                <option value="">{qt.selectForTable}</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.volumePrices?.length ? ` · ${p.volumePrices.length} ${qt.volumeTiers}` : ''}
+                  </option>
+                ))}
+              </select>
+              {tierProduct && (
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  {qt.basePrice}: <span className="font-mono text-foreground">{fmtCurrency(tierProduct.priceUSD)}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Tiers table */}
+            {tiers.length > 0 && (
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="grid grid-cols-[52px_1fr_80px_80px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
+                  <span className="text-[10px] text-muted-foreground font-medium">{qt.tierQty}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">{qt.tierUnitPrice}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium text-right">{qt.tierTotal}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium text-center">{qt.tierDiscount}</span>
+                  <span />
+                </div>
+                {tiers.map((tier, idx) => {
+                  const baseP = tierProduct?.priceUSD ?? 0
+                  const discountPct = baseP > 0
+                    ? Math.max(0, (baseP - tier.unitPrice) / baseP * 100)
+                    : 0
+                  const total = tier.qty * tier.unitPrice
+                  return (
+                    <div key={tier.qty}
+                      className={`grid grid-cols-[52px_1fr_80px_80px_28px] gap-2 px-3 py-2 items-center ${idx !== 0 ? 'border-t border-border/60' : ''}`}>
+                      <span className="text-sm font-semibold tabular-nums">{tier.qty}</span>
+                      <input
+                        type="number" min={0} step="any"
+                        value={tier.unitPrice || ''}
+                        onChange={e => updateTierPrice(tier.qty, parseFloat(e.target.value) || 0)}
+                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                      <span className="text-xs font-mono text-right text-orange-500 font-medium">{fmtCurrency(total)}</span>
+                      <div className="relative flex items-center">
+                        <input
+                          type="number" min={0} max={100} step="0.1"
+                          value={discountPct > 0 ? parseFloat(discountPct.toFixed(1)) : 0}
+                          onChange={e => updateTierDiscount(tier.qty, parseFloat(e.target.value) || 0)}
+                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${discountPct > 0 ? 'border-green-500/40 text-green-400' : 'border-input text-muted-foreground'}`} />
+                        <span className="absolute right-1.5 text-[10px] text-muted-foreground pointer-events-none">%</span>
+                      </div>
+                      <button type="button" onClick={() => removeTier(tier.qty)}
+                        className="text-muted-foreground hover:text-red-400 transition-colors flex justify-center">
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Add custom qty + presets */}
+            {tierProduct && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min={1} step={1}
+                    value={newQty}
+                    onChange={e => setNewQty(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTier() } }}
+                    placeholder={qt.qtyPlaceholder}
+                    className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <button type="button" onClick={addTier} disabled={!newQty}
+                    className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 disabled:opacity-40 transition-colors">
+                    <Plus className="size-3.5" /> {qt.addQty}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground">{qt.quickAdd}</span>
+                  {DEFAULT_QTYS.map(qty => (
+                    <button key={qty} type="button"
+                      disabled={tiers.some(t => t.qty === qty)}
+                      onClick={() => {
+                        const unitPrice = resolveUnitPrice(tierProduct.priceUSD, tierProduct.volumePrices, qty)
+                        setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-orange-500/50 hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      {qty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Print toggle */}
+            {tiers.length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Printer className="size-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs font-medium">{qt.showDiscountOnPrint}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{qt.showDiscountDesc}</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setShowDiscountOnPrint(v => !v)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${showDiscountOnPrint ? 'bg-orange-500' : 'bg-muted-foreground/30'}`}>
+                  <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${showDiscountOnPrint ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            )}
+          </section>
+
           {/* Extra */}
           <section className="grid grid-cols-3 gap-3">
             <div>
@@ -388,6 +564,50 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
               </div>
             </div>
 
+            {/* Volume Pricing Table (if present) */}
+            {quote.volume_tiers && quote.volume_tiers.length > 0 && (() => {
+              const tiers = quote.volume_tiers as QuoteTier[]
+              // find base price from first item if possible
+              const basePriceForDiscount = quote.items[0]?.unit_price ?? 0
+              return (
+                <div className="border-t border-gray-100 pt-6">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Volume Pricing</p>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-2 text-gray-500 font-semibold w-24">Qty</th>
+                        <th className="text-right py-2 text-gray-500 font-semibold w-32">Unit Price</th>
+                        <th className="text-right py-2 text-gray-500 font-semibold w-32">Total</th>
+                        {quote.show_discount_on_print && (
+                          <th className="text-right py-2 text-gray-500 font-semibold w-24">Discount</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tiers.map((tier, i) => {
+                        const total = tier.qty * tier.unitPrice
+                        const discountPct = basePriceForDiscount > 0
+                          ? Math.max(0, (basePriceForDiscount - tier.unitPrice) / basePriceForDiscount * 100)
+                          : 0
+                        return (
+                          <tr key={i} className="border-b border-gray-100">
+                            <td className="py-2.5 font-semibold text-gray-900">{tier.qty} units</td>
+                            <td className="py-2.5 text-right text-gray-700 font-mono">{fmtCurrency(tier.unitPrice)}</td>
+                            <td className="py-2.5 text-right text-gray-900 font-mono font-medium">{fmtCurrency(total)}</td>
+                            {quote.show_discount_on_print && (
+                              <td className={`py-2.5 text-right font-mono text-sm ${discountPct > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                                {discountPct > 0 ? `−${discountPct.toFixed(1)}%` : '—'}
+                              </td>
+                            )}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })()}
+
             {/* Footer info */}
             <div className="border-t border-gray-100 pt-6 grid grid-cols-2 gap-4 text-xs text-gray-500">
               {quote.delivery_days && (
@@ -448,6 +668,11 @@ export function QuotesPage() {
         id: String(p.id),
         name: String(p.name ?? ''),
         priceUSD: Number(p.price_usd ?? p.priceUSD ?? 0),
+        volumePrices: Array.isArray(p.volume_prices)
+          ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
+              minQty: t.min_qty, priceUSD: t.price_usd,
+            }))
+          : undefined,
       })))
       setLoading(false)
     }

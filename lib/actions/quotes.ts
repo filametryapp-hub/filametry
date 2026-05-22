@@ -9,6 +9,11 @@ export type QuoteItem = {
   unit_price: number
 }
 
+export type QuoteTier = {
+  qty: number
+  unitPrice: number
+}
+
 export type QuoteData = {
   company_name?: string
   company_email?: string
@@ -23,6 +28,8 @@ export type QuoteData = {
   notes?: string
   valid_days?: number
   status?: 'draft' | 'sent' | 'accepted' | 'rejected'
+  volume_tiers?: QuoteTier[]
+  show_discount_on_print?: boolean
 }
 
 export type Quote = QuoteData & {
