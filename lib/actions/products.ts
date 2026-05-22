@@ -78,13 +78,17 @@ export async function deleteProduct(id: string) {
 }
 
 export async function recalculateProductCosts(params: {
-  printerWatts: number
-  electricityCost: number
-  hourlyRate: number       // amortization $/h
-  failureRate: number      // %
-  marginPct: number        // %
+  // Daily-rate mode (primary)
+  dailyRate?: number          // target revenue per active day ($)
+  workingHoursPerDay?: number // active print hours per day
+  failureRate: number         // material waste % (applied to filament only)
   defaultSpoolPrice: number
   defaultSpoolWeight: number
+  // Legacy/fallback params (used when dailyRate is not provided)
+  printerWatts?: number
+  electricityCost?: number
+  hourlyRate?: number
+  marginPct?: number
   longPrintTiers?: { minHours: number; minMarginPct: number }[]
 }): Promise<number> {
   const supabase = await createClient()
@@ -99,66 +103,91 @@ export async function recalculateProductCosts(params: {
   if (error) throw error
   if (!products || products.length === 0) return 0
 
-  // Fetch all printers for per-printer specs lookup
+  // Fetch all printers for per-printer specs
   const { data: printers } = await supabase
     .from('user_printers')
-    .select('id, watts, purchase_value, lifespan_hours, long_print_tiers')
+    .select('id, watts, purchase_value, lifespan_hours, long_print_tiers, daily_rate, working_hours_per_day')
     .eq('user_id', user.id)
 
-  const printerMap: Record<string, { watts: number; cph: number; tiers: { min_hours: number; min_margin_pct: number }[] }> = {}
+  type PrinterSpec = {
+    watts: number; cph: number
+    dailyRate: number; workingHours: number
+    tiers: { min_hours: number; min_margin_pct: number }[]
+  }
+  const printerMap: Record<string, PrinterSpec> = {}
   for (const pr of (printers ?? [])) {
     const cph = (pr.purchase_value && pr.lifespan_hours) ? pr.purchase_value / pr.lifespan_hours : 0
     printerMap[pr.id] = {
-      watts: Number(pr.watts ?? params.printerWatts),
+      watts:        Number(pr.watts ?? 120),
       cph,
-      tiers: Array.isArray(pr.long_print_tiers) ? pr.long_print_tiers : [],
+      dailyRate:    Number(pr.daily_rate ?? 0),
+      workingHours: Number(pr.working_hours_per_day ?? 20),
+      tiers:        Array.isArray(pr.long_print_tiers) ? pr.long_print_tiers : [],
     }
   }
 
   const {
-    printerWatts, electricityCost, hourlyRate,
-    failureRate, marginPct, defaultSpoolPrice, defaultSpoolWeight,
+    failureRate, defaultSpoolPrice, defaultSpoolWeight,
+    dailyRate: globalDailyRate, workingHoursPerDay: globalWorkingHours,
+    printerWatts = 120, electricityCost = 0.15, hourlyRate = 0, marginPct = 40,
     longPrintTiers,
   } = params
+
+  const useDailyRate = (globalDailyRate ?? 0) > 0
 
   const updates = products.map(p => {
     const weightG      = Number(p.weight_g    ?? 0)
     const printHours   = Number(p.print_hours  ?? 0)
     const printerCount = Number(p.printer_count ?? 1)
-    const printerSpec  = p.printer_id ? printerMap[p.printer_id] : null
+    const spec         = p.printer_id ? printerMap[p.printer_id] : null
 
-    // Use linked printer's specs if available, else modal defaults
-    const watts = printerSpec?.watts ?? printerWatts
-    const cph   = printerSpec?.cph ?? hourlyRate
+    // Filament cost — real out-of-pocket material cost, with failure buffer
+    const filamentRaw  = weightG * (defaultSpoolPrice / Math.max(defaultSpoolWeight, 1))
+    const filamentCost = filamentRaw * (1 + failureRate / 100)
 
-    // Energy and amort scale with number of parallel printers
-    const filament = weightG * (defaultSpoolPrice / Math.max(defaultSpoolWeight, 1))
-    const energy   = printHours * (watts / 1000) * electricityCost * printerCount
-    const amort    = printHours * cph * printerCount
-    const subtotal = (filament + energy + amort) * (1 + failureRate / 100)
-    const costUSD  = parseFloat(subtotal.toFixed(4))
+    let costUSD: number
+    let priceUSD: number
 
-    // Effective hours = actual time the job takes (halved by parallel printers)
-    const effectiveHours = printHours / Math.max(printerCount, 1)
+    if (useDailyRate) {
+      // ── Daily-rate model ──────────────────────────────────────
+      // Use linked printer's daily rate if available, else global
+      const dr  = (spec?.dailyRate  ?? 0) > 0 ? spec!.dailyRate  : (globalDailyRate  ?? 0)
+      const wh  = (spec?.workingHours ?? 0) > 0 ? spec!.workingHours : (globalWorkingHours ?? 20)
+      const effectiveRate = dr / Math.max(wh, 1)  // $/h
 
-    // Determine minimum margin from long-print tiers
-    const tiers = longPrintTiers
-      ?? (printerSpec?.tiers?.length
-        ? printerSpec.tiers.map(t => ({ minHours: t.min_hours, minMarginPct: t.min_margin_pct }))
-        : [{ minHours: 0, minMarginPct: marginPct }])
+      // Machine time scales with parallel printers (more machines = more cost)
+      const machineContribution = printHours * effectiveRate * printerCount
 
-    const sortedTiers = [...tiers].sort((a, b) => b.minHours - a.minHours)
-    const activeTier  = sortedTiers.find(t => effectiveHours >= t.minHours)
-    const finalMargin = Math.max(marginPct, activeTier?.minMarginPct ?? marginPct)
+      costUSD  = parseFloat(filamentCost.toFixed(4))
+      priceUSD = parseFloat((filamentCost + machineContribution).toFixed(2))
+    } else {
+      // ── Legacy model (amort + energy + margin) ────────────────
+      const watts = spec?.watts ?? printerWatts
+      const cph   = spec?.cph   ?? hourlyRate
 
-    const priceUSD = finalMargin >= 100
-      ? parseFloat((subtotal * 2).toFixed(2))
-      : parseFloat((subtotal / (1 - finalMargin / 100)).toFixed(2))
+      const energy   = printHours * (watts / 1000) * electricityCost * printerCount
+      const amort    = printHours * cph * printerCount
+      const subtotal = (filamentRaw + energy + amort) * (1 + failureRate / 100)
+      costUSD        = parseFloat(subtotal.toFixed(4))
+
+      const effectiveHours = printHours / Math.max(printerCount, 1)
+      const tiers = longPrintTiers
+        ?? (spec?.tiers?.length
+          ? spec.tiers.map(t => ({ minHours: t.min_hours, minMarginPct: t.min_margin_pct }))
+          : [{ minHours: 0, minMarginPct: marginPct }])
+
+      const sorted = [...tiers].sort((a, b) => b.minHours - a.minHours)
+      const active  = sorted.find(t => effectiveHours >= t.minHours)
+      const margin  = Math.max(marginPct, active?.minMarginPct ?? marginPct)
+
+      priceUSD = margin >= 100
+        ? parseFloat((subtotal * 2).toFixed(2))
+        : parseFloat((subtotal / (1 - margin / 100)).toFixed(2))
+    }
 
     return { id: p.id, cost_usd: costUSD, price_usd: priceUSD }
   })
 
-  // Batch update
   for (const u of updates) {
     await supabase.from('products').update({ cost_usd: u.cost_usd, price_usd: u.price_usd }).eq('id', u.id)
   }

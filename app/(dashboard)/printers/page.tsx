@@ -24,6 +24,8 @@ type PrinterRow = {
   purchase_expense_recorded?: boolean
   equipment_payments: Payment[]
   long_print_tiers?: LongPrintTierRow[] | null
+  daily_rate?: number
+  working_hours_per_day?: number
 }
 type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
 
@@ -87,9 +89,11 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   ]
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
-    watts: printer.watts,
-    purchase_value: printer.purchase_value,
-    lifespan_hours: printer.lifespan_hours,
+    watts:                printer.watts,
+    purchase_value:       printer.purchase_value,
+    lifespan_hours:       printer.lifespan_hours,
+    daily_rate:           printer.daily_rate ?? 0,
+    working_hours_per_day: printer.working_hours_per_day ?? 20,
   })
   const [longPrintTiers, setLongPrintTiers] = useState<LongPrintTierRow[]>(
     printer.long_print_tiers?.length ? printer.long_print_tiers : DEFAULT_TIERS
@@ -103,10 +107,12 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         ...editForm,
         long_print_tiers: longPrintTiers,
       })
-      printer.watts = editForm.watts
-      printer.purchase_value = editForm.purchase_value
-      printer.lifespan_hours = editForm.lifespan_hours
-      printer.long_print_tiers = longPrintTiers
+      printer.watts                 = editForm.watts
+      printer.purchase_value        = editForm.purchase_value
+      printer.lifespan_hours        = editForm.lifespan_hours
+      printer.daily_rate            = editForm.daily_rate
+      printer.working_hours_per_day = editForm.working_hours_per_day
+      printer.long_print_tiers      = longPrintTiers
       setEditing(false)
     } catch { /* silent */ } finally {
       setSavingEdit(false)
@@ -176,20 +182,32 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         </div>
         {/* Quick stats */}
         <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
-          {printer.purchase_value > 0 && (
-            <span className="flex items-center gap-1">
-              <DollarSign className="size-3" /> {fmtCurrency(printer.purchase_value)}
-            </span>
-          )}
-          {cph > 0 && (
-            <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
-              <TrendingDown className="size-3" /> {fmtCurrency(cph)}/h
-            </span>
-          )}
-          {printer.lifespan_hours > 0 && (
-            <span className="flex items-center gap-1">
-              <Clock className="size-3" /> {printer.lifespan_hours.toLocaleString()}h
-            </span>
+          {(printer.daily_rate ?? 0) > 0 ? (
+            <>
+              <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
+                <DollarSign className="size-3" /> {fmtCurrency(printer.daily_rate!)}/dia
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" /> {printer.working_hours_per_day ?? 20}h/dia
+              </span>
+              <span className="flex items-center gap-1 font-mono">
+                <TrendingDown className="size-3" />
+                {fmtCurrency((printer.daily_rate!) / (printer.working_hours_per_day ?? 20))}/h
+              </span>
+            </>
+          ) : (
+            <>
+              {printer.purchase_value > 0 && (
+                <span className="flex items-center gap-1">
+                  <DollarSign className="size-3" /> {fmtCurrency(printer.purchase_value)}
+                </span>
+              )}
+              {cph > 0 && (
+                <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
+                  <TrendingDown className="size-3" /> {fmtCurrency(cph)}/h
+                </span>
+              )}
+            </>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -222,6 +240,36 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
           {editing ? (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 space-y-3">
               <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Editar impressora</p>
+
+              {/* Daily rate — primary pricing input */}
+              <div className="rounded-md bg-orange-500/10 border border-orange-500/20 p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-orange-400 uppercase tracking-wide">
+                  Diária de máquina
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Meta diária ($)</label>
+                    <CurrencyInput value={editForm.daily_rate}
+                      onChange={v => setEditForm(f => ({ ...f, daily_rate: v }))}
+                      className={INPUT + ' mt-1 h-9'} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Horas ativas / dia</label>
+                    <input type="number" min={1} max={24} step={0.5} className={INPUT + ' mt-1 h-9'}
+                      value={editForm.working_hours_per_day}
+                      onChange={e => setEditForm(f => ({ ...f, working_hours_per_day: +e.target.value }))} />
+                  </div>
+                </div>
+                {editForm.daily_rate > 0 && editForm.working_hours_per_day > 0 && (
+                  <p className="text-xs font-mono text-orange-400">
+                    → taxa efetiva: {fmtCurrency(editForm.daily_rate / editForm.working_hours_per_day)}/h
+                    &nbsp;·&nbsp;
+                    produto de 8h = {fmtCurrency(8 * editForm.daily_rate / editForm.working_hours_per_day)} de máquina
+                  </p>
+                )}
+              </div>
+
+              {/* Hardware specs — used for amortization tracking */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">{eq.power} (W)</label>
@@ -243,8 +291,9 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                 </div>
               </div>
               {editForm.purchase_value > 0 && editForm.lifespan_hours > 0 && (
-                <p className="text-xs text-orange-400 font-mono">
-                  → {eq.costPerHour}: {fmtCurrency(editForm.purchase_value / editForm.lifespan_hours)}/h
+                <p className="text-xs text-muted-foreground font-mono">
+                  amortização: {fmtCurrency(editForm.purchase_value / editForm.lifespan_hours)}/h
+                  <span className="text-muted-foreground/50 ml-1">(só para controle de retorno)</span>
                 </p>
               )}
 
@@ -667,40 +716,37 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 
 // ── Recalculate Products Modal ─────────────────────────────────
 function RecalculateModal({
-  defaultHourlyRate,
-  defaultLongPrintTiers,
+  defaultDailyRate,
+  defaultWorkingHours,
   onClose,
 }: {
-  defaultHourlyRate: number
-  defaultLongPrintTiers: LongPrintTierRow[]
+  defaultDailyRate: number
+  defaultWorkingHours: number
   onClose: () => void
 }) {
   const { fmtCurrency } = useT()
-  const [params, setParams] = useState({
-    printerWatts:      120,
-    electricityCost:   0.15,
-    hourlyRate:        defaultHourlyRate,
-    failureRate:       10,
-    marginPct:         40,
-    defaultSpoolPrice: 20,
-    defaultSpoolWeight: 1000,
-  })
-  const [longPrintTiers, setLongPrintTiers] = useState<LongPrintTierRow[]>(
-    defaultLongPrintTiers.length ? defaultLongPrintTiers : [
-      { min_hours: 0, min_margin_pct: 30 },
-      { min_hours: 4, min_margin_pct: 45 },
-      { min_hours: 8, min_margin_pct: 60 },
-    ]
-  )
-  const [running, setRunning]   = useState(false)
-  const [result,  setResult]    = useState<number | null>(null)
+  const [dailyRate,    setDailyRate]    = useState(defaultDailyRate || 150)
+  const [workingHours, setWorkingHours] = useState(defaultWorkingHours || 20)
+  const [failureRate,  setFailureRate]  = useState(10)
+  const [spoolPrice,   setSpoolPrice]   = useState(20)
+  const [spoolWeight,  setSpoolWeight]  = useState(1000)
+  const [running, setRunning] = useState(false)
+  const [result,  setResult]  = useState<number | null>(null)
+
+  const effectiveRate   = dailyRate / Math.max(workingHours, 1)
+  const previewFilament = 50 * (spoolPrice / Math.max(spoolWeight, 1)) * (1 + failureRate / 100)
+  const previewMachine  = 3 * effectiveRate
+  const previewPrice    = previewFilament + previewMachine
 
   async function handleRun() {
     setRunning(true)
     try {
       const count = await recalculateProductCosts({
-        ...params,
-        longPrintTiers: longPrintTiers.map(t => ({ minHours: t.min_hours, minMarginPct: t.min_margin_pct })),
+        dailyRate,
+        workingHoursPerDay: workingHours,
+        failureRate,
+        defaultSpoolPrice:  spoolPrice,
+        defaultSpoolWeight: spoolWeight,
       })
       setResult(count)
     } catch { /* silent */ } finally {
@@ -708,87 +754,92 @@ function RecalculateModal({
     }
   }
 
-  const previewFilament = 50 * (params.defaultSpoolPrice / Math.max(params.defaultSpoolWeight, 1))
-  const previewEnergy   = 3  * (params.printerWatts / 1000) * params.electricityCost
-  const previewAmort    = 3  * params.hourlyRate
-  const previewSubtotal = (previewFilament + previewEnergy + previewAmort) * (1 + params.failureRate / 100)
-  const previewPrice    = params.marginPct >= 100 ? previewSubtotal * 2 : previewSubtotal / (1 - params.marginPct / 100)
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl flex flex-col max-h-[92vh]">
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="font-semibold text-base">Recalculate Product Costs</h2>
+          <h2 className="font-semibold text-base">Recalcular preços — modelo diária</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Updates <strong>cost_usd</strong> and <strong>price_usd</strong> for all catalog products using the parameters below.
-          </p>
-
           {result !== null ? (
             <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-center space-y-1">
               <CheckCircle2 className="size-6 text-green-400 mx-auto" />
-              <p className="font-semibold text-green-400">{result} products updated!</p>
-              <p className="text-xs text-muted-foreground">Go to Products to review the new prices.</p>
+              <p className="font-semibold text-green-400">{result} produtos atualizados!</p>
+              <p className="text-xs text-muted-foreground">Acesse Produtos para ver os novos preços.</p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Printer power (W)',     key: 'printerWatts',      step: 10,    min: 10 },
-                  { label: 'Electricity ($/kWh)',    key: 'electricityCost',   step: 0.01,  min: 0.01 },
-                  { label: 'Amortization ($/h)',     key: 'hourlyRate',        step: 0.001, min: 0 },
-                  { label: 'Failure rate (%)',        key: 'failureRate',       step: 1,     min: 0 },
-                  { label: 'Profit margin (%)',       key: 'marginPct',         step: 5,     min: 0 },
-                  { label: 'Spool price ($)',         key: 'defaultSpoolPrice', step: 1,     min: 1 },
-                  { label: 'Spool weight (g)',        key: 'defaultSpoolWeight',step: 50,    min: 100 },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label className="text-xs text-muted-foreground">{f.label}</label>
-                    <input type="number" min={f.min} step={f.step}
-                      className={INPUT + ' mt-1 h-8 text-sm'}
-                      value={(params as Record<string, number>)[f.key]}
-                      onChange={e => setParams(p => ({ ...p, [f.key]: parseFloat(e.target.value) || 0 }))} />
+              {/* Machine daily rate */}
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4 space-y-3">
+                <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Diária da máquina</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Meta diária ($)</label>
+                    <CurrencyInput value={dailyRate} onChange={setDailyRate} className={INPUT + ' mt-1 h-9'} />
                   </div>
-                ))}
+                  <div>
+                    <label className="text-xs text-muted-foreground">Horas ativas / dia</label>
+                    <input type="number" min={1} max={24} step={0.5} className={INPUT + ' mt-1 h-9'}
+                      value={workingHours} onChange={e => setWorkingHours(+e.target.value)} />
+                  </div>
+                </div>
+                <div className="rounded-md bg-orange-500/10 px-3 py-2 text-xs font-mono text-orange-400 space-y-0.5">
+                  <p>Taxa efetiva: <strong>{fmtCurrency(effectiveRate)}/h</strong></p>
+                  <p className="text-muted-foreground">
+                    Produto de 8h usa {((8 / workingHours) * 100).toFixed(0)}% do dia
+                    → máquina: {fmtCurrency(8 * effectiveRate)}
+                  </p>
+                </div>
               </div>
 
-              {/* Long-print margin tiers */}
-              <div className="rounded-lg border border-border p-3 space-y-2">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  Multiplicador de tiragem longa
-                </p>
-                {longPrintTiers.map((tier, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground w-24 shrink-0">
-                      {i === 0 ? `< ${longPrintTiers[1]?.min_hours ?? 4}h` : `≥ ${tier.min_hours}h`}
-                    </span>
-                    <span className="text-muted-foreground">→ marg. mín.</span>
-                    <input type="number" min={0} max={99} step={5}
-                      value={tier.min_margin_pct}
-                      onChange={e => setLongPrintTiers(prev => prev.map((t, idx) => idx === i ? { ...t, min_margin_pct: +e.target.value } : t))}
-                      className={INPUT + ' !w-16 !h-7 text-center text-xs py-0 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'} />
-                    <span className="text-muted-foreground">%</span>
+              {/* Materials */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Material</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Carretel ($)</label>
+                    <input type="number" min={1} step={1} className={INPUT + ' mt-1 h-8 text-sm'}
+                      value={spoolPrice} onChange={e => setSpoolPrice(+e.target.value)} />
                   </div>
-                ))}
+                  <div>
+                    <label className="text-xs text-muted-foreground">Peso (g)</label>
+                    <input type="number" min={100} step={50} className={INPUT + ' mt-1 h-8 text-sm'}
+                      value={spoolWeight} onChange={e => setSpoolWeight(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Taxa falha (%)</label>
+                    <input type="number" min={0} max={50} step={1} className={INPUT + ' mt-1 h-8 text-sm'}
+                      value={failureRate} onChange={e => setFailureRate(+e.target.value)} />
+                  </div>
+                </div>
               </div>
 
-              {/* Preview (50g, 3h example) */}
+              {/* Preview */}
               <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
-                <p className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Preview — example product (50g · 3h)</p>
-                <div className="flex justify-between"><span className="text-muted-foreground">Filament</span><span className="font-mono">{fmtCurrency(previewFilament)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Energy</span><span className="font-mono">{fmtCurrency(previewEnergy)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Amortization</span><span className="font-mono">{fmtCurrency(previewAmort)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-semibold"><span>Cost</span><span className="font-mono">{fmtCurrency(previewSubtotal)}</span></div>
-                <div className="flex justify-between text-orange-400 font-semibold"><span>Suggested price</span><span className="font-mono">{fmtCurrency(previewPrice)}</span></div>
+                <p className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">
+                  Preview — produto exemplo (50g · 3h · 1 impressora)
+                </p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Filamento (c/ {failureRate}% falha)</span>
+                  <span className="font-mono">{fmtCurrency(previewFilament)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Máquina (3h × {fmtCurrency(effectiveRate)}/h)</span>
+                  <span className="font-mono">{fmtCurrency(previewMachine)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1 font-semibold text-orange-400">
+                  <span>Preço mínimo</span>
+                  <span className="font-mono">{fmtCurrency(previewPrice)}</span>
+                </div>
               </div>
 
               <p className="text-[11px] text-muted-foreground/60">
-                ⚠️ This will overwrite the current cost and price of all products. Volume pricing tiers are preserved.
+                ⚠️ Vai sobrescrever custo e preço de todos os produtos. Faixas de volume são preservadas.
+                Produtos com impressora vinculada usam a diária daquela impressora.
               </p>
             </>
           )}
@@ -797,12 +848,12 @@ function RecalculateModal({
         <div className="flex gap-3 px-6 py-4 border-t border-border">
           <button onClick={onClose}
             className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
-            {result !== null ? 'Close' : 'Cancel'}
+            {result !== null ? 'Fechar' : 'Cancelar'}
           </button>
           {result === null && (
-            <button onClick={handleRun} disabled={running}
+            <button onClick={handleRun} disabled={running || dailyRate <= 0}
               className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
-              {running ? 'Recalculating…' : 'Recalculate all products'}
+              {running ? 'Recalculando…' : 'Recalcular todos os produtos'}
             </button>
           )}
         </div>
@@ -890,8 +941,8 @@ export default function PrintersPage() {
 
       {showRecalc && (
         <RecalculateModal
-          defaultHourlyRate={totalCph}
-          defaultLongPrintTiers={printers[0]?.long_print_tiers ?? []}
+          defaultDailyRate={printers[0]?.daily_rate ?? 0}
+          defaultWorkingHours={printers[0]?.working_hours_per_day ?? 20}
           onClose={() => setShowRecalc(false)}
         />
       )}

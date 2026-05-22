@@ -94,16 +94,19 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
     ? ((form.priceUSD - form.costUSD) / form.priceUSD * 100).toFixed(0)
     : '—'
 
-  // Derived: selected printer + long-print tier indicator
-  const selectedPrinter = printers.find(p => p.id === form.printerId) ?? null
-  const printerCount    = Math.max(1, form.printerCount ?? 1)
-  const effectiveHours  = form.printHours / printerCount
-  const activeTiers     = selectedPrinter?.tiers ?? DEFAULT_LONG_PRINT_TIERS
-  const longPrintTier   = resolveLongPrintTier(effectiveHours, activeTiers)
-  const currentMargin   = form.priceUSD > 0
+  // Derived: selected printer + daily rate indicator
+  const selectedPrinter  = printers.find(p => p.id === form.printerId) ?? null
+  const printerCount     = Math.max(1, form.printerCount ?? 1)
+  const effectiveHours   = form.printHours / printerCount
+  const hasDailyRate     = (selectedPrinter?.cph ?? 0) > 0 || printers.some(p => p.cph > 0)
+  // For the indicator, use the printer's daily-equivalent rate if available
+  // (We store cph from purchase_value/lifespan_hours but the actual pricing uses daily_rate)
+  const activeTiers      = selectedPrinter?.tiers ?? DEFAULT_LONG_PRINT_TIERS
+  const longPrintTier    = resolveLongPrintTier(effectiveHours, activeTiers)
+  const currentMargin    = form.priceUSD > 0
     ? (form.priceUSD - form.costUSD) / form.priceUSD * 100
     : 0
-  const belowMinMargin  = form.priceUSD > 0 && currentMargin < longPrintTier.minMarginPct
+  const belowMinMargin   = form.priceUSD > 0 && currentMargin < longPrintTier.minMarginPct
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

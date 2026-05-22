@@ -17,6 +17,8 @@ export type PrinterData = {
   lifespan_hours?: number
   purchase_expense_recorded?: boolean
   long_print_tiers?: { min_hours: number; min_margin_pct: number }[] | null
+  daily_rate?: number            // target revenue from this printer per active day ($)
+  working_hours_per_day?: number // how many hours the printer runs per day (default 20)
 }
 
 export async function getUserPrinters() {
