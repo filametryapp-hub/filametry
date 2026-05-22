@@ -16,6 +16,7 @@ export type PrinterData = {
   purchase_date?: string
   lifespan_hours?: number
   purchase_expense_recorded?: boolean
+  long_print_tiers?: { min_hours: number; min_margin_pct: number }[] | null
 }
 
 export async function getUserPrinters() {

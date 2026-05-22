@@ -30,6 +30,8 @@ function fromRow(row: Record<string, unknown>): Product {
     productCode:  row.product_code ? String(row.product_code) : undefined,
     unitsPerRun:  row.units_per_run ? Number(row.units_per_run) : 1,
     batches:      row.batches ? Number(row.batches) : undefined,
+    printerId:    row.printer_id   ? String(row.printer_id)    : undefined,
+    printerCount: row.printer_count ? Number(row.printer_count) : 1,
   }
 }
 
@@ -101,6 +103,9 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">
             {product.material} · {product.weightG}g · {product.printHours}h
+            {(product.printerCount ?? 1) > 1 && (
+              <span className="ml-1 text-orange-400 font-medium">×{product.printerCount}</span>
+            )}
             {product.batches ? ` · ${product.batches} chapas` : ''}
             {(product.unitsPerRun ?? 1) > 1 ? ` · ${product.unitsPerRun} un/chapa` : ''}
           </span>
@@ -274,9 +279,11 @@ export function ProductList() {
         tags:          data.tags,
         volume_prices: data.volumePrices?.map(t => ({ min_qty: t.minQty, price_usd: t.priceUSD })) ?? null,
         product_code:  data.productCode,
-        units_per_run: data.unitsPerRun ?? 1,
-        batches:       data.batches ?? null,
-        status:        data.status ?? 'active',
+        units_per_run:  data.unitsPerRun ?? 1,
+        batches:        data.batches ?? null,
+        status:         data.status ?? 'active',
+        printer_id:     data.printerId ?? null,
+        printer_count:  data.printerCount && data.printerCount > 1 ? data.printerCount : 1,
       })
       await load()
     } finally {

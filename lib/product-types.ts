@@ -3,6 +3,24 @@ export interface VolumeTier {
   priceUSD: number
 }
 
+/** Long-print margin multiplier tier stored on the printer */
+export interface LongPrintTier {
+  minHours: number      // effective hours threshold (print_hours / printer_count)
+  minMarginPct: number  // minimum margin % required
+}
+
+export const DEFAULT_LONG_PRINT_TIERS: LongPrintTier[] = [
+  { minHours: 0, minMarginPct: 30 },
+  { minHours: 4, minMarginPct: 45 },
+  { minHours: 8, minMarginPct: 60 },
+]
+
+/** Returns the applicable long-print tier for a given number of effective hours */
+export function resolveLongPrintTier(effectiveHours: number, tiers: LongPrintTier[]): LongPrintTier {
+  const sorted = [...tiers].sort((a, b) => b.minHours - a.minHours)
+  return sorted.find(t => effectiveHours >= t.minHours) ?? tiers[0]
+}
+
 export interface Product {
   id: string
   name: string
@@ -20,6 +38,8 @@ export interface Product {
   productCode?: string            // e.g. '001'
   unitsPerRun?: number            // units per print plate
   batches?: number                // typical number of plates per run
+  printerId?: string              // which printer runs this product
+  printerCount?: number           // how many printers run in parallel (default 1)
 }
 
 export interface OrderItem {

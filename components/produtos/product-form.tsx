@@ -1,20 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
-import type { VolumeTier } from '@/lib/product-types'
+import { useState, useEffect } from 'react'
+import { X, Plus, Trash2, Clock, AlertTriangle } from 'lucide-react'
+import type { VolumeTier, LongPrintTier } from '@/lib/product-types'
+import { DEFAULT_LONG_PRINT_TIERS, resolveLongPrintTier } from '@/lib/product-types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MATERIAL_GROUPS } from '@/lib/filament-types'
 import type { Product } from '@/lib/product-types'
 import { useT } from '@/lib/i18n'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { getUserPrinters } from '@/lib/actions/printers'
 
 interface Props {
   initial: Product | null
   onSave: (p: Product) => void
   onClose: () => void
   saving?: boolean
+}
+
+type PrinterOption = {
+  id: string
+  name: string
+  watts: number
+  cph: number
+  tiers: LongPrintTier[]
 }
 
 const BLANK: Omit<Product, 'id' | 'createdAt'> = {
@@ -30,6 +40,8 @@ const BLANK: Omit<Product, 'id' | 'createdAt'> = {
   unitsPerRun: 1,
   batches: undefined,
   status: 'active',
+  printerId: undefined,
+  printerCount: 1,
 }
 
 export function ProductForm({ initial, onSave, onClose, saving }: Props) {
@@ -40,6 +52,33 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
       : { ...BLANK, id: '', createdAt: new Date().toISOString().slice(0, 10) }
   )
   const [tagInput, setTagInput] = useState(initial?.tags.join(', ') ?? '')
+  const [printers, setPrinters] = useState<PrinterOption[]>([])
+
+  useEffect(() => {
+    getUserPrinters().then(rows => {
+      const mapped = (rows ?? []).map((p: Record<string, unknown>) => {
+        const purchaseVal = Number(p.purchase_value ?? 0)
+        const lifespanH  = Number(p.lifespan_hours  ?? 0)
+        const rawTiers   = Array.isArray(p.long_print_tiers)
+          ? (p.long_print_tiers as { min_hours: number; min_margin_pct: number }[]).map(t => ({
+              minHours: t.min_hours, minMarginPct: t.min_margin_pct,
+            }))
+          : DEFAULT_LONG_PRINT_TIERS
+        return {
+          id:    String(p.id),
+          name:  String(p.name),
+          watts: Number(p.watts ?? 120),
+          cph:   purchaseVal > 0 && lifespanH > 0 ? purchaseVal / lifespanH : 0,
+          tiers: rawTiers,
+        }
+      })
+      setPrinters(mapped)
+      // Auto-select if only one printer and product has none linked
+      if (mapped.length === 1 && !form.printerId) {
+        setForm(prev => ({ ...prev, printerId: mapped[0].id }))
+      }
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Local tier type with a stable ID for React keying
   type LocalTier = VolumeTier & { _id: string }
@@ -55,12 +94,28 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
     ? ((form.priceUSD - form.costUSD) / form.priceUSD * 100).toFixed(0)
     : '—'
 
+  // Derived: selected printer + long-print tier indicator
+  const selectedPrinter = printers.find(p => p.id === form.printerId) ?? null
+  const printerCount    = Math.max(1, form.printerCount ?? 1)
+  const effectiveHours  = form.printHours / printerCount
+  const activeTiers     = selectedPrinter?.tiers ?? DEFAULT_LONG_PRINT_TIERS
+  const longPrintTier   = resolveLongPrintTier(effectiveHours, activeTiers)
+  const currentMargin   = form.priceUSD > 0
+    ? (form.priceUSD - form.costUSD) / form.priceUSD * 100
+    : 0
+  const belowMinMargin  = form.priceUSD > 0 && currentMargin < longPrintTier.minMarginPct
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
     // strip local _id before persisting
     const cleanTiers: VolumeTier[] = volumeTiers.map(({ _id: _, ...rest }) => rest)
-    onSave({ ...form, tags, volumePrices: cleanTiers.length ? cleanTiers : undefined })
+    onSave({
+      ...form,
+      tags,
+      volumePrices: cleanTiers.length ? cleanTiers : undefined,
+      printerCount: printerCount > 1 ? printerCount : undefined,
+    })
   }
 
   function addTier() {
@@ -166,6 +221,75 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                 <span className="text-muted-foreground/60">÷ {form.unitsPerRun} = {fmtCurrency(form.costUSD)}/un</span>
               </p>
             )}
+          </div>
+
+          {/* Printer assignment */}
+          <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="size-3 text-orange-500" /> Impressora &amp; paralelismo
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Impressora</Label>
+                <select
+                  value={form.printerId ?? ''}
+                  onChange={e => set('printerId', e.target.value || undefined)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                >
+                  <option value="">— nenhuma —</option>
+                  {printers.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Impressoras em paralelo</Label>
+                <Input
+                  type="number" min={1} max={10} step={1}
+                  value={form.printerCount ?? 1}
+                  onChange={e => set('printerCount', Math.max(1, +e.target.value))}
+                />
+              </div>
+            </div>
+
+            {/* Long-print tier indicator */}
+            <div className={`rounded-md px-3 py-2 text-xs flex items-start gap-2 ${
+              belowMinMargin
+                ? 'bg-orange-500/10 border border-orange-500/30'
+                : 'bg-muted/40'
+            }`}>
+              {belowMinMargin
+                ? <AlertTriangle className="size-3.5 text-orange-400 shrink-0 mt-0.5" />
+                : <Clock className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+              }
+              <div className="space-y-0.5">
+                <p>
+                  Tempo efetivo:{' '}
+                  <strong>{effectiveHours % 1 === 0 ? effectiveHours : effectiveHours.toFixed(1)}h</strong>
+                  {printerCount > 1 && (
+                    <span className="text-muted-foreground">
+                      {' '}({form.printHours}h ÷ {printerCount} impressoras)
+                    </span>
+                  )}
+                </p>
+                <p>
+                  Margem mínima para esta tiragem:{' '}
+                  <strong className={belowMinMargin ? 'text-orange-400' : 'text-green-400'}>
+                    {longPrintTier.minMarginPct}%
+                  </strong>
+                  {longPrintTier.minHours > 0 && (
+                    <span className="text-muted-foreground">
+                      {' '}(≥ {longPrintTier.minHours}h)
+                    </span>
+                  )}
+                  {belowMinMargin && (
+                    <span className="text-orange-400 ml-1">
+                      — atual: {currentMargin.toFixed(0)}%
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Cost */}

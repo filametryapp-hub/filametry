@@ -17,11 +17,13 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 
 type Partner = { id: string; name: string; percentage: number }
 type Payment = { id: string; payer_name: string; amount_paid: number; paid_at: string; notes?: string | null }
+type LongPrintTierRow = { min_hours: number; min_margin_pct: number }
 type PrinterRow = {
   id: string; name: string; brand: string; model: string; watts: number
   purchase_value: number; purchase_date?: string | null; lifespan_hours: number
   purchase_expense_recorded?: boolean
   equipment_payments: Payment[]
+  long_print_tiers?: LongPrintTierRow[] | null
 }
 type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
 
@@ -78,21 +80,33 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   const { t, fmtCurrency } = useT()
   const eq = t.equipment
   const [expanded, setExpanded] = useState(false)
+  const DEFAULT_TIERS: LongPrintTierRow[] = [
+    { min_hours: 0, min_margin_pct: 30 },
+    { min_hours: 4, min_margin_pct: 45 },
+    { min_hours: 8, min_margin_pct: 60 },
+  ]
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     watts: printer.watts,
     purchase_value: printer.purchase_value,
     lifespan_hours: printer.lifespan_hours,
   })
+  const [longPrintTiers, setLongPrintTiers] = useState<LongPrintTierRow[]>(
+    printer.long_print_tiers?.length ? printer.long_print_tiers : DEFAULT_TIERS
+  )
   const [savingEdit, setSavingEdit] = useState(false)
 
   async function handleSaveEdit() {
     setSavingEdit(true)
     try {
-      await updatePrinter(printer.id, editForm)
+      await updatePrinter(printer.id, {
+        ...editForm,
+        long_print_tiers: longPrintTiers,
+      })
       printer.watts = editForm.watts
       printer.purchase_value = editForm.purchase_value
       printer.lifespan_hours = editForm.lifespan_hours
+      printer.long_print_tiers = longPrintTiers
       setEditing(false)
     } catch { /* silent */ } finally {
       setSavingEdit(false)
@@ -233,6 +247,46 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                   → {eq.costPerHour}: {fmtCurrency(editForm.purchase_value / editForm.lifespan_hours)}/h
                 </p>
               )}
+
+              {/* Long-print margin tiers */}
+              <div className="space-y-1.5 pt-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Multiplicador de tiragem longa
+                </p>
+                <p className="text-[10px] text-muted-foreground/70">
+                  Impressões longas exigem maior margem mínima para compensar a impressora parada o dia todo.
+                </p>
+                <div className="space-y-1">
+                  {longPrintTiers.map((tier, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground w-12 shrink-0">
+                        {i === 0 ? '< ' : '≥ '}{longPrintTiers[i + 1]?.min_hours ?? tier.min_hours}h
+                      </span>
+                      <span className="text-muted-foreground">→ marg. mín.</span>
+                      <input
+                        type="number" min={0} max={99} step={5}
+                        value={tier.min_margin_pct}
+                        onChange={e => setLongPrintTiers(prev =>
+                          prev.map((t, idx) => idx === i ? { ...t, min_margin_pct: +e.target.value } : t)
+                        )}
+                        className="w-16 h-7 rounded border border-input bg-background px-2 text-center text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-muted-foreground">%</span>
+                      {i > 0 && (
+                        <input
+                          type="number" min={1} max={24} step={1}
+                          value={tier.min_hours}
+                          onChange={e => setLongPrintTiers(prev =>
+                            prev.map((t, idx) => idx === i ? { ...t, min_hours: +e.target.value } : t)
+                          )}
+                          className="w-14 h-7 rounded border border-input bg-background px-2 text-center text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setEditing(false)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">
@@ -614,9 +668,11 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 // ── Recalculate Products Modal ─────────────────────────────────
 function RecalculateModal({
   defaultHourlyRate,
+  defaultLongPrintTiers,
   onClose,
 }: {
   defaultHourlyRate: number
+  defaultLongPrintTiers: LongPrintTierRow[]
   onClose: () => void
 }) {
   const { fmtCurrency } = useT()
@@ -629,13 +685,23 @@ function RecalculateModal({
     defaultSpoolPrice: 20,
     defaultSpoolWeight: 1000,
   })
+  const [longPrintTiers, setLongPrintTiers] = useState<LongPrintTierRow[]>(
+    defaultLongPrintTiers.length ? defaultLongPrintTiers : [
+      { min_hours: 0, min_margin_pct: 30 },
+      { min_hours: 4, min_margin_pct: 45 },
+      { min_hours: 8, min_margin_pct: 60 },
+    ]
+  )
   const [running, setRunning]   = useState(false)
   const [result,  setResult]    = useState<number | null>(null)
 
   async function handleRun() {
     setRunning(true)
     try {
-      const count = await recalculateProductCosts(params)
+      const count = await recalculateProductCosts({
+        ...params,
+        longPrintTiers: longPrintTiers.map(t => ({ minHours: t.min_hours, minMarginPct: t.min_margin_pct })),
+      })
       setResult(count)
     } catch { /* silent */ } finally {
       setRunning(false)
@@ -687,6 +753,26 @@ function RecalculateModal({
                       className={INPUT + ' mt-1 h-8 text-sm'}
                       value={(params as Record<string, number>)[f.key]}
                       onChange={e => setParams(p => ({ ...p, [f.key]: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Long-print margin tiers */}
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Multiplicador de tiragem longa
+                </p>
+                {longPrintTiers.map((tier, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground w-24 shrink-0">
+                      {i === 0 ? `< ${longPrintTiers[1]?.min_hours ?? 4}h` : `≥ ${tier.min_hours}h`}
+                    </span>
+                    <span className="text-muted-foreground">→ marg. mín.</span>
+                    <input type="number" min={0} max={99} step={5}
+                      value={tier.min_margin_pct}
+                      onChange={e => setLongPrintTiers(prev => prev.map((t, idx) => idx === i ? { ...t, min_margin_pct: +e.target.value } : t))}
+                      className={INPUT + ' !w-16 !h-7 text-center text-xs py-0 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'} />
+                    <span className="text-muted-foreground">%</span>
                   </div>
                 ))}
               </div>
@@ -805,6 +891,7 @@ export default function PrintersPage() {
       {showRecalc && (
         <RecalculateModal
           defaultHourlyRate={totalCph}
+          defaultLongPrintTiers={printers[0]?.long_print_tiers ?? []}
           onClose={() => setShowRecalc(false)}
         />
       )}
