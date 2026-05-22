@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BarChart3, Receipt } from 'lucide-react'
+import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BarChart3, Receipt, Pencil, Check, X } from 'lucide-react'
 import {
   getUserPrinters, addPrinter, deletePrinter, updatePrinter,
   addEquipmentPayment, deleteEquipmentPayment,
@@ -77,6 +77,27 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   const { t, fmtCurrency } = useT()
   const eq = t.equipment
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    watts: printer.watts,
+    purchase_value: printer.purchase_value,
+    lifespan_hours: printer.lifespan_hours,
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  async function handleSaveEdit() {
+    setSavingEdit(true)
+    try {
+      await updatePrinter(printer.id, editForm)
+      printer.watts = editForm.watts
+      printer.purchase_value = editForm.purchase_value
+      printer.lifespan_hours = editForm.lifespan_hours
+      setEditing(false)
+    } catch { /* silent */ } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const [addingPay, setAddingPay] = useState(false)
   const [payForm, setPayForm] = useState({ payer_name: partners[0]?.name ?? '', amount_paid: 0, paid_at: new Date().toISOString().slice(0, 10) })
   const [savingPay, setSavingPay] = useState(false)
@@ -158,6 +179,13 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         </div>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => { setEditing(e => !e); setExpanded(true) }}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
+            title="Edit printer"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
             onClick={() => setExpanded(e => !e)}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
@@ -175,21 +203,62 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
       {/* Expanded section */}
       {expanded && (
         <div className="px-5 pb-5 border-t border-border pt-4 space-y-4">
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground mb-1">{eq.purchaseValue}</p>
-              <p className="text-sm font-semibold">{printer.purchase_value > 0 ? fmtCurrency(printer.purchase_value) : '—'}</p>
+          {/* Stats grid / Edit form */}
+          {editing ? (
+            <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 space-y-3">
+              <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Editar impressora</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">{eq.power} (W)</label>
+                  <input type="number" min={1} className={INPUT + ' mt-1 h-9'}
+                    value={editForm.watts}
+                    onChange={e => setEditForm(f => ({ ...f, watts: +e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">{eq.purchaseValue} ($)</label>
+                  <CurrencyInput value={editForm.purchase_value}
+                    onChange={v => setEditForm(f => ({ ...f, purchase_value: v }))}
+                    className={INPUT + ' mt-1 h-9'} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">{eq.expectedLifespan}</label>
+                  <input type="number" min={100} step={100} className={INPUT + ' mt-1 h-9'}
+                    value={editForm.lifespan_hours}
+                    onChange={e => setEditForm(f => ({ ...f, lifespan_hours: +e.target.value }))} />
+                </div>
+              </div>
+              {editForm.purchase_value > 0 && editForm.lifespan_hours > 0 && (
+                <p className="text-xs text-orange-400 font-mono">
+                  → {eq.costPerHour}: {fmtCurrency(editForm.purchase_value / editForm.lifespan_hours)}/h
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setEditing(false)}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">
+                  <X className="size-3.5" /> Cancelar
+                </button>
+                <button onClick={handleSaveEdit} disabled={savingEdit}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors">
+                  <Check className="size-3.5" /> {savingEdit ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
             </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground mb-1">{eq.lifespan}</p>
-              <p className="text-sm font-semibold">{printer.lifespan_hours.toLocaleString()}h</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground mb-1">{eq.purchaseValue}</p>
+                <p className="text-sm font-semibold">{printer.purchase_value > 0 ? fmtCurrency(printer.purchase_value) : '—'}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground mb-1">{eq.lifespan}</p>
+                <p className="text-sm font-semibold">{printer.lifespan_hours.toLocaleString()}h</p>
+              </div>
+              <div className="rounded-lg bg-orange-500/10 p-3">
+                <p className="text-xs text-orange-400/80 mb-1">{eq.costPerHour}</p>
+                <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
+              </div>
             </div>
-            <div className="rounded-lg bg-orange-500/10 p-3">
-              <p className="text-xs text-orange-400/80 mb-1">{eq.costPerHour}</p>
-              <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
-            </div>
-          </div>
+          )}
 
           {/* Register purchase as expense (retroactive) */}
           {printer.purchase_value > 0 && !expenseRecorded && (
