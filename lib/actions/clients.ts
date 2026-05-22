@@ -49,12 +49,15 @@ export async function upsertClient(client: {
   const companyId = await getCompanyId(supabase, user.id)
   if (!companyId) throw new Error('No company found')
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('clients')
     .upsert({ ...client, company_id: companyId }, { onConflict: 'id' })
+    .select('id')
+    .single()
 
   if (error) throw error
   revalidatePath('/clients')
+  return data as { id: string }
 }
 
 export async function deleteClient(id: string) {

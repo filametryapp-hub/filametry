@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, ChevronDown, FileText, Printer } from 'lucide-react'
+import { X, Plus, Trash2, ChevronDown, FileText, Printer, UserPlus, ToggleLeft, ToggleRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@/lib/product-types'
 import { useT } from '@/lib/i18n'
 import { getProducts } from '@/lib/actions/products'
-import { getClients } from '@/lib/actions/clients'
+import { getClients, upsertClient } from '@/lib/actions/clients'
 
 interface CatalogProduct {
   id: string
@@ -57,6 +57,32 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
 
   // Print option — pre-fill from initial
   const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(initial?.showDiscountOnPrint ?? false)
+
+  // Toggle quantity table visibility
+  const [showTiersTable, setShowTiersTable] = useState(true)
+
+  // Inline new client form
+  const [addingClient, setAddingClient] = useState(false)
+  const [newClientName, setNewClientName] = useState('')
+  const [newClientEmail, setNewClientEmail] = useState('')
+  const [savingClient, setSavingClient] = useState(false)
+
+  async function handleCreateClient() {
+    if (!newClientName.trim()) return
+    setSavingClient(true)
+    try {
+      const created = await upsertClient({ name: newClientName.trim(), email: newClientEmail.trim() || undefined })
+      const newClient = { id: created.id, name: newClientName.trim(), email: newClientEmail.trim() || null }
+      setClients(prev => [...prev, newClient])
+      setClientName(newClient.name)
+      setClientEmail(newClient.email ?? '')
+      setNewClientName('')
+      setNewClientEmail('')
+      setAddingClient(false)
+    } catch { /* silent */ } finally {
+      setSavingClient(false)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -186,7 +212,38 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
 
         {/* Client info */}
         <div className="space-y-3">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
+            <button type="button" onClick={() => setAddingClient(v => !v)}
+              className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 transition-colors">
+              <UserPlus className="size-3.5" /> Novo cliente
+            </button>
+          </div>
+
+          {/* Inline new client form */}
+          {addingClient && (
+            <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-2">
+              <p className="text-xs font-medium text-orange-400">Cadastrar novo cliente</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="Nome *" value={newClientName}
+                  onChange={e => setNewClientName(e.target.value)}
+                  className="h-8 text-xs" />
+                <Input placeholder="E-mail (opcional)" value={newClientEmail}
+                  onChange={e => setNewClientEmail(e.target.value)}
+                  className="h-8 text-xs" />
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setAddingClient(false)}
+                  className="text-xs px-2.5 py-1 rounded border border-border hover:bg-muted transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={handleCreateClient} disabled={savingClient || !newClientName.trim()}
+                  className="text-xs px-2.5 py-1 rounded bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors">
+                  {savingClient ? 'Salvando…' : 'Salvar cliente'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {clients.length > 0 && (
             <div className="relative">
@@ -266,15 +323,21 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                 Tabela de Quantidades
               </Label>
+              <button type="button" onClick={() => setShowTiersTable(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {showTiersTable
+                  ? <><ToggleRight className="size-4 text-orange-500" /> Habilitada</>
+                  : <><ToggleLeft className="size-4" /> Desabilitada</>}
+              </button>
             </div>
 
-            {tiers.length === 0 && (
+            {showTiersTable && tiers.length === 0 && (
               <p className="text-[11px] text-muted-foreground/60 italic text-center py-2">
                 Adicione quantidades para montar o orçamento
               </p>
             )}
 
-            {tiers.length > 0 && (
+            {showTiersTable && tiers.length > 0 && (
               <div className="rounded-lg border border-border overflow-hidden">
                 {/* Column headers */}
                 <div className="grid grid-cols-[52px_1fr_80px_72px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
@@ -344,7 +407,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             )}
 
             {/* Add custom qty */}
-            <div className="flex items-center gap-2">
+            {showTiersTable && <div className="flex items-center gap-2">
               <input
                 type="number" min={1} step={1}
                 value={newQty}
@@ -361,10 +424,10 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
               >
                 <Plus className="size-3.5" /> Adicionar quantidade
               </button>
-            </div>
+            </div>}
 
             {/* Quick-add preset buttons */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            {showTiersTable && <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-muted-foreground">Rápido:</span>
               {DEFAULT_QTYS.map(qty => (
                 <button
@@ -380,7 +443,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                   {qty}
                 </button>
               ))}
-            </div>
+            </div>}
 
             {/* Print option */}
             <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
