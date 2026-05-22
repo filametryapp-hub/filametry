@@ -74,3 +74,55 @@ export async function deleteProduct(id: string) {
   if (error) throw error
   revalidatePath('/produtos')
 }
+
+export async function recalculateProductCosts(params: {
+  printerWatts: number
+  electricityCost: number
+  hourlyRate: number       // amortization $/h
+  failureRate: number      // %
+  marginPct: number        // %
+  defaultSpoolPrice: number
+  defaultSpoolWeight: number
+}): Promise<number> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('id, weight_g, print_hours, price_usd')
+    .eq('user_id', user.id)
+
+  if (error) throw error
+  if (!products || products.length === 0) return 0
+
+  const {
+    printerWatts, electricityCost, hourlyRate,
+    failureRate, marginPct, defaultSpoolPrice, defaultSpoolWeight,
+  } = params
+
+  const updates = products.map(p => {
+    const weightG    = Number(p.weight_g   ?? 0)
+    const printHours = Number(p.print_hours ?? 0)
+
+    const filament = weightG * (defaultSpoolPrice / Math.max(defaultSpoolWeight, 1))
+    const energy   = printHours * (printerWatts / 1000) * electricityCost
+    const amort    = printHours * hourlyRate
+    const subtotal = (filament + energy + amort) * (1 + failureRate / 100)
+    const costUSD  = parseFloat(subtotal.toFixed(4))
+    const priceUSD = marginPct >= 100
+      ? parseFloat((subtotal * 2).toFixed(2))
+      : parseFloat((subtotal / (1 - marginPct / 100)).toFixed(2))
+
+    return { id: p.id, cost_usd: costUSD, price_usd: priceUSD }
+  })
+
+  // Batch update
+  for (const u of updates) {
+    await supabase.from('products').update({ cost_usd: u.cost_usd, price_usd: u.price_usd }).eq('id', u.id)
+  }
+
+  revalidatePath('/produtos')
+  revalidatePath('/printers')
+  return updates.length
+}

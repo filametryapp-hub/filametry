@@ -7,6 +7,7 @@ import {
   addEquipmentPayment, deleteEquipmentPayment,
   getAmortizationData,
 } from '@/lib/actions/printers'
+import { recalculateProductCosts } from '@/lib/actions/products'
 import { createExpense } from '@/lib/actions/expenses'
 import { getPartners } from '@/lib/actions/company'
 import { getProfile } from '@/lib/actions/billing'
@@ -610,6 +611,120 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
   )
 }
 
+// ── Recalculate Products Modal ─────────────────────────────────
+function RecalculateModal({
+  defaultHourlyRate,
+  onClose,
+}: {
+  defaultHourlyRate: number
+  onClose: () => void
+}) {
+  const { fmtCurrency } = useT()
+  const [params, setParams] = useState({
+    printerWatts:      120,
+    electricityCost:   0.15,
+    hourlyRate:        defaultHourlyRate,
+    failureRate:       10,
+    marginPct:         40,
+    defaultSpoolPrice: 20,
+    defaultSpoolWeight: 1000,
+  })
+  const [running, setRunning]   = useState(false)
+  const [result,  setResult]    = useState<number | null>(null)
+
+  async function handleRun() {
+    setRunning(true)
+    try {
+      const count = await recalculateProductCosts(params)
+      setResult(count)
+    } catch { /* silent */ } finally {
+      setRunning(false)
+    }
+  }
+
+  const previewFilament = 50 * (params.defaultSpoolPrice / Math.max(params.defaultSpoolWeight, 1))
+  const previewEnergy   = 3  * (params.printerWatts / 1000) * params.electricityCost
+  const previewAmort    = 3  * params.hourlyRate
+  const previewSubtotal = (previewFilament + previewEnergy + previewAmort) * (1 + params.failureRate / 100)
+  const previewPrice    = params.marginPct >= 100 ? previewSubtotal * 2 : previewSubtotal / (1 - params.marginPct / 100)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl flex flex-col max-h-[92vh]">
+
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-base">Recalculate Product Costs</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Updates <strong>cost_usd</strong> and <strong>price_usd</strong> for all catalog products using the parameters below.
+          </p>
+
+          {result !== null ? (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-center space-y-1">
+              <CheckCircle2 className="size-6 text-green-400 mx-auto" />
+              <p className="font-semibold text-green-400">{result} products updated!</p>
+              <p className="text-xs text-muted-foreground">Go to Products to review the new prices.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Printer power (W)',     key: 'printerWatts',      step: 10,    min: 10 },
+                  { label: 'Electricity ($/kWh)',    key: 'electricityCost',   step: 0.01,  min: 0.01 },
+                  { label: 'Amortization ($/h)',     key: 'hourlyRate',        step: 0.001, min: 0 },
+                  { label: 'Failure rate (%)',        key: 'failureRate',       step: 1,     min: 0 },
+                  { label: 'Profit margin (%)',       key: 'marginPct',         step: 5,     min: 0 },
+                  { label: 'Spool price ($)',         key: 'defaultSpoolPrice', step: 1,     min: 1 },
+                  { label: 'Spool weight (g)',        key: 'defaultSpoolWeight',step: 50,    min: 100 },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="text-xs text-muted-foreground">{f.label}</label>
+                    <input type="number" min={f.min} step={f.step}
+                      className={INPUT + ' mt-1 h-8 text-sm'}
+                      value={(params as Record<string, number>)[f.key]}
+                      onChange={e => setParams(p => ({ ...p, [f.key]: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview (50g, 3h example) */}
+              <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
+                <p className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Preview — example product (50g · 3h)</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Filament</span><span className="font-mono">{fmtCurrency(previewFilament)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Energy</span><span className="font-mono">{fmtCurrency(previewEnergy)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Amortization</span><span className="font-mono">{fmtCurrency(previewAmort)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 font-semibold"><span>Cost</span><span className="font-mono">{fmtCurrency(previewSubtotal)}</span></div>
+                <div className="flex justify-between text-orange-400 font-semibold"><span>Suggested price</span><span className="font-mono">{fmtCurrency(previewPrice)}</span></div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground/60">
+                ⚠️ This will overwrite the current cost and price of all products. Volume pricing tiers are preserved.
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose}
+            className="flex-1 rounded-md border border-border py-2 text-sm hover:bg-muted transition-colors">
+            {result !== null ? 'Close' : 'Cancel'}
+          </button>
+          {result === null && (
+            <button onClick={handleRun} disabled={running}
+              className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+              {running ? 'Recalculating…' : 'Recalculate all products'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────
 export default function PrintersPage() {
   const { t, fmtCurrency } = useT()
@@ -619,6 +734,7 @@ export default function PrintersPage() {
   const [loading, setLoading]       = useState(true)
   const [limit, setLimit]           = useState(TRIAL_PRINTER_LIMIT)
   const [amortMap, setAmortMap]     = useState<Record<string, AmortPrinter>>({})
+  const [showRecalc, setShowRecalc] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -673,10 +789,25 @@ export default function PrintersPage() {
           <h1 className="text-2xl font-bold">{eq.title}</h1>
           <p className="text-muted-foreground mt-1">{eq.subtitle}</p>
         </div>
-        <span className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full font-medium shrink-0">
-          {printers.length} / {displayLimit}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {printers.length > 0 && (
+            <button onClick={() => setShowRecalc(true)}
+              className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-orange-500/50 hover:text-orange-400 transition-colors">
+              <BarChart3 className="size-3.5" /> Recalculate products
+            </button>
+          )}
+          <span className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full font-medium">
+            {printers.length} / {displayLimit}
+          </span>
+        </div>
       </div>
+
+      {showRecalc && (
+        <RecalculateModal
+          defaultHourlyRate={totalCph}
+          onClose={() => setShowRecalc(false)}
+        />
+      )}
 
       {/* Fleet summary */}
       {printers.length > 0 && (
