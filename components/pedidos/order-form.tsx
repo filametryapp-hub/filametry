@@ -58,8 +58,27 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   // Print option — pre-fill from initial
   const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(initial?.showDiscountOnPrint ?? false)
 
-  // Toggle quantity table visibility
-  const [showTiersTable, setShowTiersTable] = useState(true)
+  // Toggle quantity table visibility — disabled by default
+  const [showTiersTable, setShowTiersTable] = useState(false)
+
+  // Simple items list (used when tiers table is disabled)
+  const [simpleItems, setSimpleItems] = useState<{ product_name: string; qty: number; unit_price: number }[]>(
+    [{ product_name: '', qty: 1, unit_price: 0 }]
+  )
+
+  function addSimpleItem() {
+    setSimpleItems(prev => [...prev, { product_name: selectedProd?.name ?? '', qty: 1, unit_price: selectedProd?.priceUSD ?? 0 }])
+  }
+  function removeSimpleItem(idx: number) {
+    setSimpleItems(prev => prev.filter((_, i) => i !== idx))
+  }
+  function updateSimpleItem(idx: number, patch: Partial<{ product_name: string; qty: number; unit_price: number }>) {
+    setSimpleItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it))
+  }
+  function pickProductForItem(idx: number, productId: string) {
+    const p = products.find(pr => pr.id === productId)
+    if (p) updateSimpleItem(idx, { product_name: p.name, unit_price: p.priceUSD })
+  }
 
   // Inline new client form
   const [addingClient, setAddingClient] = useState(false)
@@ -169,8 +188,34 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedProd || tiers.length === 0) return
     const now = new Date().toISOString().slice(0, 10)
+
+    if (!showTiersTable) {
+      // Simple mode: use simpleItems
+      const validItems = simpleItems.filter(it => it.product_name.trim())
+      if (validItems.length === 0) return
+      onSave({
+        id:          initial?.id ?? '',
+        clientName,
+        clientEmail: clientEmail || undefined,
+        notes:       notes || undefined,
+        items: validItems.map(it => ({
+          productId:   '',
+          productName: it.product_name,
+          quantity:    it.qty,
+          unitPrice:   it.unit_price,
+        })),
+        quoteTiers:         [],
+        showDiscountOnPrint: false,
+        status:    initial?.status ?? 'draft',
+        createdAt: initial?.createdAt ?? now,
+        updatedAt: now,
+      })
+      return
+    }
+
+    // Tiers mode
+    if (!selectedProd || tiers.length === 0) return
     const smallestTier = tiers[0]
     onSave({
       id:          initial?.id ?? '',
@@ -277,27 +322,102 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           </div>
         </div>
 
-        {/* Product picker */}
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Produto</Label>
+        {/* Items / Products section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Produtos</Label>
+            <button type="button" onClick={() => setShowTiersTable(v => !v)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {showTiersTable
+                ? <><ToggleRight className="size-4 text-orange-500" /> Tabela de quantidades</>
+                : <><ToggleLeft className="size-4" /> Tabela de quantidades</>}
+            </button>
+          </div>
 
+          {/* ── Simple items mode (default) ── */}
+          {!showTiersTable && (
+            <div className="space-y-2">
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Produto</th>
+                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-16">Qtd</th>
+                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-28">Preço/un</th>
+                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-24">Total</th>
+                      <th className="w-8" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {simpleItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="px-2 py-1.5">
+                          <div className="flex gap-1.5">
+                            {products.length > 0 && (
+                              <select onChange={e => pickProductForItem(idx, e.target.value)} defaultValue=""
+                                className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 shrink-0">
+                                <option value="">↓</option>
+                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                              </select>
+                            )}
+                            <input
+                              className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                              placeholder="Nome do produto"
+                              value={item.product_name}
+                              onChange={e => updateSimpleItem(idx, { product_name: e.target.value })} />
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input type="number" min={1} step={1}
+                            className="h-8 w-16 rounded border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={item.qty}
+                            onChange={e => updateSimpleItem(idx, { qty: Math.max(1, +e.target.value) })} />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input type="number" min={0} step="any"
+                            className="h-8 w-28 rounded border border-input bg-background px-2 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={item.unit_price || ''}
+                            onChange={e => updateSimpleItem(idx, { unit_price: parseFloat(e.target.value) || 0 })} />
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-orange-500 font-medium">
+                          {fmtCurrency(item.qty * item.unit_price)}
+                        </td>
+                        <td className="px-1 py-1.5 text-center">
+                          {simpleItems.length > 1 && (
+                            <button type="button" onClick={() => removeSimpleItem(idx)}
+                              className="text-muted-foreground hover:text-red-400">
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" onClick={addSimpleItem}
+                className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1 transition-colors">
+                <Plus className="size-3.5" /> Adicionar item
+              </button>
+            </div>
+          )}
+
+          {/* ── Volume tiers mode ── */}
+          {showTiersTable && (
+          <div className="space-y-3">
+          {/* Product picker — only needed for tiers mode */}
           {loadingCat ? (
             <div className="flex justify-center py-3">
               <div className="size-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <div className="relative">
-              <select
-                value={selectedProd?.id ?? ''}
-                onChange={e => selectProduct(e.target.value)}
-                className={INPUT_CLS + ' pr-8 appearance-none'}
-                required
-              >
+              <select value={selectedProd?.id ?? ''} onChange={e => selectProduct(e.target.value)}
+                className={INPUT_CLS + ' pr-8 appearance-none'}>
                 <option value="">— selecionar produto —</option>
                 {products.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.material && !p.material.includes('[object') ? ` · ${p.material}` : ''}
+                    {p.name}{p.material && !p.material.includes('[object') ? ` · ${p.material}` : ''}
                     {p.volumePrices?.length ? ' 🏷️' : ''}
                   </option>
                 ))}
@@ -305,7 +425,6 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             </div>
           )}
-
           {selectedProd && (
             <p className="text-[11px] text-muted-foreground">
               Preço base: <span className="font-mono text-foreground">{fmtCurrency(selectedProd.priceUSD)}</span>/un
@@ -314,30 +433,18 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                 : null}
             </p>
           )}
-        </div>
+          </div>)}
 
-        {/* Quote tiers table */}
-        {selectedProd && (
+        {showTiersTable && selectedProd && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                Tabela de Quantidades
-              </Label>
-              <button type="button" onClick={() => setShowTiersTable(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {showTiersTable
-                  ? <><ToggleRight className="size-4 text-orange-500" /> Habilitada</>
-                  : <><ToggleLeft className="size-4" /> Desabilitada</>}
-              </button>
-            </div>
 
-            {showTiersTable && tiers.length === 0 && (
+            {tiers.length === 0 && (
               <p className="text-[11px] text-muted-foreground/60 italic text-center py-2">
                 Adicione quantidades para montar o orçamento
               </p>
             )}
 
-            {showTiersTable && tiers.length > 0 && (
+            {tiers.length > 0 && (
               <div className="rounded-lg border border-border overflow-hidden">
                 {/* Column headers */}
                 <div className="grid grid-cols-[52px_1fr_80px_72px_28px] gap-2 px-3 py-1.5 bg-muted/40 border-b border-border">
@@ -407,7 +514,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             )}
 
             {/* Add custom qty */}
-            {showTiersTable && <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <input
                 type="number" min={1} step={1}
                 value={newQty}
@@ -424,10 +531,10 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
               >
                 <Plus className="size-3.5" /> Adicionar quantidade
               </button>
-            </div>}
+            </div>
 
             {/* Quick-add preset buttons */}
-            {showTiersTable && <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-muted-foreground">Rápido:</span>
               {DEFAULT_QTYS.map(qty => (
                 <button
@@ -443,7 +550,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                   {qty}
                 </button>
               ))}
-            </div>}
+            </div>
 
             {/* Print option */}
             <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
@@ -471,6 +578,8 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           </div>
         )}
 
+        </div>{/* end products section */}
+
         {/* Notes */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{t.orders.notes}</Label>
@@ -491,7 +600,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           </button>
           <button
             type="submit"
-            disabled={!selectedProd || tiers.length === 0}
+            disabled={showTiersTable ? (!selectedProd || tiers.length === 0) : simpleItems.every(it => !it.product_name.trim())}
             className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isEditing ? 'Salvar Alterações' : 'Salvar Orçamento'}
