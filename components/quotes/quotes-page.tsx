@@ -483,7 +483,7 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
 
         {/* Paper */}
         <div ref={printRef}
-          className="bg-white text-gray-900 rounded-xl shadow-2xl overflow-y-auto flex-1 print:shadow-none print:rounded-none print:overflow-visible"
+          className="filametry-print-paper bg-white text-gray-900 rounded-xl shadow-2xl overflow-y-auto flex-1 print:shadow-none print:rounded-none print:overflow-visible"
           style={{ fontFamily: 'system-ui, sans-serif' }}>
           <div className="p-10 space-y-8 print:p-8">
 
@@ -629,9 +629,20 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
       {/* Print-only full-page styles */}
       <style>{`
         @media print {
-          body > *:not(.fixed) { display: none !important; }
-          .fixed { position: static !important; background: white !important; padding: 0 !important; }
-          .print\\:hidden { display: none !important; }
+          body * { visibility: hidden !important; }
+          .filametry-print-paper,
+          .filametry-print-paper * { visibility: visible !important; }
+          .filametry-print-paper {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
         }
       `}</style>
     </div>
