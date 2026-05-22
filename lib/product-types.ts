@@ -29,7 +29,7 @@ export interface OrderItem {
   unitPrice: number
 }
 
-export type OrderStatus = 'draft' | 'sent' | 'accepted' | 'printing' | 'done' | 'cancelled'
+export type OrderStatus = 'draft' | 'sent' | 'accepted' | 'printing' | 'post' | 'done' | 'cancelled'
 
 export interface QuoteTier {
   qty: number
@@ -54,6 +54,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   sent:      'Enviado',
   accepted:  'Aceito',
   printing:  'Imprimindo',
+  post:      'Pós-processamento',
   done:      'Concluído',
   cancelled: 'Cancelado',
 }
@@ -63,6 +64,7 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   sent:      'bg-blue-500/10 text-blue-400',
   accepted:  'bg-yellow-500/10 text-yellow-400',
   printing:  'bg-orange-500/10 text-orange-400',
+  post:      'bg-purple-500/10 text-purple-400',
   done:      'bg-green-500/10 text-green-400',
   cancelled: 'bg-red-500/10 text-red-400',
 }
