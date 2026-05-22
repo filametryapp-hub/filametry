@@ -57,6 +57,12 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
   const isTest   = product.status === 'test'
   const isDimmed = isFailed || isTest
 
+  // Per-unit values (only when batches × unitsPerRun > 1)
+  const totalUnits = (product.batches ?? 1) * (product.unitsPerRun ?? 1)
+  const showPerUnit = totalUnits > 1
+  const unitCost  = product.costUSD  / totalUnits
+  const unitPrice = product.priceUSD / totalUnits
+
   return (
     <div className={`group flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isDimmed ? 'opacity-60' : ''}`}>
 
@@ -108,18 +114,27 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
       <div className="w-20 text-right shrink-0 hidden sm:block">
         <p className="text-[10px] text-muted-foreground uppercase">Custo</p>
         <p className="text-sm font-mono">{fmt(product.costUSD)}</p>
+        {showPerUnit && (
+          <p className="text-[10px] text-muted-foreground/60 font-mono">{fmt(unitCost)}/un</p>
+        )}
       </div>
 
       {/* Profit */}
       <div className="w-20 text-right shrink-0 hidden md:block">
         <p className="text-[10px] text-muted-foreground uppercase">Lucro</p>
         <p className="text-sm font-mono text-green-400">{fmt(profit)}</p>
+        {showPerUnit && (
+          <p className="text-[10px] text-green-400/50 font-mono">{fmt(profit / totalUnits)}/un</p>
+        )}
       </div>
 
       {/* Price */}
       <div className="w-20 text-right shrink-0">
         <p className="text-[10px] text-muted-foreground uppercase">Preço</p>
         <p className="text-sm font-mono font-bold text-orange-500">{fmt(product.priceUSD)}</p>
+        {showPerUnit && (
+          <p className="text-[10px] text-orange-400/60 font-mono">{fmt(unitPrice)}/un</p>
+        )}
       </div>
 
       {/* Margin bar */}
