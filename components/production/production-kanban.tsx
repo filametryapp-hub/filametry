@@ -69,9 +69,14 @@ export function ProductionKanban() {
     const next = STATUS_FLOW[currentStatus]
     if (!next || next === currentStatus) return
     setMoving(orderId)
-    await updateOrderStatus(orderId, next)
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: next } : o))
-    setMoving(null)
+    try {
+      await updateOrderStatus(orderId, next)
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: next } : o))
+    } catch (err) {
+      console.error('Failed to advance order:', err)
+    } finally {
+      setMoving(null)
+    }
   }
 
   function ordersFor(col: Column) {

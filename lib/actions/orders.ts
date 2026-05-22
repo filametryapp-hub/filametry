@@ -133,6 +133,7 @@ export async function updateOrderStatus(id: string, status: string) {
 
   if (error) throw error
   revalidatePath('/pedidos')
+  revalidatePath('/production')
 }
 
 export async function deleteOrder(id: string) {
