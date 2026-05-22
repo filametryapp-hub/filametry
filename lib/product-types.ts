@@ -40,6 +40,7 @@ export interface Product {
   batches?: number                // typical number of plates per run
   printerId?: string              // which printer runs this product
   printerCount?: number           // how many printers run in parallel (default 1)
+  platesPerUnit?: boolean         // true = N chapas needed to make 1 unit (large multi-part prints)
 }
 
 export interface OrderItem {

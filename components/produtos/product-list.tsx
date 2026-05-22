@@ -30,8 +30,9 @@ function fromRow(row: Record<string, unknown>): Product {
     productCode:  row.product_code ? String(row.product_code) : undefined,
     unitsPerRun:  row.units_per_run ? Number(row.units_per_run) : 1,
     batches:      row.batches ? Number(row.batches) : undefined,
-    printerId:    row.printer_id   ? String(row.printer_id)    : undefined,
-    printerCount: row.printer_count ? Number(row.printer_count) : 1,
+    printerId:     row.printer_id    ? String(row.printer_id)    : undefined,
+    printerCount:  row.printer_count ? Number(row.printer_count) : 1,
+    platesPerUnit: Boolean(row.plates_per_unit),
   }
 }
 
@@ -59,11 +60,12 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
   const isTest   = product.status === 'test'
   const isDimmed = isFailed || isTest
 
-  // Per-unit values (only when batches × unitsPerRun > 1)
-  const totalUnits = (product.batches ?? 1) * (product.unitsPerRun ?? 1)
-  const showPerUnit = totalUnits > 1
-  const unitCost  = product.costUSD  / totalUnits
-  const unitPrice = product.priceUSD / totalUnits
+  // Per-unit values — only for "units per plate" mode (not plates-per-unit)
+  const platesPerUnit = product.platesPerUnit ?? false
+  const totalUnits    = platesPerUnit ? 1 : (product.batches ?? 1) * (product.unitsPerRun ?? 1)
+  const showPerUnit   = !platesPerUnit && totalUnits > 1
+  const unitCost      = product.costUSD  / totalUnits
+  const unitPrice     = product.priceUSD / totalUnits
 
   return (
     <div className={`group flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${isDimmed ? 'opacity-60' : ''}`}>
@@ -106,8 +108,14 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
             {(product.printerCount ?? 1) > 1 && (
               <span className="ml-1 text-orange-400 font-medium">×{product.printerCount}</span>
             )}
-            {product.batches ? ` · ${product.batches} chapas` : ''}
-            {(product.unitsPerRun ?? 1) > 1 ? ` · ${product.unitsPerRun} un/chapa` : ''}
+            {product.batches
+              ? platesPerUnit
+                ? ` · ${product.batches} chapas/un`
+                : ` · ${product.batches} chapas`
+              : ''}
+            {!platesPerUnit && (product.unitsPerRun ?? 1) > 1
+              ? ` · ${product.unitsPerRun} un/chapa`
+              : ''}
           </span>
           {product.tags.slice(0, 2).map(t => (
             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
@@ -279,11 +287,12 @@ export function ProductList() {
         tags:          data.tags,
         volume_prices: data.volumePrices?.map(t => ({ min_qty: t.minQty, price_usd: t.priceUSD })) ?? null,
         product_code:  data.productCode,
-        units_per_run:  data.unitsPerRun ?? 1,
-        batches:        data.batches ?? null,
-        status:         data.status ?? 'active',
-        printer_id:     data.printerId ?? null,
-        printer_count:  data.printerCount && data.printerCount > 1 ? data.printerCount : 1,
+        units_per_run:   data.unitsPerRun ?? 1,
+        batches:         data.batches ?? null,
+        status:          data.status ?? 'active',
+        printer_id:      data.printerId ?? null,
+        printer_count:   data.printerCount && data.printerCount > 1 ? data.printerCount : 1,
+        plates_per_unit: data.platesPerUnit ?? false,
       })
       await load()
     } finally {

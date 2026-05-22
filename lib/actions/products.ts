@@ -32,6 +32,7 @@ export async function upsertProduct(product: {
   status?: 'active' | 'failed' | 'test'
   printer_id?: string | null
   printer_count?: number
+  plates_per_unit?: boolean
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

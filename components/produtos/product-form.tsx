@@ -42,6 +42,7 @@ const BLANK: Omit<Product, 'id' | 'createdAt'> = {
   status: 'active',
   printerId: undefined,
   printerCount: 1,
+  platesPerUnit: false,
 }
 
 export function ProductForm({ initial, onSave, onClose, saving }: Props) {
@@ -197,32 +198,67 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
           {/* Units per plate + batch count — affect cost per unit */}
           <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t.products.productionBatch}</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">{t.products.unitsPerPlate}</Label>
-                <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
-                  onChange={e => {
-                    const newUnits = Math.max(1, +e.target.value)
-                    const plateCost = form.costUSD * (form.unitsPerRun ?? 1)
-                    setForm(prev => ({ ...prev, unitsPerRun: newUnits, costUSD: parseFloat((plateCost / newUnits).toFixed(4)) }))
-                  }} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">{t.products.numPlates}</Label>
-                <Input type="number" min={1} step={1}
-                  value={form.batches ?? ''}
-                  placeholder="—"
-                  onChange={e => set('batches', e.target.value ? Math.max(1, +e.target.value) : undefined)} />
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t.products.productionBatch}</p>
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 rounded-md border border-border overflow-hidden text-[10px]">
+                <button type="button"
+                  onClick={() => set('platesPerUnit', false)}
+                  className={`px-2 py-1 transition-colors ${!(form.platesPerUnit) ? 'bg-orange-500 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+                  N un/chapa
+                </button>
+                <button type="button"
+                  onClick={() => set('platesPerUnit', true)}
+                  className={`px-2 py-1 transition-colors ${form.platesPerUnit ? 'bg-orange-500 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+                  N chapas/un
+                </button>
               </div>
             </div>
-            {/* Plate cost preview */}
-            {form.costUSD > 0 && (form.unitsPerRun ?? 1) > 1 && (
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
-                {t.products.plateCost}: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
-                <span className="text-muted-foreground/60">÷ {form.unitsPerRun} = {fmtCurrency(form.costUSD)}/un</span>
-              </p>
+
+            {form.platesPerUnit ? (
+              /* Plates-per-unit mode: large multi-part objects */
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Chapas necessárias por unidade</Label>
+                  <Input type="number" min={1} step={1}
+                    value={form.batches ?? 1}
+                    onChange={e => set('batches', Math.max(1, +e.target.value))} />
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
+                  Cada unidade requer {form.batches ?? 1} impressão{(form.batches ?? 1) > 1 ? 'ões' : ''} completa{(form.batches ?? 1) > 1 ? 's' : ''}.
+                  O custo será multiplicado por {form.batches ?? 1}.
+                </p>
+              </div>
+            ) : (
+              /* Units-per-plate mode: small stackable objects */
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t.products.unitsPerPlate}</Label>
+                    <Input type="number" min={1} step={1} value={form.unitsPerRun ?? 1}
+                      onChange={e => {
+                        const newUnits = Math.max(1, +e.target.value)
+                        const plateCost = form.costUSD * (form.unitsPerRun ?? 1)
+                        setForm(prev => ({ ...prev, unitsPerRun: newUnits, costUSD: parseFloat((plateCost / newUnits).toFixed(4)) }))
+                      }} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t.products.numPlates}</Label>
+                    <Input type="number" min={1} step={1}
+                      value={form.batches ?? ''}
+                      placeholder="—"
+                      onChange={e => set('batches', e.target.value ? Math.max(1, +e.target.value) : undefined)} />
+                  </div>
+                </div>
+                {form.costUSD > 0 && (form.unitsPerRun ?? 1) > 1 && (
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
+                    {t.products.plateCost}: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
+                    <span className="text-muted-foreground/60">÷ {form.unitsPerRun} = {fmtCurrency(form.costUSD)}/un</span>
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
