@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { setProductConsumables } from './consumables'
 
 export async function getProducts() {
   const supabase = await createClient()
@@ -33,7 +34,8 @@ export async function upsertProduct(product: {
   printer_id?: string | null
   printer_count?: number
   plates_per_unit?: boolean
-}) {
+  consumables?: { consumable_id: string; quantity_per_unit: number }[]
+}): Promise<string> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -52,16 +54,28 @@ export async function upsertProduct(product: {
     productCode = String(nextNum).padStart(3, '0')
   }
 
-  const { error } = await supabase
+  const { consumables, ...productFields } = product
+
+  const { data: upserted, error } = await supabase
     .from('products')
     .upsert({
-      ...product,
+      ...productFields,
       user_id: user.id,
       product_code: productCode,
     }, { onConflict: 'id' })
+    .select('id')
+    .single()
 
   if (error) throw error
+  const productId = upserted.id as string
+
+  // Sync consumables if provided
+  if (consumables !== undefined) {
+    await setProductConsumables(productId, consumables)
+  }
+
   revalidatePath('/produtos')
+  return productId
 }
 
 export async function setProductStatus(id: string, status: 'active' | 'failed' | 'test') {
@@ -104,6 +118,17 @@ export async function recalculateProductCosts(params: {
   if (error) throw error
   if (!products || products.length === 0) return 0
 
+  // Fetch consumables costs aggregated per product
+  const { data: pcRows } = await supabase
+    .from('product_consumables')
+    .select('product_id, quantity_per_unit, consumable:consumables(cost_per_unit)')
+    .in('product_id', products.map(p => p.id))
+  const consumablesCostMap: Record<string, number> = {}
+  for (const row of pcRows ?? []) {
+    const cost = Number(row.quantity_per_unit) * Number((row.consumable as unknown as { cost_per_unit: number }).cost_per_unit)
+    consumablesCostMap[row.product_id] = (consumablesCostMap[row.product_id] ?? 0) + cost
+  }
+
   // Fetch all printers for per-printer specs
   const { data: printers } = await supabase
     .from('user_printers')
@@ -145,6 +170,8 @@ export async function recalculateProductCosts(params: {
     // Filament cost — real out-of-pocket material cost, with failure buffer
     const filamentRaw  = weightG * (defaultSpoolPrice / Math.max(defaultSpoolWeight, 1))
     const filamentCost = filamentRaw * (1 + failureRate / 100)
+    const consumablesCost = consumablesCostMap[p.id] ?? 0
+    const totalMaterialCost = filamentCost + consumablesCost
 
     let costUSD: number
     let priceUSD: number
@@ -159,8 +186,8 @@ export async function recalculateProductCosts(params: {
       // Machine time scales with parallel printers (more machines = more cost)
       const machineContribution = printHours * effectiveRate * printerCount
 
-      costUSD  = parseFloat(filamentCost.toFixed(4))
-      priceUSD = parseFloat((filamentCost + machineContribution).toFixed(2))
+      costUSD  = parseFloat(totalMaterialCost.toFixed(4))
+      priceUSD = parseFloat((totalMaterialCost + machineContribution).toFixed(2))
     } else {
       // ── Legacy model (amort + energy + margin) ────────────────
       const watts = spec?.watts ?? printerWatts

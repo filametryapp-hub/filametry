@@ -19,7 +19,7 @@ const en = {
   lang: { en: 'English', pt: 'Português', es: 'Español' },
   nav: {
     dashboard: 'Dashboard', pricing: 'Pricing', materials: 'Materials',
-    equipment: 'Equipment', products: 'Products', orders: 'Orders',
+    equipment: 'Equipment', consumables: 'Consumables', products: 'Products', orders: 'Orders',
     quotes: 'Quotes', production: 'Production',
     clients: 'Clients', suppliers: 'Suppliers', expenses: 'Expenses',
     cashFlow: 'Cash Flow', wallet: 'Wallet', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
@@ -287,7 +287,7 @@ const pt: typeof en = {
   lang: { en: 'English', pt: 'Português', es: 'Español' },
   nav: {
     dashboard: 'Painel', pricing: 'Precificação', materials: 'Materiais',
-    equipment: 'Equipamentos', products: 'Produtos', orders: 'Pedidos',
+    equipment: 'Equipamentos', consumables: 'Consumíveis', products: 'Produtos', orders: 'Pedidos',
     quotes: 'Orçamentos', production: 'Produção',
     clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Despesas',
     cashFlow: 'Fluxo de Caixa', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
@@ -555,7 +555,7 @@ const es: typeof en = {
   lang: { en: 'English', pt: 'Português', es: 'Español' },
   nav: {
     dashboard: 'Panel', pricing: 'Precios', materials: 'Materiales',
-    equipment: 'Equipos', products: 'Productos', orders: 'Pedidos',
+    equipment: 'Equipos', consumables: 'Consumibles', products: 'Productos', orders: 'Pedidos',
     quotes: 'Presupuestos', production: 'Producción',
     clients: 'Clientes', suppliers: 'Proveedores', expenses: 'Gastos',
     cashFlow: 'Flujo de Caja', wallet: 'Billetera', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',

@@ -1,3 +1,28 @@
+export interface Consumable {
+  id: string
+  name: string
+  unit: string          // ml, g, folha, un, etc.
+  costPerUnit: number
+  notes?: string
+}
+
+/** A consumable linked to a specific product with its quantity per unit */
+export interface ProductConsumable {
+  consumableId: string
+  name: string          // denormalized for display
+  unit: string
+  costPerUnit: number
+  quantityPerUnit: number
+}
+
+export function consumableCost(c: ProductConsumable): number {
+  return c.quantityPerUnit * c.costPerUnit
+}
+
+export function totalConsumablesCost(items: ProductConsumable[]): number {
+  return items.reduce((s, c) => s + consumableCost(c), 0)
+}
+
 export interface VolumeTier {
   minQty: number
   priceUSD: number
@@ -41,6 +66,7 @@ export interface Product {
   printerId?: string              // which printer runs this product
   printerCount?: number           // how many printers run in parallel (default 1)
   platesPerUnit?: boolean         // true = N chapas needed to make 1 unit (large multi-part prints)
+  consumables?: ProductConsumable[] // post-processing materials (varnish, sandpaper, etc.)
 }
 
 export interface OrderItem {

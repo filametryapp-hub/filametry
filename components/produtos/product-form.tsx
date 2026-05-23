@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Clock } from 'lucide-react'
-import type { VolumeTier } from '@/lib/product-types'
+import { X, Plus, Trash2, Clock, FlaskConical } from 'lucide-react'
+import type { VolumeTier, ProductConsumable } from '@/lib/product-types'
+import { totalConsumablesCost } from '@/lib/product-types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MATERIAL_GROUPS } from '@/lib/filament-types'
@@ -10,6 +11,7 @@ import type { Product } from '@/lib/product-types'
 import { useT } from '@/lib/i18n'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { getUserPrinters } from '@/lib/actions/printers'
+import { getConsumables, getProductConsumables, type ConsumableRow } from '@/lib/actions/consumables'
 
 interface Props {
   initial: Product | null
@@ -54,8 +56,11 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   )
   const [tagInput, setTagInput] = useState(initial?.tags.join(', ') ?? '')
   const [printers, setPrinters] = useState<PrinterOption[]>([])
+  const [consumablesCatalog, setConsumablesCatalog] = useState<ConsumableRow[]>([])
+  const [consumables, setConsumables] = useState<ProductConsumable[]>([])
 
   useEffect(() => {
+    // Load printers
     getUserPrinters().then(rows => {
       const mapped = (rows ?? []).map((p: Record<string, unknown>) => ({
         id:           String(p.id),
@@ -66,11 +71,26 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
         workingHours: Number(p.working_hours_per_day ?? 20),
       }))
       setPrinters(mapped)
-      // Auto-select if only one printer and product has none linked
       if (mapped.length === 1 && !form.printerId) {
         setForm(prev => ({ ...prev, printerId: mapped[0].id }))
       }
     }).catch(() => {})
+
+    // Load consumables catalog
+    getConsumables().then(setConsumablesCatalog).catch(() => {})
+
+    // Load existing product consumables when editing
+    if (initial?.id) {
+      getProductConsumables(initial.id).then(rows => {
+        setConsumables(rows.map(r => ({
+          consumableId:    r.consumable_id,
+          name:            r.consumable.name,
+          unit:            r.consumable.unit,
+          costPerUnit:     r.consumable.cost_per_unit,
+          quantityPerUnit: r.quantity_per_unit,
+        })))
+      }).catch(() => {})
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Local tier type with a stable ID for React keying
@@ -98,13 +118,13 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
-    // strip local _id before persisting
     const cleanTiers: VolumeTier[] = volumeTiers.map(({ _id: _, ...rest }) => rest)
     onSave({
       ...form,
       tags,
       volumePrices: cleanTiers.length ? cleanTiers : undefined,
       printerCount: printerCount > 1 ? printerCount : undefined,
+      consumables: consumables.length > 0 ? consumables : [],
     })
   }
 
@@ -114,6 +134,9 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
       : Math.max(...volumeTiers.map(t => t.minQty)) + 5
     setVolumeTiers(prev => [...prev, { _id: crypto.randomUUID(), minQty: nextQty, priceUSD: form.priceUSD * 0.9 }])
   }
+
+  // ── Derived: consumables ──────────────────────────────────────
+  const consumablesTotal = totalConsumablesCost(consumables)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -303,9 +326,16 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             </div>
           </div>
 
+          {/* Consumables / Post-processing */}
+          <ConsumablesSection
+            catalog={consumablesCatalog}
+            items={consumables}
+            onChange={setConsumables}
+          />
+
           {/* Cost */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">{t.products.costUSD} (por unidade)</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.costUSD} (filamento, por unidade)</Label>
             <CurrencyInput
               value={form.costUSD}
               onChange={v => set('costUSD', v)}
@@ -326,19 +356,29 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
         {/* Preview */}
         {form.priceUSD > 0 && (
-          <div className="rounded-lg bg-muted/50 px-4 py-2.5 grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">Profit</p>
-              <p className="font-mono text-green-400">{fmtCurrency(form.priceUSD - form.costUSD)}</p>
+          <div className="rounded-lg bg-muted/50 px-4 py-2.5 space-y-2 text-sm">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Lucro</p>
+                <p className="font-mono text-green-400">{fmtCurrency(form.priceUSD - form.costUSD - consumablesTotal)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Margem</p>
+                <p className="font-mono text-orange-500">{margin}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">$/g</p>
+                <p className="font-mono">{form.weightG ? fmtCurrency(form.priceUSD / form.weightG) : '—'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Margin</p>
-              <p className="font-mono text-orange-500">{margin}%</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">$/g</p>
-              <p className="font-mono">{form.weightG ? fmtCurrency(form.priceUSD / form.weightG) : '—'}</p>
-            </div>
+            {consumablesTotal > 0 && (
+              <div className="pt-1 border-t border-border/50 flex justify-between text-xs text-muted-foreground">
+                <span>Custo total (filamento + consumíveis)</span>
+                <span className="font-mono font-medium text-foreground">
+                  {fmtCurrency(form.costUSD + consumablesTotal)}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -406,6 +446,107 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
           </button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// ── Consumables section ────────────────────────────────────────
+function ConsumablesSection({
+  catalog,
+  items,
+  onChange,
+}: {
+  catalog: ConsumableRow[]
+  items: ProductConsumable[]
+  onChange: (items: ProductConsumable[]) => void
+}) {
+  const total = items.reduce((s, c) => s + c.quantityPerUnit * c.costPerUnit, 0)
+
+  function addItem(consumableId: string) {
+    const c = catalog.find(c => c.id === consumableId)
+    if (!c) return
+    if (items.some(i => i.consumableId === consumableId)) return
+    onChange([...items, {
+      consumableId,
+      name:            c.name,
+      unit:            c.unit,
+      costPerUnit:     c.cost_per_unit,
+      quantityPerUnit: 1,
+    }])
+  }
+
+  function updateQty(consumableId: string, qty: number) {
+    onChange(items.map(i => i.consumableId === consumableId ? { ...i, quantityPerUnit: qty } : i))
+  }
+
+  function removeItem(consumableId: string) {
+    onChange(items.filter(i => i.consumableId !== consumableId))
+  }
+
+  const available = catalog.filter(c => !items.some(i => i.consumableId === c.id))
+
+  return (
+    <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <FlaskConical className="size-3 text-orange-500" /> Pós-processamento
+        </p>
+        {total > 0 && (
+          <span className="text-[10px] font-mono text-orange-400 font-medium">
+            +${total.toFixed(2)}/un
+          </span>
+        )}
+      </div>
+
+      {items.length > 0 && (
+        <div className="space-y-1.5">
+          {items.map(item => (
+            <div key={item.consumableId} className="grid grid-cols-[1fr_90px_auto] gap-2 items-center">
+              <div className="text-xs truncate">
+                <span className="font-medium">{item.name}</span>
+                <span className="text-muted-foreground ml-1">${item.costPerUnit.toFixed(4)}/{item.unit}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min={0.001} step={0.1}
+                  value={item.quantityPerUnit}
+                  onChange={e => updateQty(item.consumableId, Math.max(0.001, +e.target.value))}
+                  className="w-14 h-7 rounded border border-input bg-background px-2 text-xs text-right focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="text-[10px] text-muted-foreground">{item.unit}</span>
+              </div>
+              <button type="button" onClick={() => removeItem(item.consumableId)}
+                className="text-muted-foreground hover:text-red-400 transition-colors">
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {available.length > 0 && (
+        <select
+          value=""
+          onChange={e => { addItem(e.target.value); e.target.value = '' }}
+          className="w-full h-7 rounded border border-dashed border-border bg-background px-2 text-xs text-muted-foreground focus:outline-none focus:border-orange-500 cursor-pointer"
+        >
+          <option value="">+ Adicionar material…</option>
+          {available.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.name} — ${c.cost_per_unit.toFixed(4)}/{c.unit}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {catalog.length === 0 && (
+        <p className="text-[11px] text-muted-foreground/60 italic">
+          Nenhum consumível cadastrado.{' '}
+          <a href="/consumables" target="_blank" className="text-orange-400 hover:underline">
+            Cadastrar materiais →
+          </a>
+        </p>
+      )}
     </div>
   )
 }

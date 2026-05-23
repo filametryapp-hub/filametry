@@ -293,6 +293,10 @@ export function ProductList() {
         printer_id:      data.printerId ?? null,
         printer_count:   data.printerCount && data.printerCount > 1 ? data.printerCount : 1,
         plates_per_unit: data.platesPerUnit ?? false,
+        consumables: data.consumables?.map(c => ({
+          consumable_id:     c.consumableId,
+          quantity_per_unit: c.quantityPerUnit,
+        })),
       })
       await load()
     } finally {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings, Globe, Wallet, FileText, Kanban } from 'lucide-react'
+import { Calculator, Package, Layers, ClipboardList, LayoutDashboard, LogOut, CreditCard, Printer, Users, Truck, Receipt, TrendingUp, Settings, Globe, Wallet, FileText, Kanban, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useT, type Lang } from '@/lib/i18n'
@@ -15,9 +15,10 @@ export function Sidebar() {
   const NAV = [
     { href: '/dashboard',    label: t.nav.dashboard,  icon: LayoutDashboard },
     { href: '/precificacao', label: t.nav.pricing,    icon: Calculator },
-    { href: '/filamentos',   label: t.nav.materials,  icon: Layers },
-    { href: '/printers',     label: t.nav.equipment,  icon: Printer },
-    { href: '/produtos',     label: t.nav.products,   icon: Package },
+    { href: '/filamentos',   label: t.nav.materials,    icon: Layers },
+    { href: '/printers',     label: t.nav.equipment,    icon: Printer },
+    { href: '/consumables',  label: t.nav.consumables,  icon: FlaskConical },
+    { href: '/produtos',     label: t.nav.products,     icon: Package },
     { href: '/pedidos',      label: t.nav.orders,     icon: ClipboardList },
     { href: '/quotes',       label: t.nav.quotes,     icon: FileText },
     { href: '/production',   label: t.nav.production, icon: Kanban },
