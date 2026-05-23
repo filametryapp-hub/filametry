@@ -86,9 +86,14 @@ function AreaChart({ data }: { data: { date: string; revenue: number; cost: numb
     y: y(maxVal * f),
   }))
 
-  // X-axis: show first/last date labels
+  // X-axis: locale-independent short date (e.g. "Apr 23")
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  function fmtDate(iso: string) {
+    const [, m, d] = iso.split('-')
+    return `${MONTHS[parseInt(m) - 1]} ${parseInt(d)}`
+  }
   const xLabels = [0, Math.floor(steps / 2), steps - 1].map(i => ({
-    label: new Date(data[i].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    label: fmtDate(data[i].date),
     x: x(i),
   }))
 
@@ -273,7 +278,7 @@ export default function DashboardPage() {
                   <div key={i}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full shrink-0" style={{ background: f.colorHex }} />
+                        <span className="size-2 rounded-full shrink-0 ring-1 ring-border" style={{ background: f.colorHex }} />
                         <span className="text-[12px] font-medium truncate max-w-[120px]">{f.name}</span>
                       </div>
                       <span className="text-[11px] text-muted-foreground tabular-nums">{fmtWeight(f.remainingG / 1000)}</span>
@@ -284,6 +289,7 @@ export default function DashboardPage() {
                         style={{
                           width: `${pct}%`,
                           background: low ? '#f87171' : f.colorHex,
+                          opacity: f.colorHex === '#ffffff' || f.colorHex === '#fff' ? 0.4 : 1,
                         }}
                       />
                     </div>
