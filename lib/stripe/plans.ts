@@ -93,8 +93,8 @@ export function getPlanById(planId: string): Plan | undefined {
   return PLANS.find(p => p.id === planId)
 }
 
-/** Printer limit for trial users — same as Starter. */
-export const TRIAL_PRINTER_LIMIT = 2
+/** Printer limit for trial users — unlimited during open beta. */
+export const TRIAL_PRINTER_LIMIT = 9999
 
 export function isTrialActive(trialEndsAt: string): boolean {
   return new Date(trialEndsAt) > new Date()

@@ -74,6 +74,22 @@ export async function getUserPlan() {
   const planDef = getPlanById(profile.plan) ?? null
   const onTrial = profile.plan === 'trial' && isTrialActive(profile.trial_ends_at)
   const daysLeft = trialDaysLeft(profile.trial_ends_at)
+
+  // ── OPEN BETA ─────────────────────────────────────────────────
+  // All features unlocked during testing. Remove this block before launch.
+  const OPEN_BETA = true
+  if (OPEN_BETA) {
+    return {
+      planId:       profile.plan as string,
+      planDef,
+      onTrial:      true,
+      daysLeft:     365,
+      printerLimit: 9999,
+      isActive:     true,
+    }
+  }
+  // ─────────────────────────────────────────────────────────────
+
   const printerLimit: number = profile.printer_limit ?? TRIAL_PRINTER_LIMIT
 
   return {

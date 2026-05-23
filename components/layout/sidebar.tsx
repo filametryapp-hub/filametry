@@ -5,12 +5,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, ClipboardList, FileText, Layers, Package,
-  Printer, History, Users, CreditCard, Plug, LogOut,
+  Printer, History, Users, CreditCard, Plug, LogOut, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getCompany } from '@/lib/actions/company'
-import { useT } from '@/lib/i18n'
+import { useT, type Lang } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
 interface NavItem {
@@ -58,7 +58,13 @@ function NavLink({ href, label, icon: Icon, badge, active }: NavItem & { active:
 export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
-  const { t }    = useT()
+  const { t, lang, setLang } = useT()
+
+  const LANGS: { code: Lang; flag: string }[] = [
+    { code: 'en', flag: '🇺🇸' },
+    { code: 'pt', flag: '🇧🇷' },
+    { code: 'es', flag: '🇪🇸' },
+  ]
 
   const [companyName, setCompanyName] = useState('')
   const [companyCity, setCompanyCity] = useState('')
@@ -158,8 +164,28 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Sign out */}
-      <div className="px-3 pb-3 pt-2 border-t border-[#ececea]">
+      {/* Footer: language + sign out */}
+      <div className="px-3 pb-3 pt-2 border-t border-[#ececea] space-y-0.5">
+        {/* Language picker */}
+        <div className="flex items-center gap-0.5 px-2.5 py-1.5">
+          <Globe className="size-3.5 text-muted-foreground/60 mr-1 shrink-0" />
+          {LANGS.map(({ code, flag }) => (
+            <button
+              key={code}
+              onClick={() => setLang(code)}
+              title={t.lang[code]}
+              className={cn(
+                'text-[11px] px-1.5 py-0.5 rounded-md font-medium transition-colors',
+                lang === code
+                  ? 'bg-[#eef1ff] text-[#2f5fff]'
+                  : 'text-muted-foreground/60 hover:text-foreground',
+              )}
+            >
+              {flag}
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={signOut}
           className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13px] text-[#9ca0a8] hover:text-foreground hover:bg-[#f1f2f5] transition-all font-medium"
