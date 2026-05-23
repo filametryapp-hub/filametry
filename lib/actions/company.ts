@@ -143,6 +143,13 @@ export async function removePartner(id: string) {
   revalidatePath('/dashboard')
 }
 
+export async function updatePartner(id: string, data: { name: string; email?: string; percentage: number }) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('partners').update(data).eq('id', id)
+  if (error) throw error
+  revalidatePath('/dashboard')
+}
+
 export async function getPartners() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign, Link2, Link2Off, Eye, EyeOff } from 'lucide-react'
+import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign, Link2, Link2Off, Eye, EyeOff, Pencil, X, Check } from 'lucide-react'
 import {
   getCompany,
   updateCompany,
   getPartners,
   addPartner,
   removePartner,
+  updatePartner,
 } from '@/lib/actions/company'
 import {
   getBambuStatus,
@@ -290,6 +291,8 @@ export default function SettingsPage() {
   const [newPartner, setNewPartner] = useState({ name: '', email: '', percentage: '' })
   const [addingPartner, setAddingPartner] = useState(false)
   const [partnerError, setPartnerError] = useState('')
+  const [editPartnerId, setEditPartnerId] = useState<string | null>(null)
+  const [editPartnerForm, setEditPartnerForm] = useState({ name: '', email: '', percentage: '' })
 
   useEffect(() => {
     async function load() {
@@ -379,6 +382,27 @@ export default function SettingsPage() {
     startTransition(async () => {
       await removePartner(id)
       setPartners(prev => prev.filter(p => p.id !== id))
+    })
+  }
+
+  function startEditPartner(p: Partner) {
+    setEditPartnerId(p.id)
+    setEditPartnerForm({ name: p.name, email: p.email ?? '', percentage: String(p.percentage) })
+  }
+
+  async function handleUpdatePartner(id: string) {
+    const pct = parseFloat(editPartnerForm.percentage)
+    if (!editPartnerForm.name.trim() || isNaN(pct)) return
+    startTransition(async () => {
+      await updatePartner(id, {
+        name:       editPartnerForm.name.trim(),
+        email:      editPartnerForm.email.trim() || undefined,
+        percentage: pct,
+      })
+      setPartners(prev => prev.map(p =>
+        p.id === id ? { ...p, name: editPartnerForm.name.trim(), email: editPartnerForm.email.trim() || null, percentage: pct } : p
+      ))
+      setEditPartnerId(null)
     })
   }
 
@@ -519,20 +543,71 @@ export default function SettingsPage() {
           {partners.length > 0 && (
             <div className="rounded-xl border border-border divide-y divide-border">
               {partners.map(p => (
-                <div key={p.id} className="flex items-center justify-between px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">{p.name}</p>
-                    {p.email && <p className="text-xs text-muted-foreground">{p.email}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono font-semibold text-blue-600">{p.percentage}%</span>
-                    <button
-                      onClick={() => handleRemovePartner(p.id)}
-                      className="text-muted-foreground hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
+                <div key={p.id}>
+                  {editPartnerId === p.id ? (
+                    /* ── Edit mode ── */
+                    <div className="px-4 py-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          className={INPUT}
+                          value={editPartnerForm.name}
+                          onChange={e => setEditPartnerForm(f => ({ ...f, name: e.target.value }))}
+                          placeholder="Full name *"
+                          autoFocus
+                        />
+                        <input
+                          className={INPUT}
+                          value={editPartnerForm.email}
+                          onChange={e => setEditPartnerForm(f => ({ ...f, email: e.target.value }))}
+                          placeholder="Email (optional)"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className={INPUT + ' w-28'}
+                          value={editPartnerForm.percentage}
+                          onChange={e => setEditPartnerForm(f => ({ ...f, percentage: e.target.value }))}
+                          placeholder="% share"
+                          type="number" min="0" max="100"
+                        />
+                        <button
+                          onClick={() => handleUpdatePartner(p.id)}
+                          className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
+                        >
+                          <Check className="size-3.5" /> Save
+                        </button>
+                        <button
+                          onClick={() => setEditPartnerId(null)}
+                          className="flex items-center gap-1.5 text-xs border border-border px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
+                        >
+                          <X className="size-3.5" /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── View mode ── */
+                    <div className="flex items-center justify-between px-4 py-3 group">
+                      <div>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        {p.email && <p className="text-xs text-muted-foreground">{p.email}</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-semibold text-blue-600">{p.percentage}%</span>
+                        <button
+                          onClick={() => startEditPartner(p)}
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleRemovePartner(p.id)}
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
