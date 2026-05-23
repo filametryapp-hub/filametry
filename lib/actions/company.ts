@@ -145,9 +145,26 @@ export async function removePartner(id: string) {
 
 export async function updatePartner(id: string, data: { name: string; email?: string; percentage: number }) {
   const supabase = await createClient()
+
+  // Fetch the old name before updating so we can cascade the rename
+  const { data: existing } = await supabase.from('partners').select('name').eq('id', id).single()
+  const oldName = existing?.name as string | undefined
+
   const { error } = await supabase.from('partners').update(data).eq('id', id)
   if (error) throw error
+
+  // Cascade rename to all payer_name references if the name changed
+  if (oldName && oldName !== data.name) {
+    await Promise.allSettled([
+      supabase.from('equipment_payments').update({ payer_name: data.name }).eq('payer_name', oldName),
+      supabase.from('material_payments').update({ payer_name: data.name }).eq('payer_name', oldName),
+      supabase.from('partner_distributions').update({ partner_name: data.name }).eq('partner_name', oldName),
+    ])
+  }
+
   revalidatePath('/dashboard')
+  revalidatePath('/wallet')
+  revalidatePath('/settings')
 }
 
 export async function getPartners() {
