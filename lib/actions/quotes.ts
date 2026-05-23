@@ -14,6 +14,17 @@ export type QuoteTier = {
   unitPrice: number
 }
 
+export const PAYMENT_METHODS = [
+  { value: 'pix',      label: 'PIX' },
+  { value: 'card',     label: 'Credit card' },
+  { value: 'debit',    label: 'Debit card' },
+  { value: 'transfer', label: 'Bank transfer' },
+  { value: 'cash',     label: 'Cash' },
+  { value: 'installments', label: 'Installments' },
+  { value: 'other',    label: 'Other' },
+] as const
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]['value']
+
 export type QuoteData = {
   company_name?: string
   company_email?: string
@@ -30,6 +41,7 @@ export type QuoteData = {
   status?: 'draft' | 'sent' | 'accepted' | 'rejected'
   volume_tiers?: QuoteTier[]
   show_discount_on_print?: boolean
+  payment_method?: string
 }
 
 export type Quote = QuoteData & {
@@ -101,14 +113,24 @@ export async function convertQuoteToOrder(quoteId: string): Promise<string> {
 
   const quote = q as Quote
 
-  // Create order
+  // Compute totals from quote
+  const subtotal     = (quote.items as QuoteItem[]).reduce((s, i) => s + i.qty * i.unit_price, 0)
+  const discountAmt  = subtotal * ((quote.discount_pct ?? 0) / 100)
+  const orderTotal   = subtotal - discountAmt + (quote.shipping ?? 0) + (quote.packaging ?? 0)
+
+  // Create order carrying financial & payment details from quote
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .insert({
-      user_id:     user.id,
-      client_name: quote.client_name,
-      notes:       quote.notes ?? null,
-      status:      'accepted',
+      user_id:        user.id,
+      client_name:    quote.client_name,
+      client_email:   quote.company_email ?? null,
+      notes:          quote.notes ?? null,
+      status:         'accepted',
+      payment_method: quote.payment_method ?? null,
+      shipping:       quote.shipping ?? 0,
+      discount_pct:   quote.discount_pct ?? 0,
+      total:          parseFloat(orderTotal.toFixed(2)),
     })
     .select()
     .single()

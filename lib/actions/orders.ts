@@ -126,14 +126,58 @@ export async function updateOrder(id: string, order: {
 
 export async function updateOrderStatus(id: string, status: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { error } = await supabase
     .from('orders')
     .update({ status })
     .eq('id', id)
 
   if (error) throw error
+
+  // When order is completed → auto-create cash flow income entry
+  if (status === 'done' && user) {
+    const { data: order } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('id', id)
+      .single()
+
+    if (order) {
+      const itemsTotal = (order.order_items ?? []).reduce(
+        (s: number, i: { quantity: number; unit_price: number }) => s + i.quantity * i.unit_price, 0
+      )
+      const discount  = itemsTotal * ((order.discount_pct ?? 0) / 100)
+      const total     = order.total ?? (itemsTotal - discount + (order.shipping ?? 0))
+      const method    = order.payment_method ?? ''
+      const desc      = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}`
+
+      // Avoid duplicate cash flow entries for the same order
+      const { data: existing } = await supabase
+        .from('cash_flow')
+        .select('id')
+        .eq('reference_id', id)
+        .eq('type', 'income')
+        .maybeSingle()
+
+      if (!existing && total > 0) {
+        await supabase.from('cash_flow').insert({
+          user_id:      user.id,
+          type:         'income',
+          category:     'order',
+          description:  desc,
+          amount:       parseFloat(total.toFixed(2)),
+          date:         new Date().toISOString().slice(0, 10),
+          reference_id: id,
+        })
+      }
+    }
+  }
+
   revalidatePath('/pedidos')
   revalidatePath('/production')
+  revalidatePath('/cash-flow')
+  revalidatePath('/dashboard')
 }
 
 export async function deleteOrder(id: string) {

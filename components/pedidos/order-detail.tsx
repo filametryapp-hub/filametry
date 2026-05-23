@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, Trash2, FileText, Printer, Pencil } from 'lucide-react'
+import { X, ChevronRight, Trash2, FileText, Printer, Pencil, CreditCard } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import {
   type Order,
@@ -165,6 +165,12 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
               <span>{t.common.total}</span>
               <span className="font-mono text-blue-600">{fmtCurrency(total)}</span>
             </div>
+            {(order as { payment_method?: string }).payment_method && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                <CreditCard className="size-3" />
+                {(order as { payment_method?: string }).payment_method}
+              </div>
+            )}
           </div>
         )}
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'lucide-react'
-import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
+import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder, PAYMENT_METHODS } from '@/lib/actions/quotes'
 import { getProducts } from '@/lib/actions/products'
 import { useT } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
@@ -33,13 +33,14 @@ function QuoteForm({
     company_phone: initial?.company_phone ?? '',
     client_name:   initial?.client_name   ?? '',
     client_address: initial?.client_address ?? '',
-    discount_pct:  initial?.discount_pct  ?? 0,
-    shipping:      initial?.shipping      ?? 0,
-    packaging:     initial?.packaging     ?? 0,
-    delivery_days: initial?.delivery_days ?? 7,
-    valid_days:    initial?.valid_days    ?? 30,
-    notes:         initial?.notes         ?? '',
-    status:        initial?.status        ?? 'draft' as const,
+    discount_pct:    initial?.discount_pct    ?? 0,
+    shipping:        initial?.shipping        ?? 0,
+    packaging:       initial?.packaging       ?? 0,
+    delivery_days:   initial?.delivery_days   ?? 7,
+    valid_days:      initial?.valid_days      ?? 30,
+    notes:           initial?.notes           ?? '',
+    status:          initial?.status          ?? 'draft' as const,
+    payment_method:  initial?.payment_method  ?? '',
   })
   const [items, setItems] = useState<QuoteItem[]>(
     initial?.items?.length ? initial.items : [{ product_name: '', qty: 1, unit_price: 0 }]
@@ -277,6 +278,28 @@ function QuoteForm({
                     onChange={e => setForm(f => ({ ...f, shipping: parseFloat(e.target.value) || 0 }))} />
                 </div>
               </div>
+
+              {/* Payment method */}
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Payment method</label>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {PAYMENT_METHODS.map(pm => (
+                    <button
+                      key={pm.value}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, payment_method: f.payment_method === pm.value ? '' : pm.value }))}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors font-medium ${
+                        form.payment_method === pm.value
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'border-border text-muted-foreground hover:border-blue-500/50 hover:text-blue-500'
+                      }`}
+                    >
+                      {pm.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
                 <span>{qt.totalQuote}</span>
                 <span className="font-mono text-blue-600">{fmtCurrency(total)}</span>
@@ -615,6 +638,11 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
               )}
               {quote.valid_days && (
                 <p>Quote valid for: <span className="font-medium text-gray-700">{quote.valid_days} days</span></p>
+              )}
+              {quote.payment_method && (
+                <p>Payment: <span className="font-medium text-gray-700">
+                  {PAYMENT_METHODS.find(p => p.value === quote.payment_method)?.label ?? quote.payment_method}
+                </span></p>
               )}
               {quote.notes && (
                 <p className="col-span-2">Notes: <span className="text-gray-700">{quote.notes}</span></p>
