@@ -58,16 +58,48 @@ async function ManageButton() {
   )
 }
 
+// ── Keep in sync with lib/actions/billing.ts ──
+const OPEN_BETA = true
+
 export default async function BillingPage() {
   const profile = await getProfile()
   if (!profile) redirect('/login')
+
+  const printerCount = await getPrinterCount()
+
+  // Open beta: bypass all plan checks
+  if (OPEN_BETA) {
+    const statusLabel = 'Open Beta — full access'
+    const statusDesc  = 'All features are unlocked during the beta testing period.'
+    const statusColor = 'border-blue-600/40 bg-blue-600/5'
+    const printerLimit = 9999
+
+    return (
+      <div className="max-w-4xl space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold">Billing</h1>
+          <p className="text-muted-foreground mt-1">Manage your Filametry subscription.</p>
+        </div>
+        <div className={`rounded-xl border p-5 flex items-center justify-between gap-4 ${statusColor}`}>
+          <div>
+            <p className="font-semibold">{statusLabel}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{statusDesc}</p>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+              <Printer className="size-3.5" />
+              {printerCount} / ∞ printers
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">Plans and billing will be available at launch.</p>
+      </div>
+    )
+  }
 
   const isPaidPlan  = ['starter', 'growth', 'studio', 'enterprise'].includes(profile.plan)
   const isTrial     = profile.plan === 'trial' && isTrialActive(profile.trial_ends_at)
   const daysLeft    = trialDaysLeft(profile.trial_ends_at)
   const isExpired   = profile.plan === 'trial' && !isTrialActive(profile.trial_ends_at)
   const isCancelled = profile.plan === 'cancelled'
-  const printerCount = await getPrinterCount()
   const printerLimit: number = profile.printer_limit ?? 2
 
   const statusLabel =
