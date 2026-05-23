@@ -656,7 +656,7 @@ function BatchRow({
 // ── Main component ─────────────────────────────────────────────
 
 export function PricingCalculator() {
-  const { t } = useT()
+  const { t, fmtCurrency } = useT()
   const pr = t.pricing
 
   const [shared, setShared]         = useState<SharedValues>(DEFAULT_SHARED)
@@ -943,10 +943,10 @@ export function PricingCalculator() {
                           <p className={`text-xs font-medium truncate ${s.id === activeSessionId ? 'text-blue-600' : ''}`}>{s.name}</p>
                           <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
                             <Clock className="size-2.5" />
-                            {new Date(s.updated_at).toLocaleDateString('pt-BR')}
+                            {new Date(s.updated_at).toLocaleDateString()}
                             {s.result_price != null && (
                               <span className="text-blue-500 font-mono">
-                                · {Number(s.result_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                · {fmtCurrency(Number(s.result_price))}
                               </span>
                             )}
                           </div>

@@ -166,7 +166,7 @@ export default function OnboardingPage() {
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="CNPJ / EIN">
+                <Field label="Tax ID">
                   <input className={INPUT} value={document} onChange={e => setDocument(e.target.value)} placeholder="Optional" />
                 </Field>
                 <Field label="Phone">

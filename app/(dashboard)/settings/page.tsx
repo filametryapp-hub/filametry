@@ -447,7 +447,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="CNPJ / EIN">
+          <Field label={t.common.document}>
             <input className={INPUT} value={form.document ?? ''} onChange={e => set('document', e.target.value)} placeholder="Optional" />
           </Field>
           <Field label="Phone">

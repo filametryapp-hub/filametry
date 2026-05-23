@@ -34,7 +34,7 @@ const en = {
     new: 'New', close: 'Close', yes: 'Yes', no: 'No',
     total: 'Total', notes: 'Notes (optional)', date: 'Date',
     name: 'Name', email: 'Email', phone: 'Phone', address: 'Address',
-    city: 'City', state: 'State', country: 'Country', document: 'CNPJ / EIN',
+    city: 'City', state: 'State', country: 'Country', document: 'Tax ID',
   },
   dashboard: {
     title: 'Dashboard',
@@ -302,7 +302,7 @@ const pt: typeof en = {
     new: 'Novo', close: 'Fechar', yes: 'Sim', no: 'Não',
     total: 'Total', notes: 'Observações (opcional)', date: 'Data',
     name: 'Nome', email: 'E-mail', phone: 'Telefone', address: 'Endereço',
-    city: 'Cidade', state: 'Estado', country: 'País', document: 'CNPJ / CPF',
+    city: 'Cidade', state: 'Estado', country: 'País', document: 'Tax ID',
   },
   dashboard: {
     title: 'Painel',
@@ -570,7 +570,7 @@ const es: typeof en = {
     new: 'Nuevo', close: 'Cerrar', yes: 'Sí', no: 'No',
     total: 'Total', notes: 'Notas (opcional)', date: 'Fecha',
     name: 'Nombre', email: 'Correo', phone: 'Teléfono', address: 'Dirección',
-    city: 'Ciudad', state: 'Estado', country: 'País', document: 'RUT / NIT / RFC',
+    city: 'Ciudad', state: 'Estado', country: 'País', document: 'Tax ID',
   },
   dashboard: {
     title: 'Panel',
@@ -829,9 +829,9 @@ const I18nContext = createContext<{
   currencySymbol: string
 }>({
   lang: 'en', setLang: () => {}, t: en,
-  currency: 'BRL', setCurrency: () => {},
-  fmtCurrency: (n) => `R$ ${n.toFixed(2)}`,
-  currencySymbol: 'R$',
+  currency: 'USD', setCurrency: () => {},
+  fmtCurrency: (n) => `$${n.toFixed(2)}`,
+  currencySymbol: '$',
 })
 
 export function I18nProvider({ children }: { children: ReactNode }) {
