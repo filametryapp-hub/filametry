@@ -16,14 +16,14 @@ type ProductOption = { id: string; name: string; priceUSD: number; volumePrices?
 
 // ── Quote Form ─────────────────────────────────────────────────
 function QuoteForm({
-  initial, products, onSave, onClose
+  initial, products, onSave, onClose,
 }: {
   initial: Quote | null
   products: ProductOption[]
   onSave: (q: Quote) => void
   onClose: () => void
 }) {
-  const { t, fmtCurrency } = useT()
+  const { t, fmtCurrency, currencySymbol } = useT()
   const qt = t.quotes
 
   const [saving, setSaving] = useState(false)
@@ -264,14 +264,14 @@ function QuoteForm({
                     onChange={e => setForm(f => ({ ...f, discount_pct: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground">{qt.packaging}</label>
+                  <label className="text-[10px] text-muted-foreground">{qt.packaging} ({currencySymbol})</label>
                   <input type="number" min={0} step="any"
                     className={NUM + ' h-8 text-right mt-0.5'}
                     value={form.packaging || ''}
                     onChange={e => setForm(f => ({ ...f, packaging: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground">{qt.shipping}</label>
+                  <label className="text-[10px] text-muted-foreground">{qt.shipping} ({currencySymbol})</label>
                   <input type="number" min={0} step="any"
                     className={NUM + ' h-8 text-right mt-0.5'}
                     value={form.shipping || ''}
