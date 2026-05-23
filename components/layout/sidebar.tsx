@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, ClipboardList, FileText, Layers, Package,
-  Printer, History, Users, CreditCard, Plug, LogOut, Globe,
+  Printer, History, Kanban, Users, CreditCard, Plug, LogOut, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -106,6 +106,7 @@ export function Sidebar() {
     { href: '/dashboard',  label: t.nav.dashboard,    icon: LayoutDashboard },
     { href: '/pedidos',    label: t.nav.orders,        icon: ClipboardList,  badge: orderBadge },
     { href: '/quotes',     label: t.nav.quotes,        icon: FileText,       badge: quoteBadge },
+    { href: '/production', label: t.nav.production,    icon: Kanban },
     { href: '/filamentos', label: t.nav.materials,     icon: Layers },
     { href: '/produtos',   label: t.nav.products,      icon: Package },
     { href: '/printers',   label: t.nav.equipment,     icon: Printer,        badge: printerBadge },
