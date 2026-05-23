@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, ArrowUpRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, ArrowUpRight, TrendingUp, TrendingDown, Calculator } from 'lucide-react'
 import { getDashboardData, type DashboardData } from '@/lib/actions/dashboard'
 import { useT } from '@/lib/i18n'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/product-types'
@@ -184,12 +184,20 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight">{t.dashboard.title}</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5 capitalize">{today}</p>
         </div>
-        <Link
-          href="/pedidos"
-          className="flex items-center gap-1.5 bg-[#0f1115] hover:bg-[#1c1f28] text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition-colors shrink-0"
-        >
-          <Plus className="size-4" /> New order
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/precificacao"
+            className="flex items-center gap-1.5 border border-border hover:bg-muted text-foreground text-[13px] font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Calculator className="size-4" /> {t.nav.pricing}
+          </Link>
+          <Link
+            href="/pedidos"
+            className="flex items-center gap-1.5 bg-[#0f1115] hover:bg-[#1c1f28] text-white text-[13px] font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus className="size-4" /> {t.orders.newOrder.replace('+ ', '')}
+          </Link>
+        </div>
       </div>
 
       {/* KPI cards */}
