@@ -13,7 +13,7 @@ import {
 } from '@/lib/actions/wallet'
 import { getPartners } from '@/lib/actions/company'
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 type Partner = { id: string; name: string; percentage: number }
 type Investment = {
@@ -154,7 +154,7 @@ export default function WalletPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -185,19 +185,19 @@ export default function WalletPage() {
         </div>
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <div className="flex items-center gap-2 mb-1">
-            <Wallet className="size-3.5 text-orange-500" />
+            <Wallet className="size-3.5 text-blue-600" />
             <p className="text-xs text-muted-foreground">{w.netBalance}</p>
           </div>
-          <p className={`text-lg font-bold ${summary.netBalance >= 0 ? 'text-orange-500' : 'text-red-400'}`}>
+          <p className={`text-lg font-bold ${summary.netBalance >= 0 ? 'text-blue-600' : 'text-red-400'}`}>
             {fmtCurrency(summary.netBalance)}
           </p>
         </div>
-        <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-4">
+        <div className="rounded-xl border border-blue-600/20 bg-blue-600/5 px-5 py-4">
           <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="size-3.5 text-orange-400" />
-            <p className="text-xs text-orange-400/80">{w.distributable}</p>
+            <DollarSign className="size-3.5 text-blue-500" />
+            <p className="text-xs text-blue-500/80">{w.distributable}</p>
           </div>
-          <p className={`text-lg font-bold ${summary.distributable >= 0 ? 'text-orange-500' : 'text-red-400'}`}>
+          <p className={`text-lg font-bold ${summary.distributable >= 0 ? 'text-blue-600' : 'text-red-400'}`}>
             {fmtCurrency(summary.distributable)}
           </p>
         </div>
@@ -288,13 +288,13 @@ export default function WalletPage() {
               const toRecover = balance > 0 // invested more than received back
               const months = recoveryMonths(balance)
               return (
-                <div key={partner.id} className={`rounded-xl border bg-card px-5 py-4 space-y-3 ${toRecover ? 'border-orange-500/20' : 'border-green-500/30'}`}>
+                <div key={partner.id} className={`rounded-xl border bg-card px-5 py-4 space-y-3 ${toRecover ? 'border-blue-600/20' : 'border-green-500/30'}`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-sm">{partner.name}</p>
                       <p className="text-xs text-muted-foreground">{partner.percentage}% {w.share}</p>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${toRecover ? 'bg-orange-500/10 text-orange-400' : 'bg-green-500/10 text-green-400'}`}>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${toRecover ? 'bg-blue-600/10 text-blue-500' : 'bg-green-500/10 text-green-400'}`}>
                       {toRecover ? w.owes : w.recovered}
                     </span>
                   </div>
@@ -307,9 +307,9 @@ export default function WalletPage() {
                       <p className="text-xs text-muted-foreground mb-0.5">{w.received}</p>
                       <p className="text-sm font-semibold font-mono">{fmtCurrency(totalReceived)}</p>
                     </div>
-                    <div className={`rounded-lg p-2 ${toRecover ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
-                      <p className={`text-xs mb-0.5 ${toRecover ? 'text-orange-400/80' : 'text-green-400/80'}`}>{w.balance}</p>
-                      <p className={`text-sm font-semibold font-mono ${toRecover ? 'text-orange-400' : 'text-green-400'}`}>
+                    <div className={`rounded-lg p-2 ${toRecover ? 'bg-blue-600/10' : 'bg-green-500/10'}`}>
+                      <p className={`text-xs mb-0.5 ${toRecover ? 'text-blue-500/80' : 'text-green-400/80'}`}>{w.balance}</p>
+                      <p className={`text-sm font-semibold font-mono ${toRecover ? 'text-blue-500' : 'text-green-400'}`}>
                         {toRecover ? fmtCurrency(balance) : `-${fmtCurrency(Math.abs(balance))}`}
                       </p>
                     </div>
@@ -330,7 +330,7 @@ export default function WalletPage() {
       {/* Quick Distribution Form */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Plus className="size-4 text-orange-500" />
+          <Plus className="size-4 text-blue-600" />
           <h2 className="font-semibold text-sm">{w.addDistribution}</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -376,7 +376,7 @@ export default function WalletPage() {
         <button
           onClick={handleAddDistribution}
           disabled={saving}
-          className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
         >
           {saving ? t.common.saving : w.addDistribution}
         </button>
@@ -390,7 +390,7 @@ export default function WalletPage() {
             {distributions.map(dist => (
               <div key={dist.id} className="flex items-center justify-between px-5 py-3">
                 <div className="flex items-center gap-4">
-                  <div className="size-2 rounded-full bg-orange-500 shrink-0" />
+                  <div className="size-2 rounded-full bg-blue-600 shrink-0" />
                   <div>
                     <p className="text-sm font-medium">{dist.partner_name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -400,7 +400,7 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold font-mono text-orange-500">{fmtCurrency(Number(dist.amount))}</span>
+                  <span className="text-sm font-semibold font-mono text-blue-600">{fmtCurrency(Number(dist.amount))}</span>
                   <button
                     onClick={() => handleDeleteDistribution(dist.id)}
                     className="p-1 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
@@ -423,7 +423,7 @@ export default function WalletPage() {
       {summary.avgMonthlyRevenue > 0 && investments.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-4">
           <div className="flex items-center gap-2">
-            <Clock className="size-4 text-orange-500" />
+            <Clock className="size-4 text-blue-600" />
             <h2 className="font-semibold text-sm">{w.recoveryProjection}</h2>
           </div>
           <p className="text-xs text-muted-foreground">

@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, Check, X, FlaskConical } from 'lucide-react'
 import { getConsumables, addConsumable, updateConsumable, deleteConsumable, type ConsumableRow } from '@/lib/actions/consumables'
 import { CurrencyInput } from '@/components/ui/currency-input'
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 const COMMON_UNITS = ['ml', 'g', 'folha', 'un', 'cm', 'm', 'dose']
 
@@ -95,7 +95,7 @@ export default function ConsumablesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -112,7 +112,7 @@ export default function ConsumablesPage() {
         {!adding && (
           <button
             onClick={() => { setAdding(true); setEditId(null); resetForm() }}
-            className="flex items-center gap-1.5 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shrink-0"
           >
             <Plus className="size-4" /> Novo material
           </button>
@@ -157,8 +157,8 @@ export default function ConsumablesPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-4 px-4 py-3 hover:bg-muted/20 transition-colors">
-                  <div className="p-2 rounded-lg bg-orange-500/10 shrink-0">
-                    <FlaskConical className="size-3.5 text-orange-500" />
+                  <div className="p-2 rounded-lg bg-blue-600/10 shrink-0">
+                    <FlaskConical className="size-3.5 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{item.name}</p>
@@ -167,14 +167,14 @@ export default function ConsumablesPage() {
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-mono font-semibold text-orange-500">
+                    <p className="text-sm font-mono font-semibold text-blue-600">
                       {fmt(item.cost_per_unit)}<span className="text-muted-foreground font-normal">/{item.unit}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => startEdit(item)}
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
@@ -219,8 +219,8 @@ function ConsumableForm({
   title: string
 }) {
   return (
-    <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 space-y-3">
-      <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">{title}</p>
+    <div className="rounded-xl border border-blue-600/30 bg-blue-600/5 p-4 space-y-3">
+      <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">{title}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
@@ -242,19 +242,19 @@ function ConsumableForm({
                 onClick={() => setForm(f => ({ ...f, unit: u }))}
                 className={`px-2 py-1 rounded text-xs border transition-colors ${
                   form.unit === u
-                    ? 'bg-orange-500 border-orange-500 text-white font-medium'
-                    : 'border-border text-muted-foreground hover:border-orange-500/50'
+                    ? 'bg-blue-600 border-blue-600 text-white font-medium'
+                    : 'border-border text-muted-foreground hover:border-blue-600/50'
                 }`}>
                 {u}
               </button>
             ))}
             {!COMMON_UNITS.includes(form.unit) && (
-              <span className="px-2 py-1 rounded text-xs border bg-orange-500 border-orange-500 text-white font-medium">
+              <span className="px-2 py-1 rounded text-xs border bg-blue-600 border-blue-600 text-white font-medium">
                 {form.unit}
               </span>
             )}
             <input
-              className="px-2 py-1 rounded text-xs border border-dashed border-border bg-background text-muted-foreground w-16 focus:outline-none focus:border-orange-500"
+              className="px-2 py-1 rounded text-xs border border-dashed border-border bg-background text-muted-foreground w-16 focus:outline-none focus:border-blue-600"
               placeholder="outro"
               onFocus={e => e.target.select()}
               onChange={e => setForm(f => ({ ...f, unit: e.target.value || 'un' }))}
@@ -290,7 +290,7 @@ function ConsumableForm({
           <X className="size-3.5" /> Cancelar
         </button>
         <button type="button" onClick={onSave} disabled={saving}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors">
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium transition-colors">
           <Check className="size-3.5" /> {saving ? 'Salvando…' : 'Salvar'}
         </button>
       </div>

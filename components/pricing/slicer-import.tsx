@@ -62,12 +62,12 @@ export function SlicerImport({ onImport, compact = false, label }: Props) {
       <label className={cn(
         'flex items-center gap-2 cursor-pointer rounded-md border border-dashed px-3 py-1.5 text-xs transition-colors',
         dragging
-          ? 'border-orange-500 bg-orange-500/10'
+          ? 'border-blue-600 bg-blue-600/10'
           : state === 'success'
             ? 'border-green-500/40 bg-green-500/5 text-green-400'
             : state === 'error' || state === 'empty'
               ? 'border-red-500/40 text-red-400'
-              : 'border-border text-muted-foreground hover:border-orange-500/40 hover:text-foreground'
+              : 'border-border text-muted-foreground hover:border-blue-600/40 hover:text-foreground'
       )}
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
@@ -105,12 +105,12 @@ export function SlicerImport({ onImport, compact = false, label }: Props) {
       className={cn(
         'relative rounded-xl border-2 border-dashed transition-colors px-6 py-4',
         dragging
-          ? 'border-orange-500 bg-orange-500/10'
+          ? 'border-blue-600 bg-blue-600/10'
           : state === 'success'
             ? 'border-green-500/40 bg-green-500/5'
             : state === 'error' || state === 'empty'
               ? 'border-red-500/40 bg-red-500/5'
-              : 'border-border hover:border-orange-500/40 hover:bg-orange-500/5'
+              : 'border-border hover:border-blue-600/40 hover:bg-blue-600/5'
       )}
     >
       <label className="flex items-center gap-4 cursor-pointer">
@@ -122,7 +122,7 @@ export function SlicerImport({ onImport, compact = false, label }: Props) {
         />
 
         <div className="shrink-0">
-          {state === 'loading'  && <Loader2 className="size-5 text-orange-500 animate-spin" />}
+          {state === 'loading'  && <Loader2 className="size-5 text-blue-600 animate-spin" />}
           {state === 'success'  && <CheckCircle className="size-5 text-green-500" />}
           {(state === 'error' || state === 'empty') && <AlertCircle className="size-5 text-red-400" />}
           {(state === 'idle')   && <Upload className="size-5 text-muted-foreground" />}

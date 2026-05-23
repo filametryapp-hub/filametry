@@ -110,7 +110,7 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   draft:     'bg-zinc-500/10 text-zinc-400',
   sent:      'bg-blue-500/10 text-blue-400',
   accepted:  'bg-yellow-500/10 text-yellow-400',
-  printing:  'bg-orange-500/10 text-orange-400',
+  printing:  'bg-blue-600/10 text-blue-500',
   post:      'bg-purple-500/10 text-purple-400',
   done:      'bg-green-500/10 text-green-400',
   cancelled: 'bg-red-500/10 text-red-400',

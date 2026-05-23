@@ -174,7 +174,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             <select
               value={form.material}
               onChange={e => set('material', e.target.value)}
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
             >
               {MATERIAL_GROUPS.map(group => (
                 <optgroup key={group.label} label={group.label}>
@@ -213,12 +213,12 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
               <div className="flex items-center gap-1 rounded-md border border-border overflow-hidden text-[10px]">
                 <button type="button"
                   onClick={() => set('platesPerUnit', false)}
-                  className={`px-2 py-1 transition-colors ${!(form.platesPerUnit) ? 'bg-orange-500 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+                  className={`px-2 py-1 transition-colors ${!(form.platesPerUnit) ? 'bg-blue-600 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
                   N un/chapa
                 </button>
                 <button type="button"
                   onClick={() => set('platesPerUnit', true)}
-                  className={`px-2 py-1 transition-colors ${form.platesPerUnit ? 'bg-orange-500 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+                  className={`px-2 py-1 transition-colors ${form.platesPerUnit ? 'bg-blue-600 text-white font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
                   N chapas/un
                 </button>
               </div>
@@ -234,7 +234,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                     onChange={e => set('batches', Math.max(1, +e.target.value))} />
                 </div>
                 <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
+                  <span className="size-1.5 rounded-full bg-blue-500 shrink-0" />
                   Cada unidade requer {form.batches ?? 1} impressão{(form.batches ?? 1) > 1 ? 'ões' : ''} completa{(form.batches ?? 1) > 1 ? 's' : ''}.
                   O custo será multiplicado por {form.batches ?? 1}.
                 </p>
@@ -262,7 +262,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                 </div>
                 {form.costUSD > 0 && (form.unitsPerRun ?? 1) > 1 && (
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-orange-400 shrink-0" />
+                    <span className="size-1.5 rounded-full bg-blue-500 shrink-0" />
                     {t.products.plateCost}: <span className="font-semibold text-foreground ml-0.5">{fmtCurrency(form.costUSD * (form.unitsPerRun ?? 1))}</span>
                     <span className="text-muted-foreground/60">÷ {form.unitsPerRun} = {fmtCurrency(form.costUSD)}/un</span>
                   </p>
@@ -274,7 +274,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
           {/* Printer assignment */}
           <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2.5">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="size-3 text-orange-500" /> Impressora &amp; paralelismo
+              <Clock className="size-3 text-blue-600" /> Impressora &amp; paralelismo
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -282,7 +282,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                 <select
                   value={form.printerId ?? ''}
                   onChange={e => set('printerId', e.target.value || undefined)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
                 >
                   <option value="">— nenhuma —</option>
                   {printers.map(p => (
@@ -316,7 +316,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                 {machineContrib !== null && (
                   <p>
                     Custo máquina:{' '}
-                    <strong className="text-orange-400">${machineContrib.toFixed(2)}</strong>
+                    <strong className="text-blue-500">${machineContrib.toFixed(2)}</strong>
                     <span className="text-muted-foreground">
                       {' '}(${selectedPrinter!.dailyRate}/dia · {selectedPrinter!.workingHours}h/dia)
                     </span>
@@ -364,7 +364,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Margem</p>
-                <p className="font-mono text-orange-500">{margin}%</p>
+                <p className="font-mono text-blue-600">{margin}%</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">$/g</p>
@@ -387,7 +387,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground uppercase tracking-wider">Preço por volume</Label>
             <button type="button" onClick={addTier}
-              className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 transition-colors">
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500 transition-colors">
               <Plus className="size-3" /> Adicionar faixa
             </button>
           </div>
@@ -410,7 +410,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                     type="number" min={2} step={1}
                     value={tier.minQty}
                     onChange={e => setVolumeTiers(prev => prev.map(t => t._id === tier._id ? { ...t, minQty: +e.target.value } : t))}
-                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 <div className="space-y-0.5">
@@ -419,7 +419,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                     type="number" min={0} step="any"
                     value={tier.priceUSD}
                     onChange={e => setVolumeTiers(prev => prev.map(t => t._id === tier._id ? { ...t, priceUSD: parseFloat(e.target.value) || 0 } : t))}
-                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 <span className={`text-xs font-medium text-right tabular-nums ${discountPct > 0 ? 'text-green-400' : 'text-muted-foreground'}`}>
@@ -441,7 +441,7 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
             {t.common.cancel}
           </button>
           <button type="submit" disabled={saving}
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            className="flex-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
             {saving ? t.common.saving : initial ? t.common.save : t.products.addProduct}
           </button>
         </div>
@@ -489,10 +489,10 @@ function ConsumablesSection({
     <div className="col-span-2 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <FlaskConical className="size-3 text-orange-500" /> Pós-processamento
+          <FlaskConical className="size-3 text-blue-600" /> Pós-processamento
         </p>
         {total > 0 && (
-          <span className="text-[10px] font-mono text-orange-400 font-medium">
+          <span className="text-[10px] font-mono text-blue-500 font-medium">
             +${total.toFixed(2)}/un
           </span>
         )}
@@ -511,7 +511,7 @@ function ConsumablesSection({
                   type="number" min={0.001} step={0.1}
                   value={item.quantityPerUnit}
                   onChange={e => updateQty(item.consumableId, Math.max(0.001, +e.target.value))}
-                  className="w-14 h-7 rounded border border-input bg-background px-2 text-xs text-right focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-14 h-7 rounded border border-input bg-background px-2 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <span className="text-[10px] text-muted-foreground">{item.unit}</span>
               </div>
@@ -528,7 +528,7 @@ function ConsumablesSection({
         <select
           value=""
           onChange={e => { addItem(e.target.value); e.target.value = '' }}
-          className="w-full h-7 rounded border border-dashed border-border bg-background px-2 text-xs text-muted-foreground focus:outline-none focus:border-orange-500 cursor-pointer"
+          className="w-full h-7 rounded border border-dashed border-border bg-background px-2 text-xs text-muted-foreground focus:outline-none focus:border-blue-600 cursor-pointer"
         >
           <option value="">+ Adicionar material…</option>
           {available.map(c => (
@@ -542,7 +542,7 @@ function ConsumablesSection({
       {catalog.length === 0 && (
         <p className="text-[11px] text-muted-foreground/60 italic">
           Nenhum consumível cadastrado.{' '}
-          <a href="/consumables" target="_blank" className="text-orange-400 hover:underline">
+          <a href="/consumables" target="_blank" className="text-blue-500 hover:underline">
             Cadastrar materiais →
           </a>
         </p>

@@ -23,7 +23,7 @@ type Supplier = { id: string; name: string }
 
 const CATEGORIES = ['material', 'office', 'equipment', 'maintenance', 'other']
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -89,8 +89,8 @@ function ExpenseModal({
               <button key={opt} type="button" onClick={() => setPaidBy(opt)}
                 className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
                   paidBy === opt
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                    : 'border-border text-muted-foreground hover:border-orange-500/40'
+                    ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                    : 'border-border text-muted-foreground hover:border-blue-600/40'
                 }`}>
                 {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
               </button>
@@ -128,7 +128,7 @@ function ExpenseModal({
               })
             }}
             disabled={saving || !description.trim() || amount <= 0}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving ? t.common.saving : t.common.save}
           </button>
@@ -222,11 +222,11 @@ export default function ExpensesPage() {
       <div className="rounded-xl border border-border bg-card px-6 py-4 mb-6 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.expenses.totalMonth}</p>
-          <p className="text-2xl font-bold text-orange-500 mt-0.5">{fmtCurrency(monthTotal)}</p>
+          <p className="text-2xl font-bold text-blue-600 mt-0.5">{fmtCurrency(monthTotal)}</p>
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           <Plus className="size-4" /> {t.expenses.addExpense}
         </button>
@@ -240,7 +240,7 @@ export default function ExpensesPage() {
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors capitalize -mb-px ${
               activeTab === tab
-                ? 'border-orange-500 text-orange-500'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >

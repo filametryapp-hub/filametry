@@ -42,7 +42,7 @@ export function ProductionKanban() {
 
   const COLUMNS: Column[] = [
     { key: 'accepted', label: pr.queue,          color: 'bg-blue-500/5',   border: 'border-blue-500/30',   dot: 'bg-blue-400' },
-    { key: 'printing', label: pr.printing,       color: 'bg-orange-500/5', border: 'border-orange-500/30', dot: 'bg-orange-400' },
+    { key: 'printing', label: pr.printing,       color: 'bg-blue-600/5', border: 'border-blue-600/30', dot: 'bg-blue-500' },
     { key: 'post',     label: pr.postProcessing,  color: 'bg-purple-500/5', border: 'border-purple-500/30', dot: 'bg-purple-400' },
     { key: 'done',     label: pr.done,            color: 'bg-green-500/5',  border: 'border-green-500/30',  dot: 'bg-green-400' },
   ]
@@ -99,7 +99,7 @@ export function ProductionKanban() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-4">
@@ -137,7 +137,7 @@ export function ProductionKanban() {
                         </div>
 
                         {total > 0 && (
-                          <p className="text-xs font-mono font-semibold text-orange-500">{fmtCurrency(total)}</p>
+                          <p className="text-xs font-mono font-semibold text-blue-600">{fmtCurrency(total)}</p>
                         )}
 
                         {order.due_date && (

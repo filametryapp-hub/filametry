@@ -11,8 +11,8 @@ import { useT } from '@/lib/i18n'
 type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string; usedG?: number }
 type Spool = { id: string; label: string; remaining_g: number }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
-const NUM_INPUT = 'w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center font-semibold outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
+const NUM_INPUT = 'w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center font-semibold outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
 interface Props {
   prefillProduct?: string | null
@@ -145,7 +145,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
                 <p className="text-xs text-muted-foreground">
                   {tm.total}: <span className="font-medium text-foreground">{fmtCurrency(totalWaste)}</span>
                   {overheadRate > 0 && (
-                    <span className="ml-2 text-orange-400">
+                    <span className="ml-2 text-blue-500">
                       · {tm.overhead}: <span className="font-mono">{fmtCurrency(overheadRate)}/h</span>
                     </span>
                   )}
@@ -156,7 +156,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
           <div className="flex items-center gap-2">
             {!showForm && (
               <button onClick={() => setShowForm(true)}
-                className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-400 border border-orange-500/30 rounded-md px-2.5 py-1.5 transition-colors">
+                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-500 border border-blue-600/30 rounded-md px-2.5 py-1.5 transition-colors">
                 <Plus className="size-3.5" /> {tm.logEntry}
               </button>
             )}
@@ -170,10 +170,10 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
 
           {/* Payback period */}
-          <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-3">
+          <div className="rounded-lg border border-blue-600/20 bg-blue-600/5 p-3 space-y-3">
             <div className="flex items-center gap-1.5">
-              <Clock className="size-3.5 text-orange-400 shrink-0" />
-              <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">{tm.paybackPeriod}</p>
+              <Clock className="size-3.5 text-blue-500 shrink-0" />
+              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider">{tm.paybackPeriod}</p>
             </div>
 
             <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 text-xs">
@@ -200,7 +200,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
                 {paybackMonths} × 30 × {hoursPerDay}h = <span className="font-semibold text-foreground">{targetHours.toLocaleString()} {tm.targetHours}</span>
               </p>
               {totalWaste > 0 && targetHours > 0 && (
-                <p className="text-orange-400 font-mono font-semibold">
+                <p className="text-blue-500 font-mono font-semibold">
                   {tm.overheadApplied.replace('Overhead:', `${fmtCurrency(overheadRate)}/h`)}
                 </p>
               )}
@@ -208,7 +208,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
             </div>
 
             <button onClick={handleSaveSettings} disabled={savingSettings}
-              className="w-full text-xs font-medium py-1.5 rounded-md border border-orange-500/40 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50 transition-colors">
+              className="w-full text-xs font-medium py-1.5 rounded-md border border-blue-600/40 text-blue-600 hover:bg-blue-600/10 disabled:opacity-50 transition-colors">
               {savingSettings ? tm.saving : settingsSaved ? tm.saved : tm.saveSettings}
             </button>
           </div>
@@ -248,7 +248,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
                       <label className="text-[10px] text-muted-foreground">{tm.spool}</label>
                       <select value={form.spoolId}
                         onChange={e => setForm(f => ({ ...f, spoolId: e.target.value }))}
-                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600">
                         <option value="">{tm.noSpool}</option>
                         {spools.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                       </select>
@@ -258,11 +258,11 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
                       <input type="number" min={0} step={0.1}
                         value={form.usedG || ''} placeholder="0"
                         onChange={e => setForm(f => ({ ...f, usedG: parseFloat(e.target.value) || 0 }))}
-                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-center font-semibold focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-center font-semibold focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     </div>
                   </div>
                   {selectedSpool && form.usedG > 0 && (
-                    <p className="text-[10px] text-orange-400">
+                    <p className="text-[10px] text-blue-500">
                       {tm.stockAfter}: <span className="font-semibold">{Math.max(0, selectedSpool.remaining_g - form.usedG).toFixed(0)}g</span>
                     </p>
                   )}
@@ -309,7 +309,7 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
           {/* List */}
           {loading ? (
             <div className="flex justify-center py-6">
-              <div className="size-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <div className="size-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : testPrints.length === 0 && !showForm ? (
             <p className="text-xs text-muted-foreground text-center py-4">{tm.noEntries}</p>

@@ -3,7 +3,7 @@ function FilametryMark() {
   return (
     <div className="flex flex-col gap-[2px]">
       {bars.map((b, i) => (
-        <div key={i} className="h-[4px] bg-orange-500 rounded-full" style={{ width: b.w }} />
+        <div key={i} className="h-[4px] bg-blue-600 rounded-full" style={{ width: b.w }} />
       ))}
     </div>
   )

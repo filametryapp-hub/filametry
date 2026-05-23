@@ -125,7 +125,7 @@ function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments
                 {p.notes && <span className="text-muted-foreground ml-2">· {p.notes}</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-orange-400">{fmtCurrency(Number(p.amount_paid))}</span>
+                <span className="font-mono text-blue-500">{fmtCurrency(Number(p.amount_paid))}</span>
                 <button
                   onClick={() => remove(p.id)}
                   className="p-0.5 rounded text-muted-foreground hover:text-red-400 transition-colors"
@@ -146,7 +146,7 @@ function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments
             <select
               value={payerName}
               onChange={e => setPayerName(e.target.value)}
-              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-600"
             >
               <option value="">Selecionar sócio…</option>
               {partners.map(p => (
@@ -158,7 +158,7 @@ function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments
               value={payerName}
               onChange={e => setPayerName(e.target.value)}
               placeholder="Nome do sócio"
-              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
           )}
           <input
@@ -168,26 +168,26 @@ function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments
             placeholder="Amount"
             min={0}
             step={0.01}
-            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-600"
           />
           <input
             type="date"
             value={paidAt}
             onChange={e => setPaidAt(e.target.value)}
-            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-600"
           />
           <input
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="Notes (optional)"
-            className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="col-span-2 text-xs bg-muted/40 border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-600"
           />
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={saving || !payerName || !amount}
-          className="w-full text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-md px-3 py-1.5 transition-colors"
+          className="w-full text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-md px-3 py-1.5 transition-colors"
         >
           {saving ? 'Saving…' : 'Add payment'}
         </button>
@@ -276,7 +276,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
           <Wallet className="size-3.5" />
           Payments
           {spool.material_payments.length > 0 && (
-            <span className="bg-orange-500/10 text-orange-500 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+            <span className="bg-blue-600/10 text-blue-600 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
               {spool.material_payments.length} · {fmtCurrency(totalPaid)}
             </span>
           )}
@@ -370,7 +370,7 @@ export function FilamentList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -397,13 +397,13 @@ export function FilamentList() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBatch(true)}
-            className="flex items-center gap-2 border border-orange-500 text-orange-500 hover:bg-orange-500/10 text-sm font-medium px-4 py-2 rounded-md transition-colors"
+            className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-600/10 text-sm font-medium px-4 py-2 rounded-md transition-colors"
           >
             <Plus className="size-4" /> Entrada em Lote
           </button>
           <button
             onClick={() => { setEditing(null); setShowForm(true) }}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
           >
             <Plus className="size-4" /> {m.addItem}
           </button>

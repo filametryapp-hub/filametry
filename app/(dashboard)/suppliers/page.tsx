@@ -20,7 +20,7 @@ type Supplier = {
   notes?: string | null
 }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -107,7 +107,7 @@ function SupplierModal({
           <button
             onClick={() => { if (form.name.trim()) onSave(form) }}
             disabled={saving || !form.name.trim()}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving ? t.common.saving : t.common.save}
           </button>
@@ -176,7 +176,7 @@ export default function SuppliersPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors"
+            className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors"
             placeholder={t.suppliers.searchSuppliers}
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -184,7 +184,7 @@ export default function SuppliersPage() {
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           <Plus className="size-4" /> {t.suppliers.addSupplier}
         </button>

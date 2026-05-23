@@ -129,18 +129,18 @@ export default function OnboardingPage() {
               <div key={i} className="flex items-center gap-3">
                 <div className="flex flex-col items-center gap-1">
                   <div className={`size-10 rounded-full flex items-center justify-center transition-colors ${
-                    done ? 'bg-orange-500 text-white' :
-                    active ? 'bg-orange-500/20 border-2 border-orange-500 text-orange-500' :
+                    done ? 'bg-blue-600 text-white' :
+                    active ? 'bg-blue-600/20 border-2 border-blue-600 text-blue-600' :
                     'bg-muted text-muted-foreground'
                   }`}>
                     <Icon className="size-4" />
                   </div>
-                  <span className={`text-xs font-medium ${active ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs font-medium ${active ? 'text-blue-600' : 'text-muted-foreground'}`}>
                     {s.label}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`w-12 h-0.5 mb-4 ${i < step ? 'bg-orange-500' : 'bg-border'}`} />
+                  <div className={`w-12 h-0.5 mb-4 ${i < step ? 'bg-blue-600' : 'bg-border'}`} />
                 )}
               </div>
             )
@@ -220,8 +220,8 @@ export default function OnboardingPage() {
                     onClick={() => setIsPartnership(opt.value)}
                     className={`rounded-xl border p-4 text-sm font-medium transition-colors text-left ${
                       isPartnership === opt.value
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                        : 'border-border hover:border-orange-500/40'
+                        ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                        : 'border-border hover:border-blue-600/40'
                     }`}
                   >
                     {opt.label}
@@ -233,7 +233,7 @@ export default function OnboardingPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Partners</p>
-                    <span className={`text-xs font-mono ${Math.abs(totalPct() - 100) < 0.01 ? 'text-green-400' : 'text-orange-500'}`}>
+                    <span className={`text-xs font-mono ${Math.abs(totalPct() - 100) < 0.01 ? 'text-green-400' : 'text-blue-600'}`}>
                       {totalPct()}% / 100%
                     </span>
                   </div>
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                       </div>
                     </div>
                   ))}
-                  <button onClick={addPartnerRow} className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 transition-colors">
+                  <button onClick={addPartnerRow} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors">
                     <Plus className="size-4" /> Add partner
                   </button>
                 </div>
@@ -294,8 +294,8 @@ export default function OnboardingPage() {
           {/* Step 2: Done */}
           {step === 2 && (
             <div className="text-center space-y-5 py-4">
-              <div className="size-16 rounded-full bg-orange-500/10 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="size-8 text-orange-500" />
+              <div className="size-16 rounded-full bg-blue-600/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="size-8 text-blue-600" />
               </div>
               <div>
                 <h1 className="text-xl font-bold">You&apos;re all set!</h1>
@@ -321,5 +321,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
-const BTN = 'w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
+const BTN = 'w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50'

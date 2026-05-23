@@ -15,7 +15,7 @@ type CashEntry = {
   date: string
 }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -78,7 +78,7 @@ function AddIncomeModal({
               onSave({ category, description, amount: amount, date })
             }}
             disabled={saving || !description.trim() || amount <= 0}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving ? t.common.saving : t.common.add}
           </button>
@@ -149,7 +149,7 @@ export default function CashFlowPage() {
         <div className="flex-1" />
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           <Plus className="size-4" /> {t.cashFlow.addEntry}
         </button>

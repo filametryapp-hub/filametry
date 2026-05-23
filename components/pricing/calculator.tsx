@@ -222,7 +222,7 @@ function SaveProductModal({
       >
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold flex items-center gap-2">
-            <PackagePlus className="size-4 text-orange-500" />
+            <PackagePlus className="size-4 text-blue-600" />
             {pr.saveAsProductTitle}
           </h2>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -300,7 +300,7 @@ function SaveProductModal({
             <span className="bg-muted/50 rounded-full px-2 py-0.5">{weightG.toFixed(1)}g</span>
             <span className="bg-muted/50 rounded-full px-2 py-0.5">{printHours.toFixed(2)}h</span>
             {price > 0 && cost > 0 && (
-              <span className="bg-orange-500/10 text-orange-400 rounded-full px-2 py-0.5">
+              <span className="bg-blue-600/10 text-blue-500 rounded-full px-2 py-0.5">
                 {(((price - cost) / price) * 100).toFixed(1)}% margin
               </span>
             )}
@@ -313,7 +313,7 @@ function SaveProductModal({
             {t.common.cancel}
           </button>
           <button type="submit" disabled={saving || saved || !name.trim()}
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+            className="flex-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2">
             {saved
               ? <><Check className="size-4" /> {pr.productSaved}</>
               : saving
@@ -387,7 +387,7 @@ function CostRow({ label, value, total, accent = false }: { label: string; value
       </div>
       <div className="h-1 rounded-full bg-muted overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${accent ? 'bg-orange-500' : 'bg-muted-foreground/40'}`}
+          className={`h-full rounded-full transition-all ${accent ? 'bg-blue-600' : 'bg-muted-foreground/40'}`}
           style={{ width: `${width}%` }}
         />
       </div>
@@ -428,7 +428,7 @@ function FilamentRow({
           <select
             defaultValue=""
             onChange={e => { if (e.target.value) applyFromCatalog(e.target.value) }}
-            className="flex-1 h-6 text-[11px] rounded border border-border/60 bg-background px-1.5 outline-none focus:border-orange-500 transition-colors"
+            className="flex-1 h-6 text-[11px] rounded border border-border/60 bg-background px-1.5 outline-none focus:border-blue-600 transition-colors"
           >
             <option value="">— selecionar filamento —</option>
             {catalog.map(c => (
@@ -561,7 +561,7 @@ function BatchRow({
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground shrink-0">
-          <Layers className="size-3.5 text-orange-500/70" />
+          <Layers className="size-3.5 text-blue-600/70" />
           {platLabel} {index + 1}
         </div>
         <Input
@@ -629,7 +629,7 @@ function BatchRow({
       <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => onAddFilament(batch.id)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-orange-500/40 rounded-md px-2 py-1 transition-colors"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-blue-600/40 rounded-md px-2 py-1 transition-colors"
         >
           <Palette className="size-3" />
           + cor
@@ -901,7 +901,7 @@ export function PricingCalculator() {
                 if (e.key === 'Enter' && activeSessionId && sessionName.trim()) handleRenameSession(activeSessionId, sessionName.trim())
                 if (e.key === 'Escape') setEditingName(false)
               }}
-              className="h-7 rounded-md border border-orange-500 bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 min-w-0 flex-1 max-w-xs"
+              className="h-7 rounded-md border border-blue-600 bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 min-w-0 flex-1 max-w-xs"
             />
           ) : (
             <button onClick={() => setEditingName(true)} title="Clique para renomear"
@@ -919,7 +919,7 @@ export function PricingCalculator() {
             <FolderOpen className="size-3.5" />
             Salvos
             {sessions.length > 0 && (
-              <span className="bg-orange-500 text-white text-[10px] rounded-full px-1.5 leading-4 font-medium">
+              <span className="bg-blue-600 text-white text-[10px] rounded-full px-1.5 leading-4 font-medium">
                 {sessions.length}
               </span>
             )}
@@ -940,12 +940,12 @@ export function PricingCalculator() {
                     {sessions.map(s => (
                       <div key={s.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/40 transition-colors group">
                         <button onClick={() => handleLoadSession(s)} className="flex-1 text-left min-w-0">
-                          <p className={`text-xs font-medium truncate ${s.id === activeSessionId ? 'text-orange-500' : ''}`}>{s.name}</p>
+                          <p className={`text-xs font-medium truncate ${s.id === activeSessionId ? 'text-blue-600' : ''}`}>{s.name}</p>
                           <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
                             <Clock className="size-2.5" />
                             {new Date(s.updated_at).toLocaleDateString('pt-BR')}
                             {s.result_price != null && (
-                              <span className="text-orange-400 font-mono">
+                              <span className="text-blue-500 font-mono">
                                 · {Number(s.result_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                               </span>
                             )}
@@ -984,7 +984,7 @@ export function PricingCalculator() {
 
         {/* Save button */}
         <button onClick={handleSaveSession} disabled={savingSession}
-          className="flex items-center gap-1.5 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 h-7 rounded-md transition-colors">
+          className="flex items-center gap-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 h-7 rounded-md transition-colors">
           <Save className="size-3.5" />
           {savingSession ? 'Salvando…' : activeSessionId ? 'Atualizar' : 'Salvar cálculo'}
         </button>
@@ -995,7 +995,7 @@ export function PricingCalculator() {
         <div className="lg:col-span-3 space-y-4">
 
           {/* ── Unidades por chapa ── */}
-          <div className="flex items-center gap-4 rounded-xl border border-orange-500/30 bg-orange-500/5 px-5 py-3.5">
+          <div className="flex items-center gap-4 rounded-xl border border-blue-600/30 bg-blue-600/5 px-5 py-3.5">
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">Unidades produzidas por chapa</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -1007,7 +1007,7 @@ export function PricingCalculator() {
                 type="number" min={1} step={1}
                 value={unitsPerRun}
                 onChange={e => setUnitsPerRun(Math.max(1, +e.target.value))}
-                className="w-16 h-9 rounded-md border border-orange-500/40 bg-background px-2 text-center text-lg font-bold text-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-16 h-9 rounded-md border border-blue-600/40 bg-background px-2 text-center text-lg font-bold text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-sm text-muted-foreground">un/chapa</span>
             </div>
@@ -1107,8 +1107,8 @@ export function PricingCalculator() {
                 ))}
               </div>
               {amortLabel ? (
-                <p className="text-xs text-orange-400/80 flex items-center gap-1">
-                  <span className="inline-block size-1.5 rounded-full bg-orange-400" />
+                <p className="text-xs text-blue-500/80 flex items-center gap-1">
+                  <span className="inline-block size-1.5 rounded-full bg-blue-500" />
                   {pr.amortFrom} <span className="font-medium">{amortLabel}</span>
                 </p>
               ) : (
@@ -1142,9 +1142,9 @@ export function PricingCalculator() {
                 <span>{fmt(result.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className={isOverridden ? 'text-orange-400' : 'text-muted-foreground'}>
+                <span className={isOverridden ? 'text-blue-500' : 'text-muted-foreground'}>
                   {pr.profit}{' '}
-                  <span className={`font-semibold ${effectivePct < 0 ? 'text-red-400' : isOverridden ? 'text-orange-400' : ''}`}>
+                  <span className={`font-semibold ${effectivePct < 0 ? 'text-red-400' : isOverridden ? 'text-blue-500' : ''}`}>
                     ({effectivePct.toFixed(1)}%)
                   </span>
                   {isOverridden && (
@@ -1160,24 +1160,24 @@ export function PricingCalculator() {
 
               {/* Editable price hero */}
               <div className={`rounded-xl border p-4 text-center transition-colors ${
-                isOverridden ? 'bg-orange-500/15 border-orange-500/40' : 'bg-orange-500/10 border-orange-500/20'
+                isOverridden ? 'bg-blue-600/15 border-blue-600/40' : 'bg-blue-600/10 border-blue-600/20'
               }`}>
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <p className="text-xs text-orange-400 font-mono uppercase tracking-wider">
+                  <p className="text-xs text-blue-500 font-mono uppercase tracking-wider">
                     {isOverridden ? pr.customPrice : pr.suggestedPrice}
                   </p>
                   {isOverridden && (
                     <button
                       onClick={() => { setPriceOverride(null); setPriceInput('') }}
                       title={pr.resetPrice}
-                      className="text-orange-400/60 hover:text-orange-400 transition-colors"
+                      className="text-blue-500/60 hover:text-blue-500 transition-colors"
                     >
                       <RotateCcw className="size-3" />
                     </button>
                   )}
                 </div>
                 <div className="relative flex items-center justify-center">
-                  <span className="text-2xl font-bold text-orange-500 mr-1">$</span>
+                  <span className="text-2xl font-bold text-blue-600 mr-1">$</span>
                   <input
                     type="number" min={0} step={0.01}
                     value={isOverridden ? priceInput : result.salePrice.toFixed(2)}
@@ -1198,11 +1198,11 @@ export function PricingCalculator() {
                       else { setPriceOverride(n); setPriceInput(n.toFixed(2)) }
                     }}
                     onWheel={e => e.currentTarget.blur()}
-                    className="text-4xl font-bold text-orange-500 bg-transparent border-none outline-none w-40 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="text-4xl font-bold text-blue-600 bg-transparent border-none outline-none w-40 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 {isOverridden && (
-                  <p className="text-xs text-orange-400/60 mt-1">
+                  <p className="text-xs text-blue-500/60 mt-1">
                     {pr.calculatedPrice}: {fmt(result.salePrice)}
                   </p>
                 )}
@@ -1221,7 +1221,7 @@ export function PricingCalculator() {
               {/* Save as product */}
               <button
                 onClick={() => setShowSaveModal(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10 text-orange-500 text-sm font-medium py-2 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-blue-600/30 bg-blue-600/5 hover:bg-blue-600/10 text-blue-600 text-sm font-medium py-2 transition-colors"
               >
                 <PackagePlus className="size-4" />
                 {pr.saveAsProduct}

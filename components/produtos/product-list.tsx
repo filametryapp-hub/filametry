@@ -77,7 +77,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
             <XCircle className="size-2.5" /> Não aprovado
           </span>
         ) : isTest ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
             <FlaskConical className="size-2.5" /> Teste
           </span>
         ) : (
@@ -99,14 +99,14 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
             {product.name}
           </span>
           {product.volumePrices?.length ? (
-            <span className="text-[10px] text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full shrink-0">🏷️ volume</span>
+            <span className="text-[10px] text-blue-600 bg-blue-600/10 px-1.5 py-0.5 rounded-full shrink-0">🏷️ volume</span>
           ) : null}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">
             {product.material} · {product.weightG}g · {product.printHours}h
             {(product.printerCount ?? 1) > 1 && (
-              <span className="ml-1 text-orange-400 font-medium">×{product.printerCount}</span>
+              <span className="ml-1 text-blue-500 font-medium">×{product.printerCount}</span>
             )}
             {product.batches
               ? platesPerUnit
@@ -144,9 +144,9 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
       {/* Price */}
       <div className="w-20 text-right shrink-0">
         <p className="text-[10px] text-muted-foreground uppercase">Preço</p>
-        <p className="text-sm font-mono font-bold text-orange-500">{fmt(product.priceUSD)}</p>
+        <p className="text-sm font-mono font-bold text-blue-600">{fmt(product.priceUSD)}</p>
         {showPerUnit && (
-          <p className="text-[10px] text-orange-400/60 font-mono">{fmt(unitPrice)}/un</p>
+          <p className="text-[10px] text-blue-500/60 font-mono">{fmt(unitPrice)}/un</p>
         )}
       </div>
 
@@ -156,7 +156,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
           <span>Margem</span><span>{m.toFixed(0)}%</span>
         </div>
         <div className="h-1 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${Math.min(100, m)}%` }} />
+          <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, m)}%` }} />
         </div>
       </div>
 
@@ -174,7 +174,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
               ? 'text-green-400 hover:bg-green-400/10'
               : product.status === 'test'
               ? 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10'
-              : 'text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10'
+              : 'text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10'
           }`}
         >
           {product.status === 'failed'
@@ -187,7 +187,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
         <button
           onClick={onRegisterTest}
           title="Registrar perda de material"
-          className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
         >
           <Microscope className="size-3.5" />
         </button>
@@ -314,7 +314,7 @@ export function ProductList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -342,7 +342,7 @@ export function ProductList() {
           placeholder="Buscar produtos…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 min-w-40 h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+          className="flex-1 min-w-40 h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
         />
 
         {/* Status filter */}
@@ -358,7 +358,7 @@ export function ProductList() {
               onClick={() => setFilter(f.key)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 filterStatus === f.key
-                  ? 'bg-orange-500 border-orange-500 text-white'
+                  ? 'bg-blue-600 border-blue-600 text-white'
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
               }`}
             >
@@ -376,7 +376,7 @@ export function ProductList() {
 
         <button
           onClick={() => { setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
         >
           <Plus className="size-4" /> Adicionar produto
         </button>

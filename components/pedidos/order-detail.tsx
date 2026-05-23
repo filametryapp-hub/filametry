@@ -52,7 +52,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              {hasQuote && <FileText className="size-4 text-orange-500 shrink-0" />}
+              {hasQuote && <FileText className="size-4 text-blue-600 shrink-0" />}
               <h2 className="text-lg font-semibold">{order.clientName}</h2>
             </div>
             {order.clientEmail && (
@@ -78,11 +78,11 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
             {FLOW.map((s, i) => (
               <div key={s} className="flex items-center gap-1 flex-1 last:flex-none">
                 <div className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i <= currentIdx ? 'bg-orange-500' : 'bg-muted'
+                  i <= currentIdx ? 'bg-blue-600' : 'bg-muted'
                 }`} />
                 {i === FLOW.length - 1 && (
                   <div className={`size-2 rounded-full ${
-                    order.status === 'done' ? 'bg-orange-500' : 'bg-muted'
+                    order.status === 'done' ? 'bg-blue-600' : 'bg-muted'
                   }`} />
                 )}
               </div>
@@ -97,13 +97,13 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Tabela de Orçamento</p>
             </div>
 
-            <div className="rounded-lg border border-orange-500/20 overflow-hidden">
+            <div className="rounded-lg border border-blue-600/20 overflow-hidden">
               {/* Column headers */}
-              <div className={`grid gap-2 px-3 py-2 bg-orange-500/10 border-b border-orange-500/20 ${showDiscount ? 'grid-cols-[60px_1fr_80px_56px]' : 'grid-cols-[60px_1fr_80px]'}`}>
-                <span className="text-[10px] font-semibold text-orange-500 uppercase">Qtd</span>
-                <span className="text-[10px] font-semibold text-orange-500 uppercase">Preço/un</span>
-                <span className="text-[10px] font-semibold text-orange-500 uppercase text-right">Total</span>
-                {showDiscount && <span className="text-[10px] font-semibold text-orange-500 uppercase text-center">Desc.</span>}
+              <div className={`grid gap-2 px-3 py-2 bg-blue-600/10 border-b border-blue-600/20 ${showDiscount ? 'grid-cols-[60px_1fr_80px_56px]' : 'grid-cols-[60px_1fr_80px]'}`}>
+                <span className="text-[10px] font-semibold text-blue-600 uppercase">Qtd</span>
+                <span className="text-[10px] font-semibold text-blue-600 uppercase">Preço/un</span>
+                <span className="text-[10px] font-semibold text-blue-600 uppercase text-right">Total</span>
+                {showDiscount && <span className="text-[10px] font-semibold text-blue-600 uppercase text-center">Desc.</span>}
               </div>
 
               {order.quoteTiers!.map((tier, idx) => {
@@ -123,7 +123,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
                     <span className="text-sm font-mono font-semibold text-foreground">
                       {fmtCurrency(tier.unitPrice)}
                     </span>
-                    <span className="text-sm font-mono text-orange-500 font-semibold text-right">
+                    <span className="text-sm font-mono text-blue-600 font-semibold text-right">
                       {fmtCurrency(rowTotal)}
                     </span>
                     {showDiscount && (
@@ -163,7 +163,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
             <Separator />
             <div className="flex justify-between text-sm font-semibold">
               <span>{t.common.total}</span>
-              <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
+              <span className="font-mono text-blue-600">{fmtCurrency(total)}</span>
             </div>
           </div>
         )}
@@ -180,13 +180,13 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
           <div className="flex items-center gap-3">
             <button
               onClick={onEdit}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-orange-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-blue-500 transition-colors"
             >
               <Pencil className="size-3.5" /> Alterar
             </button>
             <button
               onClick={() => window.open(`/pedidos/${order.id}/print`, '_blank')}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-orange-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-blue-500 transition-colors"
             >
               <Printer className="size-3.5" /> Imprimir
             </button>
@@ -208,7 +208,7 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
                 <button
                   key={s}
                   onClick={() => onStatusChange(s)}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-border hover:border-orange-500/50 hover:text-orange-400 transition-colors"
+                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-border hover:border-blue-600/50 hover:text-blue-500 transition-colors"
                 >
                   {or.status[s as keyof typeof or.status]} <ChevronRight className="size-3" />
                 </button>

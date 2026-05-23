@@ -123,8 +123,8 @@ function QuoteForm({
     }
   }
 
-  const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
-  const NUM   = 'w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+  const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
+  const NUM   = 'w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -183,7 +183,7 @@ function QuoteForm({
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{qt.products}</p>
               <button onClick={addItem}
-                className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1">
+                className="text-xs text-blue-600 hover:text-blue-500 flex items-center gap-1">
                 <Plus className="size-3" /> {qt.addProduct}
               </button>
             </div>
@@ -207,14 +207,14 @@ function QuoteForm({
                           {products.length > 0 && (
                             <select
                               onChange={e => pickProduct(idx, e.target.value)}
-                              className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 shrink-0"
+                              className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 shrink-0"
                               defaultValue="">
                               <option value="">↓</option>
                               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                           )}
                           <input
-                            className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                            className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                             placeholder="Product name"
                             value={item.product_name}
                             onChange={e => updateItem(idx, { product_name: e.target.value })} />
@@ -279,7 +279,7 @@ function QuoteForm({
               </div>
               <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
                 <span>{qt.totalQuote}</span>
-                <span className="font-mono text-orange-500">{fmtCurrency(total)}</span>
+                <span className="font-mono text-blue-600">{fmtCurrency(total)}</span>
               </div>
             </div>
           </section>
@@ -298,7 +298,7 @@ function QuoteForm({
               <select
                 value={tierProduct?.id ?? ''}
                 onChange={e => selectTierProduct(e.target.value)}
-                className="flex-1 h-8 rounded-lg border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
+                className="flex-1 h-8 rounded-lg border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600">
                 <option value="">{qt.selectForTable}</option>
                 {products.map(p => (
                   <option key={p.id} value={p.id}>
@@ -337,14 +337,14 @@ function QuoteForm({
                         type="number" min={0} step="any"
                         value={tier.unitPrice || ''}
                         onChange={e => updateTierPrice(tier.qty, parseFloat(e.target.value) || 0)}
-                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                      <span className="text-xs font-mono text-right text-orange-500 font-medium">{fmtCurrency(total)}</span>
+                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                      <span className="text-xs font-mono text-right text-blue-600 font-medium">{fmtCurrency(total)}</span>
                       <div className="relative flex items-center">
                         <input
                           type="number" min={0} max={100} step="0.1"
                           value={discountPct > 0 ? parseFloat(discountPct.toFixed(1)) : 0}
                           onChange={e => updateTierDiscount(tier.qty, parseFloat(e.target.value) || 0)}
-                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${discountPct > 0 ? 'border-green-500/40 text-green-400' : 'border-input text-muted-foreground'}`} />
+                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${discountPct > 0 ? 'border-green-500/40 text-green-400' : 'border-input text-muted-foreground'}`} />
                         <span className="absolute right-1.5 text-[10px] text-muted-foreground pointer-events-none">%</span>
                       </div>
                       <button type="button" onClick={() => removeTier(tier.qty)}
@@ -367,9 +367,9 @@ function QuoteForm({
                     onChange={e => setNewQty(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTier() } }}
                     placeholder={qt.qtyPlaceholder}
-                    className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                   <button type="button" onClick={addTier} disabled={!newQty}
-                    className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 disabled:opacity-40 transition-colors">
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500 disabled:opacity-40 transition-colors">
                     <Plus className="size-3.5" /> {qt.addQty}
                   </button>
                 </div>
@@ -382,7 +382,7 @@ function QuoteForm({
                         const unitPrice = resolveUnitPrice(tierProduct.priceUSD, tierProduct.volumePrices, qty)
                         setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
                       }}
-                      className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-orange-500/50 hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-blue-600/50 hover:text-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                       {qty}
                     </button>
                   ))}
@@ -401,7 +401,7 @@ function QuoteForm({
                   </div>
                 </div>
                 <button type="button" onClick={() => setShowDiscountOnPrint(v => !v)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${showDiscountOnPrint ? 'bg-orange-500' : 'bg-muted-foreground/30'}`}>
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${showDiscountOnPrint ? 'bg-blue-600' : 'bg-muted-foreground/30'}`}>
                   <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${showDiscountOnPrint ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
               </div>
@@ -424,7 +424,7 @@ function QuoteForm({
               <label className="text-xs text-muted-foreground">{qt.status}</label>
               <select value={form.status}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
-                className="mt-1 w-full h-9 rounded-lg border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500">
+                className="mt-1 w-full h-9 rounded-lg border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
                 {Object.entries(qt.statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
@@ -444,7 +444,7 @@ function QuoteForm({
             {t.common.cancel}
           </button>
           <button onClick={handleSave} disabled={saving || !form.client_name.trim()}
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            className="flex-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
             {saving ? t.common.saving : t.common.save}
           </button>
         </div>
@@ -476,7 +476,7 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
             <X className="size-4" /> Close
           </button>
           <button onClick={handlePrint}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
             <Printer className="size-4" /> Print / Save PDF
           </button>
         </div>
@@ -727,7 +727,7 @@ export function QuotesPage() {
         </div>
         <button
           onClick={() => setFormQuote('new')}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Plus className="size-4" /> {qt.newQuote}
         </button>
       </div>
@@ -735,14 +735,14 @@ export function QuotesPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : quotes.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
           <ClipboardList className="size-10 opacity-20" />
           <p className="text-sm">{qt.noQuotes}</p>
           <button onClick={() => setFormQuote('new')}
-            className="text-sm text-orange-500 hover:text-orange-400">{qt.newQuote}</button>
+            className="text-sm text-blue-600 hover:text-blue-500">{qt.newQuote}</button>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">

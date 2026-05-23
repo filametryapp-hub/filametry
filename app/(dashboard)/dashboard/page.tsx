@@ -52,8 +52,8 @@ export default function DashboardPage() {
       icon: Calculator,
       title: t.dashboard.pricing,
       description: t.dashboard.pricingDesc,
-      color: 'text-orange-500',
-      bg: 'bg-orange-500/10',
+      color: 'text-blue-600',
+      bg: 'bg-blue-600/10',
     },
     {
       href: '/filamentos',
@@ -84,7 +84,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -98,21 +98,21 @@ export default function DashboardPage() {
 
       {/* Monthly financial summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-blue-600/40 transition-colors group">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="size-4 text-green-400" />
             <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.dashboard.revenue}</p>
           </div>
           <p className="text-xl font-bold text-green-400 group-hover:text-green-300 transition-colors">{fmtCurrency(cashSummary.income)}</p>
         </Link>
-        <Link href="/expenses" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+        <Link href="/expenses" className="rounded-xl border border-border bg-card p-5 hover:border-blue-600/40 transition-colors group">
           <div className="flex items-center gap-2 mb-2">
             <TrendingDown className="size-4 text-red-400" />
             <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.dashboard.expenses}</p>
           </div>
           <p className="text-xl font-bold text-red-400 group-hover:text-red-300 transition-colors">{fmtCurrency(cashSummary.expenses)}</p>
         </Link>
-        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-orange-500/40 transition-colors group">
+        <Link href="/cash-flow" className="rounded-xl border border-border bg-card p-5 hover:border-blue-600/40 transition-colors group">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="size-4" style={{ color: positive ? '#FF6B35' : '#f87171' }} />
             <p className="text-xs text-muted-foreground uppercase tracking-wide">{t.dashboard.balance}</p>
@@ -124,14 +124,14 @@ export default function DashboardPage() {
       {/* Printer usage widget */}
       <Link
         href="/printers"
-        className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 mb-6 hover:border-orange-500/40 transition-colors group"
+        className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 mb-6 hover:border-blue-600/40 transition-colors group"
       >
-        <div className="p-2.5 rounded-lg bg-orange-500/10">
-          <Printer className="size-5 text-orange-500" />
+        <div className="p-2.5 rounded-lg bg-blue-600/10">
+          <Printer className="size-5 text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-sm font-medium group-hover:text-orange-500 transition-colors">
+            <p className="text-sm font-medium group-hover:text-blue-600 transition-colors">
               {t.dashboard.registeredPrinters}
             </p>
             <span className="text-sm font-semibold tabular-nums">
@@ -142,7 +142,7 @@ export default function DashboardPage() {
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-orange-400' : 'bg-orange-500'
+                  pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-blue-500' : 'bg-blue-600'
                 }`}
                 style={{ width: `${pct}%` }}
               />
@@ -156,12 +156,12 @@ export default function DashboardPage() {
           <Link
             key={href}
             href={href}
-            className="group rounded-xl border border-border bg-card p-6 hover:border-orange-500/40 transition-colors"
+            className="group rounded-xl border border-border bg-card p-6 hover:border-blue-600/40 transition-colors"
           >
             <div className={`inline-flex p-2.5 rounded-lg ${bg} mb-4`}>
               <Icon className={`size-5 ${color}`} />
             </div>
-            <h2 className="font-semibold mb-1 group-hover:text-orange-500 transition-colors">{title}</h2>
+            <h2 className="font-semibold mb-1 group-hover:text-blue-600 transition-colors">{title}</h2>
             <p className="text-sm text-muted-foreground">{description}</p>
           </Link>
         ))}

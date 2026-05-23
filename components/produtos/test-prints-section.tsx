@@ -8,7 +8,7 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 
 type TestPrintEntry = { id: string; description: string; amount: number; paid_at: string; notes?: string }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function fmtCurrency(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -118,7 +118,7 @@ export function TestPrintsSection({
             <p className="text-xs text-muted-foreground">
               Custo total: <span className="font-medium text-foreground">{fmtCurrency(totalWaste)}</span>
               {overheadRate > 0 && (
-                <span className="ml-2 text-orange-400">
+                <span className="ml-2 text-blue-500">
                   · Overhead: <span className="font-mono">{fmtCurrency(overheadRate)}/h</span>
                 </span>
               )}
@@ -128,7 +128,7 @@ export function TestPrintsSection({
         {!adding && (
           <button
             onClick={() => setAdding(true)}
-            className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
           >
             <Plus className="size-3.5" /> Registrar teste
           </button>
@@ -236,7 +236,7 @@ export function TestPrintsSection({
         {/* Overhead note */}
         {overheadRate > 0 && (
           <p className="text-[11px] text-muted-foreground/60 flex items-start gap-1 pt-1">
-            <span className="inline-block size-1.5 rounded-full bg-orange-400 shrink-0 mt-1" />
+            <span className="inline-block size-1.5 rounded-full bg-blue-500 shrink-0 mt-1" />
             O overhead é aplicado automaticamente na precificação proporcional às horas de impressão.
           </p>
         )}

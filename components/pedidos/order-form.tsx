@@ -31,7 +31,7 @@ interface Props {
 }
 
 const INPUT_CLS =
-  'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 placeholder:text-muted-foreground'
+  'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-600 placeholder:text-muted-foreground'
 
 const DEFAULT_QTYS = [10, 20, 50, 100, 200]
 
@@ -247,7 +247,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="size-4 text-orange-500" />
+            <FileText className="size-4 text-blue-600" />
             <h2 className="text-lg font-semibold">{isEditing ? 'Editar Orçamento' : 'Novo Orçamento'}</h2>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -260,15 +260,15 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cliente</Label>
             <button type="button" onClick={() => setAddingClient(v => !v)}
-              className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 transition-colors">
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500 transition-colors">
               <UserPlus className="size-3.5" /> Novo cliente
             </button>
           </div>
 
           {/* Inline new client form */}
           {addingClient && (
-            <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-2">
-              <p className="text-xs font-medium text-orange-400">Cadastrar novo cliente</p>
+            <div className="rounded-lg border border-blue-600/30 bg-blue-600/5 p-3 space-y-2">
+              <p className="text-xs font-medium text-blue-500">Cadastrar novo cliente</p>
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder="Nome *" value={newClientName}
                   onChange={e => setNewClientName(e.target.value)}
@@ -283,7 +283,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                   Cancelar
                 </button>
                 <button type="button" onClick={handleCreateClient} disabled={savingClient || !newClientName.trim()}
-                  className="text-xs px-2.5 py-1 rounded bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors">
+                  className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium transition-colors">
                   {savingClient ? 'Salvando…' : 'Salvar cliente'}
                 </button>
               </div>
@@ -329,7 +329,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             <button type="button" onClick={() => setShowTiersTable(v => !v)}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
               {showTiersTable
-                ? <><ToggleRight className="size-4 text-orange-500" /> Tabela de quantidades</>
+                ? <><ToggleRight className="size-4 text-blue-600" /> Tabela de quantidades</>
                 : <><ToggleLeft className="size-4" /> Tabela de quantidades</>}
             </button>
           </div>
@@ -355,13 +355,13 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                           <div className="flex gap-1.5">
                             {products.length > 0 && (
                               <select onChange={e => pickProductForItem(idx, e.target.value)} defaultValue=""
-                                className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 shrink-0">
+                                className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 shrink-0">
                                 <option value="">↓</option>
                                 {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                               </select>
                             )}
                             <input
-                              className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                              className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                               placeholder="Nome do produto"
                               value={item.product_name}
                               onChange={e => updateSimpleItem(idx, { product_name: e.target.value })} />
@@ -369,17 +369,17 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                         </td>
                         <td className="px-2 py-1.5">
                           <input type="number" min={1} step={1}
-                            className="h-8 w-16 rounded border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="h-8 w-16 rounded border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             value={item.qty}
                             onChange={e => updateSimpleItem(idx, { qty: Math.max(1, +e.target.value) })} />
                         </td>
                         <td className="px-2 py-1.5">
                           <input type="number" min={0} step="any"
-                            className="h-8 w-28 rounded border border-input bg-background px-2 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="h-8 w-28 rounded border border-input bg-background px-2 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             value={item.unit_price || ''}
                             onChange={e => updateSimpleItem(idx, { unit_price: parseFloat(e.target.value) || 0 })} />
                         </td>
-                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-orange-500 font-medium">
+                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-blue-600 font-medium">
                           {fmtCurrency(item.qty * item.unit_price)}
                         </td>
                         <td className="px-1 py-1.5 text-center">
@@ -396,7 +396,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                 </table>
               </div>
               <button type="button" onClick={addSimpleItem}
-                className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1 transition-colors">
+                className="text-xs text-blue-600 hover:text-blue-500 flex items-center gap-1 transition-colors">
                 <Plus className="size-3.5" /> Adicionar item
               </button>
             </div>
@@ -408,7 +408,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           {/* Product picker — only needed for tiers mode */}
           {loadingCat ? (
             <div className="flex justify-center py-3">
-              <div className="size-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <div className="size-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <div className="relative">
@@ -429,7 +429,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             <p className="text-[11px] text-muted-foreground">
               Preço base: <span className="font-mono text-foreground">{fmtCurrency(selectedProd.priceUSD)}</span>/un
               {selectedProd.volumePrices?.length
-                ? <span className="ml-2 text-orange-500">· {selectedProd.volumePrices.length} faixas de volume</span>
+                ? <span className="ml-2 text-blue-600">· {selectedProd.volumePrices.length} faixas de volume</span>
                 : null}
             </p>
           )}
@@ -476,11 +476,11 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                         type="number" min={0} step="any"
                         value={tier.unitPrice}
                         onChange={e => updateTierPrice(tier.qty, parseFloat(e.target.value) || 0)}
-                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="h-7 w-full rounded border border-input bg-background px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
 
                       {/* Total */}
-                      <span className="text-xs font-mono text-right text-orange-500 font-medium">
+                      <span className="text-xs font-mono text-right text-blue-600 font-medium">
                         {fmtCurrency(total)}
                       </span>
 
@@ -490,7 +490,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                           type="number" min={0} max={100} step="0.1"
                           value={discountPct > 0 ? parseFloat(discountPct.toFixed(1)) : 0}
                           onChange={e => updateTierDiscount(tier.qty, parseFloat(e.target.value) || 0)}
-                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`h-7 w-full rounded border bg-background pl-2 pr-5 text-xs font-medium text-center focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             discountPct > 0
                               ? 'border-green-500/40 text-green-400'
                               : 'border-input text-muted-foreground'
@@ -521,13 +521,13 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                 onChange={e => setNewQty(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTier() } }}
                 placeholder="Quantidade"
-                className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="h-8 w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button
                 type="button"
                 onClick={addTier}
                 disabled={!newQty}
-                className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-400 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500 disabled:opacity-40 transition-colors"
               >
                 <Plus className="size-3.5" /> Adicionar quantidade
               </button>
@@ -545,7 +545,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                     const unitPrice = resolveUnitPrice(selectedProd.priceUSD, selectedProd.volumePrices, qty)
                     setTiers(prev => [...prev, { qty, unitPrice }].sort((a, b) => a.qty - b.qty))
                   }}
-                  className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-orange-500/50 hover:text-orange-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-blue-600/50 hover:text-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   {qty}
                 </button>
@@ -567,7 +567,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                 type="button"
                 onClick={() => setShowDiscountOnPrint(v => !v)}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
-                  showDiscountOnPrint ? 'bg-orange-500' : 'bg-muted-foreground/30'
+                  showDiscountOnPrint ? 'bg-blue-600' : 'bg-muted-foreground/30'
                 }`}
               >
                 <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${
@@ -601,7 +601,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           <button
             type="submit"
             disabled={showTiersTable ? (!selectedProd || tiers.length === 0) : simpleItems.every(it => !it.product_name.trim())}
-            className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
+            className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
           >
             {isEditing ? 'Salvar Alterações' : 'Salvar Orçamento'}
           </button>

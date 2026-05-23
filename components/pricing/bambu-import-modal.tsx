@@ -108,7 +108,7 @@ export function BambuImportModal({ onSelect, onClose }: Props) {
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-8">
               <p className="font-medium text-red-400">Erro ao carregar histórico</p>
               <p className="text-xs text-muted-foreground font-mono">{(state as { msg: string }).msg}</p>
-              <button onClick={load} className="text-sm text-orange-500 hover:text-orange-600 transition-colors">Tentar novamente</button>
+              <button onClick={load} className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Tentar novamente</button>
             </div>
           )}
 
@@ -131,7 +131,7 @@ export function BambuImportModal({ onSelect, onClose }: Props) {
                   <span className="mt-1 size-2 rounded-full bg-green-500 shrink-0" />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate group-hover:text-orange-500 transition-colors">
+                    <p className="text-sm font-medium truncate group-hover:text-blue-600 transition-colors">
                       {print.title || 'Sem título'}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">

@@ -29,7 +29,7 @@ type PrinterRow = {
 }
 type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function costPerHour(p: PrinterRow) {
   if (!p.purchase_value || !p.lifespan_hours) return 0
@@ -161,8 +161,8 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       {/* Main row */}
       <div className="flex items-center gap-4 px-5 py-4">
-        <div className="p-2.5 rounded-lg bg-orange-500/10 shrink-0">
-          <Printer className="size-4 text-orange-500" />
+        <div className="p-2.5 rounded-lg bg-blue-600/10 shrink-0">
+          <Printer className="size-4 text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm">{printer.name}</p>
@@ -172,7 +172,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
           {(printer.daily_rate ?? 0) > 0 ? (
             <>
-              <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
+              <span className="flex items-center gap-1 text-blue-600 font-mono font-medium">
                 <DollarSign className="size-3" /> {fmtCurrency(printer.daily_rate!)}/dia
               </span>
               <span className="flex items-center gap-1">
@@ -191,7 +191,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                 </span>
               )}
               {cph > 0 && (
-                <span className="flex items-center gap-1 text-orange-500 font-mono font-medium">
+                <span className="flex items-center gap-1 text-blue-600 font-mono font-medium">
                   <TrendingDown className="size-3" /> {fmtCurrency(cph)}/h
                 </span>
               )}
@@ -201,7 +201,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         <div className="flex items-center gap-1">
           <button
             onClick={() => { setEditing(e => !e); setExpanded(true) }}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-orange-400 hover:bg-orange-400/10 transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
             title="Edit printer"
           >
             <Pencil className="size-4" />
@@ -226,12 +226,12 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
         <div className="px-5 pb-5 border-t border-border pt-4 space-y-4">
           {/* Stats grid / Edit form */}
           {editing ? (
-            <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 space-y-3">
-              <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Editar impressora</p>
+            <div className="rounded-lg border border-blue-600/30 bg-blue-600/5 p-4 space-y-3">
+              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Editar impressora</p>
 
               {/* Daily rate — primary pricing input */}
-              <div className="rounded-md bg-orange-500/10 border border-orange-500/20 p-3 space-y-2">
-                <p className="text-[10px] font-semibold text-orange-400 uppercase tracking-wide">
+              <div className="rounded-md bg-blue-600/10 border border-blue-600/20 p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">
                   Diária de máquina
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -249,7 +249,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                   </div>
                 </div>
                 {editForm.daily_rate > 0 && editForm.working_hours_per_day > 0 && (
-                  <p className="text-xs font-mono text-orange-400">
+                  <p className="text-xs font-mono text-blue-500">
                     → taxa efetiva: {fmtCurrency(editForm.daily_rate / editForm.working_hours_per_day)}/h
                     &nbsp;·&nbsp;
                     produto de 8h = {fmtCurrency(8 * editForm.daily_rate / editForm.working_hours_per_day)} de máquina
@@ -291,7 +291,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                   <X className="size-3.5" /> Cancelar
                 </button>
                 <button onClick={handleSaveEdit} disabled={savingEdit}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-medium transition-colors">
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium transition-colors">
                   <Check className="size-3.5" /> {savingEdit ? 'Salvando…' : 'Salvar'}
                 </button>
               </div>
@@ -306,18 +306,18 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                 <p className="text-xs text-muted-foreground mb-1">{eq.lifespan}</p>
                 <p className="text-sm font-semibold">{printer.lifespan_hours.toLocaleString()}h</p>
               </div>
-              <div className="rounded-lg bg-orange-500/10 p-3">
-                <p className="text-xs text-orange-400/80 mb-1">{eq.costPerHour}</p>
-                <p className="text-sm font-semibold text-orange-500">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
+              <div className="rounded-lg bg-blue-600/10 p-3">
+                <p className="text-xs text-blue-500/80 mb-1">{eq.costPerHour}</p>
+                <p className="text-sm font-semibold text-blue-600">{cph > 0 ? fmtCurrency(cph) : '—'}</p>
               </div>
             </div>
           )}
 
           {/* Register purchase as expense (retroactive) */}
           {printer.purchase_value > 0 && !expenseRecorded && (
-            <div className="rounded-lg border border-dashed border-orange-500/30 bg-orange-500/5 px-4 py-3 space-y-2.5">
+            <div className="rounded-lg border border-dashed border-blue-600/30 bg-blue-600/5 px-4 py-3 space-y-2.5">
               <div>
-                <p className="text-xs font-medium text-orange-400">Compra não registrada nas Despesas</p>
+                <p className="text-xs font-medium text-blue-500">Compra não registrada nas Despesas</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {fmtCurrency(printer.purchase_value)} não aparece no Fluxo de Caixa nem na Carteira de despesas. Registre uma vez para corrigir.
                 </p>
@@ -328,8 +328,8 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                     <button key={opt} type="button" onClick={() => setExpensePaidBy(opt)}
                       className={`flex-1 py-1 rounded border text-xs font-medium transition-colors ${
                         expensePaidBy === opt
-                          ? 'border-orange-500 bg-orange-500/20 text-orange-400'
-                          : 'border-border text-muted-foreground hover:border-orange-500/40'
+                          ? 'border-blue-600 bg-blue-600/20 text-blue-500'
+                          : 'border-border text-muted-foreground hover:border-blue-600/40'
                       }`}>
                       {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
                     </button>
@@ -338,7 +338,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                 <button
                   onClick={handleRecordPurchaseExpense}
                   disabled={recordingExpense}
-                  className="flex items-center gap-1.5 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-md transition-colors shrink-0"
+                  className="flex items-center gap-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-md transition-colors shrink-0"
                 >
                   <Receipt className="size-3.5" />
                   {recordingExpense ? 'Registrando…' : 'Registrar agora'}
@@ -358,16 +358,16 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
             <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <BarChart3 className="size-3 text-orange-500" />
+                  <BarChart3 className="size-3 text-blue-600" />
                   {eq.amortProgress}
                 </p>
-                <span className="text-xs font-mono font-semibold text-orange-500">
+                <span className="text-xs font-mono font-semibold text-blue-600">
                   {Math.min(amortPrinter.pct, 100).toFixed(1)}%
                 </span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full bg-orange-500 rounded-full transition-all duration-700"
+                  className="h-full bg-blue-600 rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(amortPrinter.pct, 100)}%` }}
                 />
               </div>
@@ -417,7 +417,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
           {!addingPay ? (
             <button
               onClick={() => setAddingPay(true)}
-              className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
             >
               <Plus className="size-3.5" /> {eq.recordPayment}
             </button>
@@ -449,7 +449,7 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
               <div className="flex gap-2">
                 <button onClick={() => setAddingPay(false)} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors">{t.common.cancel}</button>
                 <button onClick={handleAddPayment} disabled={savingPay}
-                  className="text-xs px-3 py-1.5 rounded-md bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 transition-colors">
+                  className="text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors">
                   {savingPay ? t.common.saving : eq.addPayment}
                 </button>
               </div>
@@ -488,7 +488,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
         <Printer className="size-8 text-muted-foreground mx-auto" />
         <p className="text-sm font-medium">{eq.atLimit}</p>
         <p className="text-xs text-muted-foreground">{eq.upgradeToAdd}</p>
-        <a href="/billing" className="inline-flex items-center gap-1.5 text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors mt-1">
+        <a href="/billing" className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors mt-1">
           <Zap className="size-3" /> {eq.upgradePlan}
         </a>
       </div>
@@ -522,7 +522,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
   if (!open) {
     return (
       <button onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-5 text-sm text-muted-foreground hover:border-orange-500/50 hover:text-orange-500 transition-colors">
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-5 text-sm text-muted-foreground hover:border-blue-600/50 hover:text-blue-600 transition-colors">
         <Plus className="size-4" /> {eq.addPrinter}
       </button>
     )
@@ -555,8 +555,8 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
         </div>
       </div>
 
-      <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-3">
-        <p className="text-xs font-medium text-orange-400">{eq.equipValue}</p>
+      <div className="rounded-lg border border-blue-600/20 bg-blue-600/5 p-3 space-y-3">
+        <p className="text-xs font-medium text-blue-500">{eq.equipValue}</p>
 
         {/* Purchase value */}
         <div>
@@ -572,12 +572,12 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
         <div className="flex gap-2">
           <button type="button"
             onClick={() => setUsePrazo(false)}
-            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${!usePrazo ? 'bg-orange-500 border-orange-500 text-white' : 'border-border text-muted-foreground hover:border-orange-500/50'}`}>
+            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${!usePrazo ? 'bg-blue-600 border-blue-600 text-white' : 'border-border text-muted-foreground hover:border-blue-600/50'}`}>
             Por horas totais
           </button>
           <button type="button"
             onClick={() => { setUsePrazo(true); applyPrazo(paybackMonths, hoursPerDay) }}
-            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${usePrazo ? 'bg-orange-500 border-orange-500 text-white' : 'border-border text-muted-foreground hover:border-orange-500/50'}`}>
+            className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${usePrazo ? 'bg-blue-600 border-blue-600 text-white' : 'border-border text-muted-foreground hover:border-blue-600/50'}`}>
             Por prazo de retorno
           </button>
         </div>
@@ -624,13 +624,13 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
                 />
               </div>
             </div>
-            <div className="rounded-md bg-orange-500/10 px-3 py-2 text-xs space-y-0.5">
+            <div className="rounded-md bg-blue-600/10 px-3 py-2 text-xs space-y-0.5">
               <p className="text-muted-foreground">
                 {paybackMonths} meses × 30 dias × {hoursPerDay}h =
                 <span className="font-semibold text-foreground ml-1">{form.lifespan_hours.toLocaleString()}h totais</span>
               </p>
               {form.purchase_value > 0 && form.lifespan_hours > 0 && (
-                <p className="text-orange-400 font-mono">
+                <p className="text-blue-500 font-mono">
                   → taxa: {fmtCurrency(form.purchase_value / form.lifespan_hours)}/h de impressão
                 </p>
               )}
@@ -640,7 +640,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
 
         {/* Cost per hour preview (for direct mode) */}
         {!usePrazo && form.purchase_value > 0 && form.lifespan_hours > 0 && (
-          <p className="text-xs text-orange-400 font-mono">
+          <p className="text-xs text-blue-500 font-mono">
             → {eq.costPerHour}: {fmtCurrency(form.purchase_value / form.lifespan_hours)}/h
           </p>
         )}
@@ -655,7 +655,7 @@ function AddPrinterForm({ onAdd, atLimit }: { onAdd: (p: PrinterRow) => void; at
       <div className="flex gap-3">
         <button onClick={() => setOpen(false)} className="flex-1 rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
         <button onClick={handleAdd} disabled={saving}
-          className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 transition-colors">
+          className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 transition-colors">
           {saving ? t.common.adding : eq.addPrinter}
         </button>
       </div>
@@ -723,8 +723,8 @@ function RecalculateModal({
           ) : (
             <>
               {/* Machine daily rate */}
-              <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4 space-y-3">
-                <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Diária da máquina</p>
+              <div className="rounded-lg border border-blue-600/20 bg-blue-600/5 p-4 space-y-3">
+                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Diária da máquina</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground">Meta diária ($)</label>
@@ -736,7 +736,7 @@ function RecalculateModal({
                       value={workingHours} onChange={e => setWorkingHours(+e.target.value)} />
                   </div>
                 </div>
-                <div className="rounded-md bg-orange-500/10 px-3 py-2 text-xs font-mono text-orange-400 space-y-0.5">
+                <div className="rounded-md bg-blue-600/10 px-3 py-2 text-xs font-mono text-blue-500 space-y-0.5">
                   <p>Taxa efetiva: <strong>{fmtCurrency(effectiveRate)}/h</strong></p>
                   <p className="text-muted-foreground">
                     Produto de 8h usa {((8 / workingHours) * 100).toFixed(0)}% do dia
@@ -780,7 +780,7 @@ function RecalculateModal({
                   <span className="text-muted-foreground">Máquina (3h × {fmtCurrency(effectiveRate)}/h)</span>
                   <span className="font-mono">{fmtCurrency(previewMachine)}</span>
                 </div>
-                <div className="flex justify-between border-t border-border pt-1 font-semibold text-orange-400">
+                <div className="flex justify-between border-t border-border pt-1 font-semibold text-blue-500">
                   <span>Preço mínimo</span>
                   <span className="font-mono">{fmtCurrency(previewPrice)}</span>
                 </div>
@@ -801,7 +801,7 @@ function RecalculateModal({
           </button>
           {result === null && (
             <button onClick={handleRun} disabled={running || dailyRate <= 0}
-              className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+              className="flex-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
               {running ? 'Recalculando…' : 'Recalcular todos os produtos'}
             </button>
           )}
@@ -863,7 +863,7 @@ export default function PrintersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -878,7 +878,7 @@ export default function PrintersPage() {
         <div className="flex items-center gap-2 shrink-0">
           {printers.length > 0 && (
             <button onClick={() => setShowRecalc(true)}
-              className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-orange-500/50 hover:text-orange-400 transition-colors">
+              className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-blue-600/50 hover:text-blue-500 transition-colors">
               <BarChart3 className="size-3.5" /> Recalculate products
             </button>
           )}
@@ -907,9 +907,9 @@ export default function PrintersPage() {
             <p className="text-xs text-muted-foreground">{eq.printers}</p>
             <p className="text-xl font-bold mt-0.5">{printers.length}</p>
           </div>
-          <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-5 py-4">
-            <p className="text-xs text-orange-400/80">{eq.totalCostHour}</p>
-            <p className="text-xl font-bold mt-0.5 text-orange-500">{fmtCurrency(totalCph)}</p>
+          <div className="rounded-xl border border-blue-600/20 bg-blue-600/5 px-5 py-4">
+            <p className="text-xs text-blue-500/80">{eq.totalCostHour}</p>
+            <p className="text-xl font-bold mt-0.5 text-blue-600">{fmtCurrency(totalCph)}</p>
           </div>
         </div>
       )}

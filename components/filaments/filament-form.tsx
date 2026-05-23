@@ -78,8 +78,8 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                 onClick={() => set('category', cat)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   (form.category ?? 'Filament') === cat
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                    : 'border-border text-muted-foreground hover:border-orange-500/40'
+                    ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                    : 'border-border text-muted-foreground hover:border-blue-600/40'
                 }`}
               >
                 {m.categories[cat]}
@@ -122,7 +122,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                 id="material"
                 value={form.material}
                 onChange={e => set('material', e.target.value)}
-                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {MATERIAL_GROUPS.map(group => (
                   <optgroup key={group.label} label={group.label}>
@@ -139,7 +139,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
             <select
               value={form.unit ?? 'g'}
               onChange={e => set('unit', e.target.value as MaterialUnit)}
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600"
             >
               {UNITS.map(u => <option key={u} value={u}>{m.units[u]}</option>)}
             </select>
@@ -193,7 +193,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
         {form.priceUSD > 0 && form.weightG > 0 && (
           <div className="rounded-lg bg-muted/50 px-4 py-2.5 flex justify-between text-sm">
             <span className="text-muted-foreground">{m.costPreview}</span>
-            <span className="font-mono font-semibold text-orange-500">
+            <span className="font-mono font-semibold text-blue-600">
               {fmtCurrency(form.priceUSD / form.weightG)}/{form.unit ?? 'g'}
             </span>
           </div>
@@ -213,8 +213,8 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                   onClick={() => set('paidBy', opt)}
                   className={`flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors ${
                     (form.paidBy ?? 'company') === opt
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                      : 'border-border text-muted-foreground hover:border-orange-500/40'
+                      ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                      : 'border-border text-muted-foreground hover:border-blue-600/40'
                   }`}
                 >
                   {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
@@ -232,7 +232,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                     <select
                       value={form.paidByName ?? ''}
                       onChange={e => set('paidByName', e.target.value)}
-                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                     >
                       <option value="">Selecionar sócio…</option>
                       {partners.map(p => (
@@ -244,7 +244,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                       value={form.paidByName ?? ''}
                       onChange={e => set('paidByName', e.target.value)}
                       placeholder="Nome do sócio"
-                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                     />
                   )}
                 </div>
@@ -257,7 +257,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
                     step={0.01}
                     value={form.paidByAmount ?? form.priceUSD}
                     onChange={e => set('paidByAmount', parseFloat(e.target.value) || 0)}
-                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                 </div>
               </div>
@@ -279,7 +279,7 @@ export function FilamentForm({ initial, onSave, onClose, saving, partners = [] }
             {t.common.cancel}
           </button>
           <button type="submit" disabled={saving}
-            className="flex-1 rounded-md bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
+            className="flex-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium transition-colors">
             {saving ? t.common.saving : initial ? t.common.save : m.addSpool}
           </button>
         </div>

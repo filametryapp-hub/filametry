@@ -15,7 +15,7 @@ function FilametryMark() {
   return (
     <div className="flex flex-col gap-[3px]">
       {bars.map((b, i) => (
-        <div key={i} className="h-[5px] bg-orange-500 rounded-full" style={{ width: b.w }} />
+        <div key={i} className="h-[5px] bg-blue-600 rounded-full" style={{ width: b.w }} />
       ))}
     </div>
   )
@@ -36,7 +36,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/register"
-            className="text-sm bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors"
+            className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
           >
             Start free trial
           </Link>
@@ -45,7 +45,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-8 py-24">
-        <div className="inline-flex items-center gap-2 text-xs text-orange-500 border border-orange-500/30 bg-orange-500/10 px-3 py-1 rounded-full mb-6 font-mono">
+        <div className="inline-flex items-center gap-2 text-xs text-blue-600 border border-blue-600/30 bg-blue-600/10 px-3 py-1 rounded-full mb-6 font-mono">
           7-day free trial · no credit card required
         </div>
         <h1 className="text-5xl font-bold tracking-tight max-w-2xl mb-4">
@@ -57,7 +57,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/register"
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-md font-medium transition-colors"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
           >
             Get started free <ArrowRight className="size-4" />
           </Link>
@@ -75,8 +75,8 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
           {FEATURES.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-xl border border-border bg-card p-6">
-              <div className="inline-flex p-2 rounded-lg bg-orange-500/10 mb-4">
-                <Icon className="size-5 text-orange-500" />
+              <div className="inline-flex p-2 rounded-lg bg-blue-600/10 mb-4">
+                <Icon className="size-5 text-blue-600" />
               </div>
               <h3 className="font-semibold mb-2">{title}</h3>
               <p className="text-sm text-muted-foreground">{desc}</p>

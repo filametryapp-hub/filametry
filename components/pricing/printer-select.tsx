@@ -80,8 +80,8 @@ export function PrinterSelect({ value, onChange }: Props) {
         onClick={() => setOpen(o => !o)}
         className={cn(
           'w-full flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background text-sm text-left transition-colors',
-          'hover:border-orange-500/50 focus:outline-none focus:border-orange-500',
-          open && 'border-orange-500'
+          'hover:border-blue-600/50 focus:outline-none focus:border-blue-600',
+          open && 'border-blue-600'
         )}
       >
         <Cpu className="size-3.5 text-muted-foreground shrink-0" />
@@ -89,7 +89,7 @@ export function PrinterSelect({ value, onChange }: Props) {
           {selectedLabel ?? 'Select printer…'}
         </span>
         {mySelected?.hourlyRate != null && (
-          <span className="ml-auto text-xs text-orange-400 font-mono">
+          <span className="ml-auto text-xs text-blue-500 font-mono">
             ${mySelected.hourlyRate.toFixed(3)}/h amort.
           </span>
         )}
@@ -114,24 +114,24 @@ export function PrinterSelect({ value, onChange }: Props) {
             {/* My registered printers */}
             {myPrinters.length > 0 && !query && (
               <div>
-                <div className="px-3 py-1.5 text-xs font-semibold text-orange-400 uppercase tracking-wider bg-orange-500/5 sticky top-0">
+                <div className="px-3 py-1.5 text-xs font-semibold text-blue-500 uppercase tracking-wider bg-blue-600/5 sticky top-0">
                   My equipment
                 </div>
                 {myPrinters.map(p => (
                   <button key={p.id} type="button" onClick={() => selectMy(p)}
                     className={cn(
                       'w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors',
-                      p.id === value && 'bg-orange-500/10 text-orange-500'
+                      p.id === value && 'bg-blue-600/10 text-blue-600'
                     )}
                   >
                     <span className="flex items-center gap-2">
-                      <Printer className="size-3.5 text-orange-500 shrink-0" />
+                      <Printer className="size-3.5 text-blue-600 shrink-0" />
                       {p.label}
                     </span>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="font-mono">{p.watts}W</span>
                       {p.hourlyRate != null && (
-                        <span className="text-orange-400 font-mono">${p.hourlyRate.toFixed(3)}/h</span>
+                        <span className="text-blue-500 font-mono">${p.hourlyRate.toFixed(3)}/h</span>
                       )}
                     </div>
                   </button>
@@ -152,7 +152,7 @@ export function PrinterSelect({ value, onChange }: Props) {
                   <button key={printer.id} type="button" onClick={() => selectCatalog(printer)}
                     className={cn(
                       'w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors',
-                      printer.id === value && 'bg-orange-500/10 text-orange-500'
+                      printer.id === value && 'bg-blue-600/10 text-blue-600'
                     )}
                   >
                     <span>{printer.model}</span>

@@ -39,7 +39,7 @@ type Partner = {
   percentage: number
 }
 
-const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground'
+const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -385,7 +385,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -400,8 +400,8 @@ export default function SettingsPage() {
       {/* Preferences */}
       <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-orange-500/10">
-            <DollarSign className="size-4 text-orange-500" />
+          <div className="p-2 rounded-lg bg-blue-600/10">
+            <DollarSign className="size-4 text-blue-600" />
           </div>
           <div>
             <h2 className="font-semibold">{t.settings.preferences}</h2>
@@ -417,8 +417,8 @@ export default function SettingsPage() {
                 onClick={() => setCurrency(c.code as CurrencyCode)}
                 className={`text-sm px-4 py-1.5 rounded-full border transition-colors ${
                   currency === c.code
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-500 font-medium'
-                    : 'border-border text-muted-foreground hover:border-orange-500/40'
+                    ? 'border-blue-600 bg-blue-600/10 text-blue-600 font-medium'
+                    : 'border-border text-muted-foreground hover:border-blue-600/40'
                 }`}
               >
                 {c.label}
@@ -431,8 +431,8 @@ export default function SettingsPage() {
       {/* Company Info */}
       <section className="rounded-2xl border border-border bg-card p-6 space-y-5">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-orange-500/10">
-            <Building2 className="size-4 text-orange-500" />
+          <div className="p-2 rounded-lg bg-blue-600/10">
+            <Building2 className="size-4 text-blue-600" />
           </div>
           <h2 className="font-semibold">Company Info</h2>
         </div>
@@ -481,7 +481,7 @@ export default function SettingsPage() {
             aria-checked={form.is_partnership ?? false}
             onClick={() => set('is_partnership', !form.is_partnership)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              form.is_partnership ? 'bg-orange-500' : 'bg-muted'
+              form.is_partnership ? 'bg-blue-600' : 'bg-muted'
             }`}
           >
             <span className={`inline-block size-3.5 rounded-full bg-white shadow transition-transform ${
@@ -496,7 +496,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
         >
           {saved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
           {saved ? 'Saved!' : saving ? 'Saving…' : 'Save changes'}
@@ -510,8 +510,8 @@ export default function SettingsPage() {
       {form.is_partnership && (
         <section className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-orange-500/10">
-              <Users className="size-4 text-orange-500" />
+            <div className="p-2 rounded-lg bg-blue-600/10">
+              <Users className="size-4 text-blue-600" />
             </div>
             <h2 className="font-semibold">Partners</h2>
           </div>
@@ -525,7 +525,7 @@ export default function SettingsPage() {
                     {p.email && <p className="text-xs text-muted-foreground">{p.email}</p>}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono font-semibold text-orange-500">{p.percentage}%</span>
+                    <span className="text-sm font-mono font-semibold text-blue-600">{p.percentage}%</span>
                     <button
                       onClick={() => handleRemovePartner(p.id)}
                       className="text-muted-foreground hover:text-red-400 transition-colors"
@@ -570,7 +570,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleAddPartner}
                 disabled={addingPartner}
-                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 <Plus className="size-4" />
                 {addingPartner ? 'Adding…' : 'Add'}

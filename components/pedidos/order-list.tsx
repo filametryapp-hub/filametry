@@ -139,7 +139,7 @@ export function OrderList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="size-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -167,7 +167,7 @@ export function OrderList() {
               onClick={() => setFilter(s)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
                 filterStatus === s
-                  ? 'bg-orange-500 border-orange-500 text-white'
+                  ? 'bg-blue-600 border-blue-600 text-white'
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
               }`}
             >
@@ -177,7 +177,7 @@ export function OrderList() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors whitespace-nowrap"
         >
           <Plus className="size-4" /> {or.newOrder}
         </button>
@@ -206,7 +206,7 @@ export function OrderList() {
                     <span className="font-medium text-sm">{order.clientName}</span>
                     <StatusBadge status={order.status} />
                     {order.quoteTiers && order.quoteTiers.length > 0 && (
-                      <span className="flex items-center gap-0.5 text-[10px] text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
+                      <span className="flex items-center gap-0.5 text-[10px] text-blue-600 bg-blue-600/10 px-1.5 py-0.5 rounded-full">
                         <FileText className="size-2.5" /> orçamento
                       </span>
                     )}

@@ -114,8 +114,8 @@ interface Props {
   onClose: () => void
 }
 
-const INPUT = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors placeholder:text-muted-foreground h-9'
-const SELECT_CLS = 'rounded-md border border-border/60 bg-background px-2 py-1 text-xs outline-none focus:border-orange-500 transition-colors h-8 w-full'
+const INPUT = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground h-9'
+const SELECT_CLS = 'rounded-md border border-border/60 bg-background px-2 py-1 text-xs outline-none focus:border-blue-600 transition-colors h-8 w-full'
 
 export function BatchEntryModal({ onSaved, onClose }: Props) {
   const { t, fmtCurrency, currencySymbol } = useT()
@@ -202,8 +202,8 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-orange-500/10">
-              <ShoppingCart className="size-4 text-orange-500" />
+            <div className="p-2 rounded-lg bg-blue-600/10">
+              <ShoppingCart className="size-4 text-blue-600" />
             </div>
             <div>
               <h2 className="font-semibold">Entrada em Lote</h2>
@@ -226,8 +226,8 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                 <button key={cat} type="button" onClick={() => setCategory(cat)}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                     category === cat
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                      : 'border-border text-muted-foreground hover:border-orange-500/40'
+                      ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                      : 'border-border text-muted-foreground hover:border-blue-600/40'
                   }`}>
                   {m.categories[cat]}
                 </button>
@@ -277,7 +277,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                       setItems(prev => prev.map(i => ({ ...i, priceUSD: sharedPrice })))
                     }
                   }}
-                  className="rounded border-border accent-orange-500" />
+                  className="rounded border-border accent-blue-600" />
                 Aplicar mesmo preço a todos
               </label>
             </div>
@@ -291,8 +291,8 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                 <button key={opt} type="button" onClick={() => setPaidBy(opt)}
                   className={`flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors ${
                     paidBy === opt
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                      : 'border-border text-muted-foreground hover:border-orange-500/40'
+                      ? 'border-blue-600 bg-blue-600/10 text-blue-600'
+                      : 'border-border text-muted-foreground hover:border-blue-600/40'
                   }`}>
                   {opt === 'company' ? '🏢 Empresa' : '🤝 Sócio'}
                 </button>
@@ -367,7 +367,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                         style={{ backgroundColor: item.colorHex }}>
                         {/* tiny sparkle when auto-detected */}
                         {guessHex(item.color) === item.colorHex && (
-                          <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-orange-500 border border-background" />
+                          <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-blue-600 border border-background" />
                         )}
                       </span>
                       <input type="color" value={item.colorHex}
@@ -383,7 +383,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                   {/* Weight */}
                   <input
                     type="number" min={1} step={isFilament ? 50 : 1}
-                    className="text-sm text-center rounded-md border border-border/50 bg-background px-2 py-1 outline-none focus:border-orange-500 w-full"
+                    className="text-sm text-center rounded-md border border-border/50 bg-background px-2 py-1 outline-none focus:border-blue-600 w-full"
                     value={item.weightG}
                     onChange={e => updateItem(item.id, 'weightG', +e.target.value)}
                   />
@@ -392,7 +392,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
                   <CurrencyInput
                     value={item.priceUSD}
                     onChange={v => updateItem(item.id, 'priceUSD', v)}
-                    className="text-sm text-center rounded-md border border-border/50 bg-background px-2 py-1 outline-none focus:border-orange-500 w-full h-auto"
+                    className="text-sm text-center rounded-md border border-border/50 bg-background px-2 py-1 outline-none focus:border-blue-600 w-full h-auto"
                   />
 
                   {/* Remove */}
@@ -410,7 +410,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
             <button
               type="button"
               onClick={addItem}
-              className="w-full flex items-center justify-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 border border-dashed border-orange-500/30 hover:border-orange-500/60 rounded-lg py-2 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 border border-dashed border-blue-600/30 hover:border-blue-600/60 rounded-lg py-2 transition-colors"
             >
               <Plus className="size-3.5" />
               Adicionar item
@@ -419,9 +419,9 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
 
           {/* Summary banner */}
           {items.length > 1 && (
-            <div className="rounded-xl bg-orange-500/5 border border-orange-500/20 px-4 py-3 flex items-center justify-between">
+            <div className="rounded-xl bg-blue-600/5 border border-blue-600/20 px-4 py-3 flex items-center justify-between">
               <div className="text-sm">
-                <span className="font-semibold text-orange-500">{items.length} itens</span>
+                <span className="font-semibold text-blue-600">{items.length} itens</span>
                 <span className="text-muted-foreground ml-2">
                   · {brand || '…'} · {items.reduce((s, i) => s + i.weightG, 0).toLocaleString()}{unit} total
                 </span>
@@ -433,7 +433,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Valor total</p>
-                <p className="font-bold text-orange-500">{fmtCurrency(totalCost)}</p>
+                <p className="font-bold text-blue-600">{fmtCurrency(totalCost)}</p>
               </div>
             </div>
           )}
@@ -448,7 +448,7 @@ export function BatchEntryModal({ onSaved, onClose }: Props) {
               {t.common.cancel}
             </button>
             <button onClick={handleSave} disabled={saving}
-              className="flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors flex items-center justify-center gap-2">
+              className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors flex items-center justify-center gap-2">
               {saving
                 ? <><div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Salvando…</>
                 : <><ShoppingCart className="size-4" /> Salvar {items.length} {items.length === 1 ? 'item' : 'itens'}</>}

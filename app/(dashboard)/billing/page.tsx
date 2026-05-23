@@ -30,7 +30,7 @@ async function CheckoutButton({
         type="submit"
         className={`w-full py-2 rounded-md text-sm font-medium transition-colors ${
           highlight
-            ? 'bg-orange-500 hover:bg-orange-600 text-white'
+            ? 'bg-blue-600 hover:bg-blue-700 text-white'
             : 'border border-border hover:bg-muted'
         }`}
       >
@@ -83,7 +83,7 @@ export default async function BillingPage() {
                   'Your trial has ended. Upgrade to continue using Filametry.'
 
   const statusColor =
-    isPaidPlan  ? 'border-orange-500/40 bg-orange-500/5' :
+    isPaidPlan  ? 'border-blue-600/40 bg-blue-600/5' :
     isTrial     ? 'border-blue-500/40 bg-blue-500/5' :
                   'border-red-500/40 bg-red-500/5'
 
@@ -122,12 +122,12 @@ export default async function BillingPage() {
                 key={plan.id}
                 className={`rounded-xl border p-5 space-y-4 relative flex flex-col ${
                   isCurrent
-                    ? 'border-orange-500/60 bg-orange-500/5'
+                    ? 'border-blue-600/60 bg-blue-600/5'
                     : 'border-border bg-card'
                 }`}
               >
                 {isCurrent && (
-                  <span className="absolute top-3 right-3 text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full font-medium">
+                  <span className="absolute top-3 right-3 text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-medium">
                     CURRENT
                   </span>
                 )}
@@ -141,7 +141,7 @@ export default async function BillingPage() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     or ${plan.yearlyPrice}/yr
-                    <span className="text-orange-500 ml-1">save {savings}%</span>
+                    <span className="text-blue-600 ml-1">save {savings}%</span>
                   </p>
                 </div>
 
