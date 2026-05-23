@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Clock, AlertTriangle } from 'lucide-react'
-import type { VolumeTier, LongPrintTier } from '@/lib/product-types'
-import { DEFAULT_LONG_PRINT_TIERS, resolveLongPrintTier } from '@/lib/product-types'
+import { X, Plus, Trash2, Clock } from 'lucide-react'
+import type { VolumeTier } from '@/lib/product-types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MATERIAL_GROUPS } from '@/lib/filament-types'
@@ -24,7 +23,8 @@ type PrinterOption = {
   name: string
   watts: number
   cph: number
-  tiers: LongPrintTier[]
+  dailyRate: number
+  workingHours: number
 }
 
 const BLANK: Omit<Product, 'id' | 'createdAt'> = {
@@ -57,22 +57,14 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
 
   useEffect(() => {
     getUserPrinters().then(rows => {
-      const mapped = (rows ?? []).map((p: Record<string, unknown>) => {
-        const purchaseVal = Number(p.purchase_value ?? 0)
-        const lifespanH  = Number(p.lifespan_hours  ?? 0)
-        const rawTiers   = Array.isArray(p.long_print_tiers)
-          ? (p.long_print_tiers as { min_hours: number; min_margin_pct: number }[]).map(t => ({
-              minHours: t.min_hours, minMarginPct: t.min_margin_pct,
-            }))
-          : DEFAULT_LONG_PRINT_TIERS
-        return {
-          id:    String(p.id),
-          name:  String(p.name),
-          watts: Number(p.watts ?? 120),
-          cph:   purchaseVal > 0 && lifespanH > 0 ? purchaseVal / lifespanH : 0,
-          tiers: rawTiers,
-        }
-      })
+      const mapped = (rows ?? []).map((p: Record<string, unknown>) => ({
+        id:           String(p.id),
+        name:         String(p.name),
+        watts:        Number(p.watts ?? 120),
+        cph:          0,
+        dailyRate:    Number(p.daily_rate ?? 0),
+        workingHours: Number(p.working_hours_per_day ?? 20),
+      }))
       setPrinters(mapped)
       // Auto-select if only one printer and product has none linked
       if (mapped.length === 1 && !form.printerId) {
@@ -99,15 +91,9 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
   const selectedPrinter  = printers.find(p => p.id === form.printerId) ?? null
   const printerCount     = Math.max(1, form.printerCount ?? 1)
   const effectiveHours   = form.printHours / printerCount
-  const hasDailyRate     = (selectedPrinter?.cph ?? 0) > 0 || printers.some(p => p.cph > 0)
-  // For the indicator, use the printer's daily-equivalent rate if available
-  // (We store cph from purchase_value/lifespan_hours but the actual pricing uses daily_rate)
-  const activeTiers      = selectedPrinter?.tiers ?? DEFAULT_LONG_PRINT_TIERS
-  const longPrintTier    = resolveLongPrintTier(effectiveHours, activeTiers)
-  const currentMargin    = form.priceUSD > 0
-    ? (form.priceUSD - form.costUSD) / form.priceUSD * 100
-    : 0
-  const belowMinMargin   = form.priceUSD > 0 && currentMargin < longPrintTier.minMarginPct
+  const machineContrib   = selectedPrinter && selectedPrinter.dailyRate > 0
+    ? effectiveHours * (selectedPrinter.dailyRate / selectedPrinter.workingHours) * printerCount
+    : null
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -291,16 +277,9 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
               </div>
             </div>
 
-            {/* Long-print tier indicator */}
-            <div className={`rounded-md px-3 py-2 text-xs flex items-start gap-2 ${
-              belowMinMargin
-                ? 'bg-orange-500/10 border border-orange-500/30'
-                : 'bg-muted/40'
-            }`}>
-              {belowMinMargin
-                ? <AlertTriangle className="size-3.5 text-orange-400 shrink-0 mt-0.5" />
-                : <Clock className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
-              }
+            {/* Print time indicator */}
+            <div className="rounded-md px-3 py-2 text-xs flex items-start gap-2 bg-muted/40">
+              <Clock className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="space-y-0.5">
                 <p>
                   Tempo efetivo:{' '}
@@ -311,22 +290,15 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
                     </span>
                   )}
                 </p>
-                <p>
-                  Margem mínima para esta tiragem:{' '}
-                  <strong className={belowMinMargin ? 'text-orange-400' : 'text-green-400'}>
-                    {longPrintTier.minMarginPct}%
-                  </strong>
-                  {longPrintTier.minHours > 0 && (
+                {machineContrib !== null && (
+                  <p>
+                    Custo máquina:{' '}
+                    <strong className="text-orange-400">${machineContrib.toFixed(2)}</strong>
                     <span className="text-muted-foreground">
-                      {' '}(≥ {longPrintTier.minHours}h)
+                      {' '}(${selectedPrinter!.dailyRate}/dia · {selectedPrinter!.workingHours}h/dia)
                     </span>
-                  )}
-                  {belowMinMargin && (
-                    <span className="text-orange-400 ml-1">
-                      — atual: {currentMargin.toFixed(0)}%
-                    </span>
-                  )}
-                </p>
+                  </p>
+                )}
               </div>
             </div>
           </div>

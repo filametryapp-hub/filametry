@@ -82,11 +82,6 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
   const { t, fmtCurrency } = useT()
   const eq = t.equipment
   const [expanded, setExpanded] = useState(false)
-  const DEFAULT_TIERS: LongPrintTierRow[] = [
-    { min_hours: 0, min_margin_pct: 30 },
-    { min_hours: 4, min_margin_pct: 45 },
-    { min_hours: 8, min_margin_pct: 60 },
-  ]
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     watts:                printer.watts,
@@ -95,24 +90,17 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
     daily_rate:           printer.daily_rate ?? 0,
     working_hours_per_day: printer.working_hours_per_day ?? 20,
   })
-  const [longPrintTiers, setLongPrintTiers] = useState<LongPrintTierRow[]>(
-    printer.long_print_tiers?.length ? printer.long_print_tiers : DEFAULT_TIERS
-  )
   const [savingEdit, setSavingEdit] = useState(false)
 
   async function handleSaveEdit() {
     setSavingEdit(true)
     try {
-      await updatePrinter(printer.id, {
-        ...editForm,
-        long_print_tiers: longPrintTiers,
-      })
+      await updatePrinter(printer.id, editForm)
       printer.watts                 = editForm.watts
       printer.purchase_value        = editForm.purchase_value
       printer.lifespan_hours        = editForm.lifespan_hours
       printer.daily_rate            = editForm.daily_rate
       printer.working_hours_per_day = editForm.working_hours_per_day
-      printer.long_print_tiers      = longPrintTiers
       setEditing(false)
     } catch { /* silent */ } finally {
       setSavingEdit(false)
@@ -296,45 +284,6 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
                   <span className="text-muted-foreground/50 ml-1">(só para controle de retorno)</span>
                 </p>
               )}
-
-              {/* Long-print margin tiers */}
-              <div className="space-y-1.5 pt-1">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  Multiplicador de tiragem longa
-                </p>
-                <p className="text-[10px] text-muted-foreground/70">
-                  Impressões longas exigem maior margem mínima para compensar a impressora parada o dia todo.
-                </p>
-                <div className="space-y-1">
-                  {longPrintTiers.map((tier, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground w-12 shrink-0">
-                        {i === 0 ? '< ' : '≥ '}{longPrintTiers[i + 1]?.min_hours ?? tier.min_hours}h
-                      </span>
-                      <span className="text-muted-foreground">→ marg. mín.</span>
-                      <input
-                        type="number" min={0} max={99} step={5}
-                        value={tier.min_margin_pct}
-                        onChange={e => setLongPrintTiers(prev =>
-                          prev.map((t, idx) => idx === i ? { ...t, min_margin_pct: +e.target.value } : t)
-                        )}
-                        className="w-16 h-7 rounded border border-input bg-background px-2 text-center text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="text-muted-foreground">%</span>
-                      {i > 0 && (
-                        <input
-                          type="number" min={1} max={24} step={1}
-                          value={tier.min_hours}
-                          onChange={e => setLongPrintTiers(prev =>
-                            prev.map((t, idx) => idx === i ? { ...t, min_hours: +e.target.value } : t)
-                          )}
-                          className="w-14 h-7 rounded border border-input bg-background px-2 text-center text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setEditing(false)}
