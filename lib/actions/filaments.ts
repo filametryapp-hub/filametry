@@ -163,6 +163,17 @@ export async function consumeFilamentG(spoolId: string, grams: number) {
   revalidatePath('/filamentos')
 }
 
+/** Set remaining_g to an exact value (manual stock count / inventory adjustment) */
+export async function setFilamentStock(spoolId: string, actualRemainingG: number) {
+  if (!spoolId || actualRemainingG < 0) return
+  const supabase = await createClient()
+  await supabase
+    .from('filaments')
+    .update({ remaining_g: Math.round(actualRemainingG) })
+    .eq('id', spoolId)
+  revalidatePath('/filamentos')
+}
+
 /** Lightweight list for dropdowns — only id + label fields */
 export async function getFilamentSpools(): Promise<{ id: string; label: string; remaining_g: number }[]> {
   const supabase = await createClient()

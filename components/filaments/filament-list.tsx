@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Layers, Pencil, Trash2, ChevronDown, ChevronUp, Wallet, X } from 'lucide-react'
+import { Plus, Layers, Pencil, Trash2, ChevronDown, ChevronUp, Wallet, X, SlidersHorizontal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FilamentForm } from './filament-form'
 import { BatchEntryModal } from './batch-entry-modal'
-import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment, getPartners } from '@/lib/actions/filaments'
+import { getFilaments, upsertFilament, deleteFilament, addMaterialPayment, deleteMaterialPayment, getPartners, setFilamentStock, consumeFilamentG } from '@/lib/actions/filaments'
 import { useT } from '@/lib/i18n'
 import {
   type FilamentSpool,
@@ -196,6 +196,64 @@ function PaymentPanel({ spool, onRefresh, partners }: { spool: SpoolWithPayments
   )
 }
 
+function StockAdjustPanel({ spool, onDone }: { spool: SpoolWithPayments; onDone: () => void }) {
+  const unit = spool.unit ?? 'g'
+  const [mode, setMode]   = useState<'set' | 'use'>('use')
+  const [value, setValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]     = useState('')
+
+  async function apply() {
+    const n = parseFloat(value)
+    if (isNaN(n) || n < 0) { setErr('Enter a valid number.'); return }
+    setSaving(true); setErr('')
+    try {
+      if (mode === 'set') {
+        if (n > spool.weightG) { setErr(`Max is ${spool.weightG}${unit}.`); setSaving(false); return }
+        await setFilamentStock(spool.id!, n)
+      } else {
+        if (n > spool.remainingG) { setErr(`Only ${spool.remainingG}${unit} remaining.`); setSaving(false); return }
+        await consumeFilamentG(spool.id!, n)
+      }
+      onDone()
+    } catch { setErr('Error saving.') } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="pt-2 border-t border-border space-y-2">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Stock adjustment</p>
+      {/* Mode toggle */}
+      <div className="flex gap-1">
+        {(['use', 'set'] as const).map(m => (
+          <button key={m} onClick={() => { setMode(m); setValue(''); setErr('') }}
+            className={`flex-1 text-[11px] py-1 rounded-md border transition-colors ${mode === m ? 'bg-blue-600 border-blue-600 text-white font-medium' : 'border-border text-muted-foreground hover:border-blue-600/40'}`}>
+            {m === 'use' ? `Consumed (${unit})` : `Actual count (${unit})`}
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        {mode === 'use'
+          ? `How many ${unit} were used in test prints (will be subtracted from ${spool.remainingG}${unit})`
+          : `Enter the actual weight on the spool right now`}
+      </p>
+      <div className="flex gap-2 items-center">
+        <input
+          type="number" min="0" step="0.1"
+          value={value} onChange={e => setValue(e.target.value)}
+          placeholder={mode === 'use' ? `e.g. 25` : `e.g. ${spool.remainingG}`}
+          className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"
+        />
+        <span className="text-xs text-muted-foreground shrink-0">{unit}</span>
+        <button onClick={apply} disabled={saving || !value}
+          className="text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium transition-colors shrink-0">
+          {saving ? '…' : 'Save'}
+        </button>
+      </div>
+      {err && <p className="text-[11px] text-red-400">{err}</p>}
+    </div>
+  )
+}
+
 function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
   spool: SpoolWithPayments
   onEdit: () => void
@@ -206,6 +264,7 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
   const { fmtCurrency } = useT()
   const pct      = remainingPct(spool)
   const [expanded, setExpanded] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
   const totalPaid = spool.material_payments.reduce((s, p) => s + Number(p.amount_paid), 0)
 
   return (
@@ -223,6 +282,13 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => { setAdjusting(v => !v); setExpanded(false) }}
+            title="Adjust stock"
+            className={`p-1.5 rounded-md transition-colors ${adjusting ? 'text-blue-600 bg-blue-600/10' : 'text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10'}`}
+          >
+            <SlidersHorizontal className="size-3.5" />
+          </button>
           <button
             onClick={onEdit}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -266,6 +332,14 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
           <p className="text-sm font-mono font-semibold">{fmtCurrency(remainingValue(spool))}</p>
         </div>
       </div>
+
+      {/* Stock adjustment panel */}
+      {adjusting && (
+        <StockAdjustPanel
+          spool={spool}
+          onDone={() => { setAdjusting(false); onRefresh() }}
+        />
+      )}
 
       {/* Payments toggle */}
       <button
