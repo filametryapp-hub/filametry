@@ -135,8 +135,11 @@ export async function updateOrderStatus(id: string, status: string) {
 
   if (error) throw error
 
-  // When order is completed → auto-create cash flow income entry
+  // When order is completed → cash flow + filament deduction + product stock deduction
   if (status === 'done' && user) {
+    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
+    const companyId = profile?.company_id ?? null
+
     const { data: order } = await supabase
       .from('orders')
       .select('*, order_items(*)')
@@ -144,25 +147,22 @@ export async function updateOrderStatus(id: string, status: string) {
       .single()
 
     if (order) {
+      // ── 1. Cash flow income entry ──────────────────────────────
       const itemsTotal = (order.order_items ?? []).reduce(
         (s: number, i: { quantity: number; unit_price: number }) => s + i.quantity * i.unit_price, 0
       )
-      const discount  = itemsTotal * ((order.discount_pct ?? 0) / 100)
-      const total     = order.total ?? (itemsTotal - discount + (order.shipping ?? 0))
-      const method    = order.payment_method ?? ''
-      const desc      = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}`
+      const discount = itemsTotal * ((order.discount_pct ?? 0) / 100)
+      const total    = order.total ?? (itemsTotal - discount + (order.shipping ?? 0))
+      const method   = order.payment_method ?? ''
+      const desc     = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}`
 
-      // Avoid duplicate cash flow entries for the same order
       const { data: existing } = await supabase
-        .from('cash_flow')
-        .select('id')
-        .eq('reference_id', id)
-        .eq('type', 'income')
-        .maybeSingle()
+        .from('cash_flow').select('id').eq('reference_id', id).eq('type', 'income').maybeSingle()
 
-      if (!existing && total > 0) {
+      if (!existing && total > 0 && companyId) {
         await supabase.from('cash_flow').insert({
           user_id:      user.id,
+          company_id:   companyId,
           type:         'income',
           category:     'order',
           description:  desc,
@@ -171,6 +171,61 @@ export async function updateOrderStatus(id: string, status: string) {
           reference_id: id,
         })
       }
+
+      // ── 2. Filament stock deduction ────────────────────────────
+      // For each item that has a product_id, look up weight_g & material
+      const productIds = (order.order_items ?? [])
+        .filter((i: { product_id?: string | null }) => i.product_id)
+        .map((i: { product_id: string }) => i.product_id)
+
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, weight_g, material')
+          .in('id', productIds)
+
+        // Fetch all spools sorted by remaining (fullest first)
+        const { data: spools } = await supabase
+          .from('filaments')
+          .select('id, material, remaining_g')
+          .order('remaining_g', { ascending: false })
+
+        for (const item of (order.order_items ?? [])) {
+          const itm = item as { product_id?: string | null; quantity: number }
+          if (!itm.product_id) continue
+          const prod = (products ?? []).find((p: { id: string }) => p.id === itm.product_id) as
+            { id: string; weight_g: number; material: string } | undefined
+          if (!prod) continue
+
+          const totalG = prod.weight_g * itm.quantity
+
+          // Find best-matching spool (material contains product material, has enough)
+          const mat = prod.material.toLowerCase().split('/')[0].trim()
+          const spool = (spools ?? []).find((s: { id: string; material: string; remaining_g: number }) =>
+            s.material.toLowerCase().includes(mat) && Number(s.remaining_g) >= totalG
+          ) ?? (spools ?? []).find((s: { id: string; material: string; remaining_g: number }) =>
+            s.material.toLowerCase().includes(mat)
+          )
+
+          if (spool) {
+            const newRemaining = Math.max(0, Number(spool.remaining_g) - totalG)
+            await supabase.from('filaments').update({ remaining_g: newRemaining }).eq('id', spool.id)
+            // Update local cache so next iteration sees updated value
+            ;(spool as { remaining_g: number }).remaining_g = newRemaining
+          }
+        }
+      }
+
+      // ── 3. Product stock deduction ─────────────────────────────
+      for (const item of (order.order_items ?? [])) {
+        const itm = item as { product_id?: string | null; quantity: number }
+        if (!itm.product_id) continue
+        const { data: p } = await supabase.from('products').select('stock_qty').eq('id', itm.product_id).single()
+        if (p) {
+          const newQty = Math.max(0, Number(p.stock_qty ?? 0) - itm.quantity)
+          await supabase.from('products').update({ stock_qty: newQty }).eq('id', itm.product_id)
+        }
+      }
     }
   }
 
@@ -178,6 +233,8 @@ export async function updateOrderStatus(id: string, status: string) {
   revalidatePath('/production')
   revalidatePath('/cash-flow')
   revalidatePath('/dashboard')
+  revalidatePath('/filamentos')
+  revalidatePath('/produtos')
 }
 
 export async function deleteOrder(id: string) {

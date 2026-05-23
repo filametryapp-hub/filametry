@@ -78,6 +78,17 @@ export async function upsertProduct(product: {
   return productId
 }
 
+/** Adjust product stock (positive = add, negative = deduct). Floors at 0. */
+export async function adjustProductStock(id: string, delta: number) {
+  const supabase = await createClient()
+  const { data: p } = await supabase.from('products').select('stock_qty').eq('id', id).single()
+  const current = Number(p?.stock_qty ?? 0)
+  const newQty  = Math.max(0, current + delta)
+  const { error } = await supabase.from('products').update({ stock_qty: newQty }).eq('id', id)
+  if (error) throw error
+  revalidatePath('/produtos')
+}
+
 export async function setProductStatus(id: string, status: 'active' | 'failed' | 'test') {
   const supabase = await createClient()
   const { error } = await supabase.from('products').update({ status }).eq('id', id)

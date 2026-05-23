@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Package, Pencil, Trash2, FlaskConical, XCircle, CheckCircle, Microscope } from 'lucide-react'
 import { ProductForm } from './product-form'
 import { TestPrintsModal } from './test-prints-modal'
-import { getProducts, upsertProduct, deleteProduct, setProductStatus } from '@/lib/actions/products'
+import { getProducts, upsertProduct, deleteProduct, setProductStatus, adjustProductStock } from '@/lib/actions/products'
 import type { Product } from '@/lib/product-types'
 
 // Map DB row (snake_case) → Product (camelCase)
@@ -28,6 +28,7 @@ function fromRow(row: Record<string, unknown>): Product {
         }))
       : undefined,
     productCode:  row.product_code ? String(row.product_code) : undefined,
+    stockQty:     Number(row.stock_qty ?? 0),
     unitsPerRun:  row.units_per_run ? Number(row.units_per_run) : 1,
     batches:      row.batches ? Number(row.batches) : undefined,
     printerId:     row.printer_id    ? String(row.printer_id)    : undefined,
@@ -47,12 +48,13 @@ function margin(cost: number, price: number) {
 
 type FilterStatus = 'all' | 'active' | 'failed' | 'test'
 
-function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus }: {
+function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus, onStockChange }: {
   product: Product
   onEdit: () => void
   onDelete: () => void
   onRegisterTest: () => void
   onToggleStatus: () => void
+  onStockChange: (delta: number) => void
 }) {
   const m      = margin(product.costUSD, product.priceUSD)
   const profit = product.priceUSD - product.costUSD
@@ -157,6 +159,20 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus 
         </div>
         <div className="h-1 rounded-full bg-muted overflow-hidden">
           <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, m)}%` }} />
+        </div>
+      </div>
+
+      {/* Stock */}
+      <div className="shrink-0 text-center min-w-[60px]">
+        <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Estoque</p>
+        <div className="flex items-center gap-1 justify-center">
+          <button onClick={() => onStockChange(-1)} disabled={(product.stockQty ?? 0) <= 0}
+            className="size-5 rounded text-xs font-bold border border-border hover:bg-muted disabled:opacity-30 transition-colors leading-none">−</button>
+          <span className={`text-sm font-mono font-semibold tabular-nums w-6 text-center ${(product.stockQty ?? 0) === 0 ? 'text-muted-foreground' : 'text-foreground'}`}>
+            {product.stockQty ?? 0}
+          </span>
+          <button onClick={() => onStockChange(+1)}
+            className="size-5 rounded text-xs font-bold border border-border hover:bg-muted transition-colors leading-none">+</button>
         </div>
       </div>
 
@@ -417,6 +433,10 @@ export function ProductList() {
               onDelete={() => remove(p.id)}
               onRegisterTest={() => handleRegisterTest(p.name, p.costUSD)}
               onToggleStatus={() => handleToggleStatus(p)}
+              onStockChange={async (delta) => {
+                await adjustProductStock(p.id, delta)
+                setProducts(prev => prev.map(x => x.id === p.id ? { ...x, stockQty: Math.max(0, (x.stockQty ?? 0) + delta) } : x))
+              }}
             />
           ))}
         </div>

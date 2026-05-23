@@ -67,6 +67,7 @@ export interface Product {
   printerCount?: number           // how many printers run in parallel (default 1)
   platesPerUnit?: boolean         // true = N chapas needed to make 1 unit (large multi-part prints)
   consumables?: ProductConsumable[] // post-processing materials (varnish, sandpaper, etc.)
+  stockQty?: number               // units currently in finished-goods stock
 }
 
 export interface OrderItem {
