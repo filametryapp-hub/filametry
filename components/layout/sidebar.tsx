@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, ClipboardList, FileText, Layers, Package,
   Printer, History, Kanban, Users, CreditCard, Plug, LogOut, Globe, Calculator,
+  TrendingDown, UserRound, Truck, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -111,7 +112,11 @@ export function Sidebar() {
     { href: '/filamentos',    label: t.nav.materials,     icon: Layers },
     { href: '/produtos',      label: t.nav.products,      icon: Package },
     { href: '/printers',      label: t.nav.equipment,     icon: Printer,        badge: printerBadge },
+    { href: '/clients',       label: t.nav.clients,       icon: UserRound },
+    { href: '/suppliers',     label: t.nav.suppliers,     icon: Truck },
+    { href: '/expenses',      label: t.nav.expenses,      icon: TrendingDown },
     { href: '/cash-flow',     label: t.nav.cashFlow,      icon: History },
+    { href: '/wallet',        label: t.nav.wallet,        icon: Wallet },
   ]
 
   const SETTINGS: NavItem[] = [
