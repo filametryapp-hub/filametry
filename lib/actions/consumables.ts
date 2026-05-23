@@ -8,6 +8,7 @@ export type ConsumableRow = {
   name: string
   unit: string
   cost_per_unit: number
+  quantity: number
   notes?: string | null
   code?: string | null
   created_at: string
@@ -36,6 +37,7 @@ export async function addConsumable(input: {
   name: string
   unit: string
   cost_per_unit: number
+  quantity?: number
   notes?: string
 }): Promise<ConsumableRow> {
   const supabase = await createClient()
@@ -67,6 +69,7 @@ export async function updateConsumable(id: string, input: {
   name?: string
   unit?: string
   cost_per_unit?: number
+  quantity?: number
   notes?: string
 }): Promise<void> {
   const supabase = await createClient()

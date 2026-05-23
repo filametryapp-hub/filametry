@@ -9,13 +9,23 @@ import { useT } from '@/lib/i18n'
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 const COMMON_UNITS = ['ml', 'g', 'folha', 'un', 'cm', 'm', 'dose']
 
+type FormState = { name: string; unit: string; cost_per_unit: number; quantity: number; notes: string }
+
+const EMPTY_FORM: FormState = { name: '', unit: 'ml', cost_per_unit: 0, quantity: 0, notes: '' }
+
+function stockColor(qty: number) {
+  if (qty <= 0)  return 'text-red-400'
+  if (qty <= 5)  return 'text-yellow-500'
+  return 'text-green-500'
+}
+
 export function ConsumablesSection() {
   const { fmtCurrency } = useT()
   const [items, setItems]   = useState<ConsumableRow[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding]   = useState(false)
   const [editId, setEditId]   = useState<string | null>(null)
-  const [form, setForm]       = useState({ name: '', unit: 'ml', cost_per_unit: 0, notes: '' })
+  const [form, setForm]       = useState<FormState>(EMPTY_FORM)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
 
@@ -23,14 +33,20 @@ export function ConsumablesSection() {
     getConsumables().then(setItems).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  function resetForm() { setForm({ name: '', unit: 'ml', cost_per_unit: 0, notes: '' }); setError('') }
+  function resetForm() { setForm(EMPTY_FORM); setError('') }
 
   async function handleAdd() {
     if (!form.name.trim()) { setError('Nome obrigatório.'); return }
     if (form.cost_per_unit <= 0) { setError('Custo deve ser > 0.'); return }
     setSaving(true); setError('')
     try {
-      const created = await addConsumable({ name: form.name.trim(), unit: form.unit, cost_per_unit: form.cost_per_unit, notes: form.notes.trim() || undefined })
+      const created = await addConsumable({
+        name: form.name.trim(),
+        unit: form.unit,
+        cost_per_unit: form.cost_per_unit,
+        quantity: form.quantity,
+        notes: form.notes.trim() || undefined,
+      })
       setItems(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
       resetForm(); setAdding(false)
     } catch (e) { setError(e instanceof Error ? e.message : 'Erro ao salvar.')
@@ -41,8 +57,19 @@ export function ConsumablesSection() {
     if (!form.name.trim()) { setError('Nome obrigatório.'); return }
     setSaving(true); setError('')
     try {
-      await updateConsumable(id, { name: form.name.trim(), unit: form.unit, cost_per_unit: form.cost_per_unit, notes: form.notes.trim() || undefined })
-      setItems(prev => prev.map(i => i.id === id ? { ...i, name: form.name.trim(), unit: form.unit, cost_per_unit: form.cost_per_unit, notes: form.notes || null } : i).sort((a, b) => a.name.localeCompare(b.name)))
+      await updateConsumable(id, {
+        name: form.name.trim(),
+        unit: form.unit,
+        cost_per_unit: form.cost_per_unit,
+        quantity: form.quantity,
+        notes: form.notes.trim() || undefined,
+      })
+      setItems(prev =>
+        prev.map(i => i.id === id
+          ? { ...i, name: form.name.trim(), unit: form.unit, cost_per_unit: form.cost_per_unit, quantity: form.quantity, notes: form.notes || null }
+          : i
+        ).sort((a, b) => a.name.localeCompare(b.name))
+      )
       setEditId(null); resetForm()
     } catch (e) { setError(e instanceof Error ? e.message : 'Erro ao salvar.')
     } finally { setSaving(false) }
@@ -55,7 +82,7 @@ export function ConsumablesSection() {
 
   function startEdit(item: ConsumableRow) {
     setEditId(item.id)
-    setForm({ name: item.name, unit: item.unit, cost_per_unit: item.cost_per_unit, notes: item.notes ?? '' })
+    setForm({ name: item.name, unit: item.unit, cost_per_unit: item.cost_per_unit, quantity: item.quantity ?? 0, notes: item.notes ?? '' })
     setAdding(false)
   }
 
@@ -118,11 +145,23 @@ export function ConsumablesSection() {
                     </div>
                     {item.notes && <p className="text-xs text-muted-foreground truncate">{item.notes}</p>}
                   </div>
+
+                  {/* Stock quantity */}
+                  <div className="text-right shrink-0 min-w-[64px]">
+                    <p className={`text-sm font-mono font-semibold tabular-nums ${stockColor(item.quantity ?? 0)}`}>
+                      {item.quantity ?? 0}
+                      <span className="text-muted-foreground font-normal text-xs"> {item.unit}</span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">em estoque</p>
+                  </div>
+
+                  {/* Cost */}
                   <div className="text-right shrink-0">
                     <p className="text-sm font-mono font-semibold text-blue-600">
                       {fmtCurrency(item.cost_per_unit)}<span className="text-muted-foreground font-normal text-xs">/{item.unit}</span>
                     </p>
                   </div>
+
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => startEdit(item)}
                       className="p-1.5 rounded-md text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-all">
@@ -150,8 +189,8 @@ export function ConsumablesSection() {
 }
 
 function ConsumableForm({ form, setForm, error, saving, onSave, onCancel, title }: {
-  form: { name: string; unit: string; cost_per_unit: number; notes: string }
-  setForm: React.Dispatch<React.SetStateAction<typeof form>>
+  form: FormState
+  setForm: React.Dispatch<React.SetStateAction<FormState>>
   error: string; saving: boolean; onSave: () => void; onCancel: () => void; title: string
 }) {
   return (
@@ -184,6 +223,16 @@ function ConsumableForm({ form, setForm, error, saving, onSave, onCancel, title 
         <div>
           <label className="text-xs text-muted-foreground">Custo por {form.unit} *</label>
           <CurrencyInput value={form.cost_per_unit} onChange={v => setForm(f => ({ ...f, cost_per_unit: v }))} className={INPUT + ' mt-1'} />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Quantidade em estoque</label>
+          <input
+            type="number" min="0" step="1"
+            className={INPUT + ' mt-1'}
+            value={form.quantity || ''}
+            onChange={e => setForm(f => ({ ...f, quantity: Math.max(0, Number(e.target.value) || 0) }))}
+            placeholder="0"
+          />
         </div>
         <div className="col-span-2">
           <label className="text-xs text-muted-foreground">Observações (opcional)</label>
