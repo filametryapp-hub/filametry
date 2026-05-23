@@ -26,6 +26,7 @@ type PrinterRow = {
   long_print_tiers?: LongPrintTierRow[] | null
   daily_rate?: number
   working_hours_per_day?: number
+  code?: string | null
 }
 type AmortPrinter = { id: string; amortizedValue: number; remaining: number; pct: number }
 
@@ -165,7 +166,14 @@ function PrinterCard({ printer, partners, amortPrinter, onDelete, onPaymentAdded
           <Printer className="size-4 text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">{printer.name}</p>
+          <div className="flex items-center gap-1.5">
+            {printer.code && (
+              <span className="text-[10px] font-mono font-semibold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded shrink-0">
+                {printer.code}
+              </span>
+            )}
+            <p className="font-semibold text-sm">{printer.name}</p>
+          </div>
           <p className="text-xs text-muted-foreground">{printer.brand} {printer.model} · {printer.watts}W</p>
         </div>
         {/* Quick stats */}

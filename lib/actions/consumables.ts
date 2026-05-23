@@ -9,6 +9,7 @@ export type ConsumableRow = {
   unit: string
   cost_per_unit: number
   notes?: string | null
+  code?: string | null
   created_at: string
 }
 
@@ -41,9 +42,20 @@ export async function addConsumable(input: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  // Auto-generate code
+  const { data: last } = await supabase
+    .from('consumables')
+    .select('code')
+    .not('code', 'is', null)
+    .order('code', { ascending: false })
+    .limit(1)
+    .single()
+  const lastNum = last?.code ? parseInt(last.code.replace('PP-', ''), 10) : 0
+  const code = `PP-${String((isNaN(lastNum) ? 0 : lastNum) + 1).padStart(3, '0')}`
+
   const { data, error } = await supabase
     .from('consumables')
-    .insert({ ...input, user_id: user.id })
+    .insert({ ...input, code, user_id: user.id })
     .select()
     .single()
   if (error) throw error

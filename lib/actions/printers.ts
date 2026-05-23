@@ -19,6 +19,7 @@ export type PrinterData = {
   long_print_tiers?: { min_hours: number; min_margin_pct: number }[] | null
   daily_rate?: number            // target revenue from this printer per active day ($)
   working_hours_per_day?: number // how many hours the printer runs per day (default 20)
+  code?: string
 }
 
 export async function getUserPrinters() {
@@ -70,9 +71,23 @@ export async function addPrinter(data: PrinterData) {
     )
   }
 
+  // Auto-generate code for new printers
+  let code = data.code
+  if (!code) {
+    const { data: last } = await supabase
+      .from('user_printers')
+      .select('code')
+      .not('code', 'is', null)
+      .order('code', { ascending: false })
+      .limit(1)
+      .single()
+    const lastNum = last?.code ? parseInt(last.code.replace('EQ-', ''), 10) : 0
+    code = `EQ-${String((isNaN(lastNum) ? 0 : lastNum) + 1).padStart(3, '0')}`
+  }
+
   const { data: printer, error } = await supabase
     .from('user_printers')
-    .insert({ ...data, user_id: user.id })
+    .insert({ ...data, code, user_id: user.id })
     .select()
     .single()
 

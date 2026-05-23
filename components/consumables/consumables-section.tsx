@@ -108,7 +108,14 @@ export function ConsumablesSection() {
                     <FlaskConical className="size-3.5 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{item.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      {item.code && (
+                        <span className="text-[10px] font-mono font-semibold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded shrink-0">
+                          {item.code}
+                        </span>
+                      )}
+                      <p className="text-sm font-medium">{item.name}</p>
+                    </div>
                     {item.notes && <p className="text-xs text-muted-foreground truncate">{item.notes}</p>}
                   </div>
                   <div className="text-right shrink-0">

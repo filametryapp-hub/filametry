@@ -38,6 +38,7 @@ export async function upsertFilament(filament: {
   category?: string
   unit?: string
   paid_by?: string
+  code?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -45,11 +46,25 @@ export async function upsertFilament(filament: {
 
   const isNew = !filament.id || filament.id === ''
 
+  // Auto-generate code for new filaments
+  let code = filament.code
+  if (isNew && !code) {
+    const { data: last } = await supabase
+      .from('filaments')
+      .select('code')
+      .not('code', 'is', null)
+      .order('code', { ascending: false })
+      .limit(1)
+      .single()
+    const lastNum = last?.code ? parseInt(last.code.replace('FIL-', ''), 10) : 0
+    code = `FIL-${String((isNaN(lastNum) ? 0 : lastNum) + 1).padStart(3, '0')}`
+  }
+
   // paid_by is not a filament column — exclude from DB insert
   const { paid_by, ...filamentRow } = filament
   const { error } = await supabase
     .from('filaments')
-    .upsert({ ...filamentRow, user_id: user.id }, { onConflict: 'id' })
+    .upsert({ ...filamentRow, code, user_id: user.id }, { onConflict: 'id' })
 
   if (error) throw error
 

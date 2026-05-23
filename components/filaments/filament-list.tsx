@@ -26,6 +26,7 @@ type MaterialPayment = {
 type SpoolWithPayments = FilamentSpool & {
   material_payments: MaterialPayment[]
   price_usd_raw: number
+  code?: string
 }
 
 // Map DB row (snake_case) → SpoolWithPayments
@@ -44,6 +45,7 @@ function fromRow(row: Record<string, unknown>): SpoolWithPayments {
     notes:         row.notes ? String(row.notes) : undefined,
     category:      (row.category as MaterialCategory) ?? 'Filament',
     unit:          (row.unit as import('@/lib/filament-types').MaterialUnit) ?? 'g',
+    code:          row.code ? String(row.code) : undefined,
     material_payments: Array.isArray(row.material_payments)
       ? (row.material_payments as MaterialPayment[])
       : [],
@@ -277,7 +279,14 @@ function SpoolCard({ spool, onEdit, onDelete, onRefresh, partners }: {
             style={{ backgroundColor: spool.colorHex }}
           />
           <div>
-            <p className="font-semibold text-sm leading-tight">{spool.brand}</p>
+            <div className="flex items-center gap-1.5">
+              {spool.code && (
+                <span className="text-[10px] font-mono font-semibold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded shrink-0">
+                  {spool.code}
+                </span>
+              )}
+              <p className="font-semibold text-sm leading-tight">{spool.brand}</p>
+            </div>
             <p className="text-xs text-muted-foreground">{spool.color}</p>
           </div>
         </div>
