@@ -22,7 +22,8 @@ const en = {
     equipment: 'Equipment', consumables: 'Consumables', products: 'Products', orders: 'Orders',
     quotes: 'Quotes', production: 'Production',
     clients: 'Clients', suppliers: 'Suppliers', expenses: 'Expenses',
-    cashFlow: 'Cash Flow', wallet: 'Wallet', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
+    cashFlow: 'History', wallet: 'Wallet', settings: 'Settings', billing: 'Billing', signOut: 'Sign out',
+    team: 'Team', integrations: 'Integrations',
   },
   common: {
     save: 'Save changes', saving: 'Saving…', saved: 'Saved!',
@@ -290,7 +291,8 @@ const pt: typeof en = {
     equipment: 'Equipamentos', consumables: 'Consumíveis', products: 'Produtos', orders: 'Pedidos',
     quotes: 'Orçamentos', production: 'Produção',
     clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Despesas',
-    cashFlow: 'Fluxo de Caixa', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
+    cashFlow: 'Histórico', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
+    team: 'Equipe', integrations: 'Integrações',
   },
   common: {
     save: 'Salvar alterações', saving: 'Salvando…', saved: 'Salvo!',
@@ -558,7 +560,8 @@ const es: typeof en = {
     equipment: 'Equipos', consumables: 'Consumibles', products: 'Productos', orders: 'Pedidos',
     quotes: 'Presupuestos', production: 'Producción',
     clients: 'Clientes', suppliers: 'Proveedores', expenses: 'Gastos',
-    cashFlow: 'Flujo de Caja', wallet: 'Billetera', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',
+    cashFlow: 'Historial', wallet: 'Billetera', settings: 'Configuración', billing: 'Plan', signOut: 'Cerrar sesión',
+    team: 'Equipo', integrations: 'Integraciones',
   },
   common: {
     save: 'Guardar cambios', saving: 'Guardando…', saved: '¡Guardado!',
