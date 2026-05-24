@@ -59,26 +59,31 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   // Print option — pre-fill from initial
   const [showDiscountOnPrint, setShowDiscountOnPrint] = useState(initial?.showDiscountOnPrint ?? false)
 
-  // Toggle quantity table visibility — disabled by default
-  const [showTiersTable, setShowTiersTable] = useState(false)
+  // Toggle quantity table visibility — start in tiers mode if editing a quote order
+  const [showTiersTable, setShowTiersTable] = useState(
+    Boolean(initial?.quoteTiers && initial.quoteTiers.length > 0)
+  )
 
-  // Simple items list (used when tiers table is disabled)
-  const [simpleItems, setSimpleItems] = useState<{ product_name: string; qty: number; unit_price: number }[]>(
-    [{ product_name: '', qty: 1, unit_price: 0 }]
+  // Simple items list — pre-fill from existing items when editing
+  const [simpleItems, setSimpleItems] = useState<{ product_id: string; product_name: string; qty: number; unit_price: number }[]>(
+    initial?.items && initial.items.length > 0
+      ? initial.items.map(i => ({ product_id: i.productId ?? '', product_name: i.productName, qty: i.quantity, unit_price: i.unitPrice }))
+      : [{ product_id: '', product_name: '', qty: 1, unit_price: 0 }]
   )
 
   function addSimpleItem() {
-    setSimpleItems(prev => [...prev, { product_name: selectedProd?.name ?? '', qty: 1, unit_price: selectedProd?.priceUSD ?? 0 }])
+    setSimpleItems(prev => [...prev, { product_id: '', product_name: '', qty: 1, unit_price: 0 }])
   }
   function removeSimpleItem(idx: number) {
     setSimpleItems(prev => prev.filter((_, i) => i !== idx))
   }
-  function updateSimpleItem(idx: number, patch: Partial<{ product_name: string; qty: number; unit_price: number }>) {
+  function updateSimpleItem(idx: number, patch: Partial<{ product_id: string; product_name: string; qty: number; unit_price: number }>) {
     setSimpleItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it))
   }
   function pickProductForItem(idx: number, productId: string) {
     const p = products.find(pr => pr.id === productId)
-    if (p) updateSimpleItem(idx, { product_name: p.name, unit_price: p.priceUSD })
+    if (p) updateSimpleItem(idx, { product_id: p.id, product_name: p.name, unit_price: p.priceUSD })
+    else updateSimpleItem(idx, { product_id: '', product_name: '' })
   }
 
   // Inline new client form
@@ -202,7 +207,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
         notes:       notes || undefined,
         tip:         tip || undefined,
         items: validItems.map(it => ({
-          productId:   '',
+          productId:   it.product_id || '',
           productName: it.product_name,
           quantity:    it.qty,
           unitPrice:   it.unit_price,
@@ -251,7 +256,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="size-4 text-blue-600" />
-            <h2 className="text-lg font-semibold">{isEditing ? 'Editar Orçamento' : 'Novo Orçamento'}</h2>
+            <h2 className="text-lg font-semibold">{isEditing ? 'Editar Pedido' : 'Novo Pedido'}</h2>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="size-5" />
@@ -357,7 +362,9 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                         <td className="px-2 py-1.5">
                           <div className="flex gap-1.5">
                             {products.length > 0 && (
-                              <select onChange={e => pickProductForItem(idx, e.target.value)} defaultValue=""
+                              <select
+                                value={item.product_id || ''}
+                                onChange={e => pickProductForItem(idx, e.target.value)}
                                 className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 shrink-0">
                                 <option value="">↓</option>
                                 {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -622,7 +629,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             disabled={showTiersTable ? (!selectedProd || tiers.length === 0) : simpleItems.every(it => !it.product_name.trim())}
             className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2.5 text-sm font-medium transition-colors"
           >
-            {isEditing ? 'Salvar Alterações' : 'Salvar Orçamento'}
+            {isEditing ? 'Salvar Alterações' : 'Criar Pedido'}
           </button>
         </div>
       </form>
