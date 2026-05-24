@@ -198,22 +198,38 @@ export async function updateOrderStatus(id: string, status: string) {
       const tip         = Number(order.tip ?? 0)
       const total       = baseTotal + tip
       const method      = order.payment_method ?? ''
-      const desc        = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}${tip > 0 ? ' · +tip' : ''}`
+      const desc        = `${order.client_name}${method ? ` · ${method}` : ''}${tip > 0 ? ' · +gorjeta' : ''}`
 
-      const { data: existing } = await supabase
-        .from('cash_flow').select('id').eq('reference_id', id).eq('type', 'income').maybeSingle()
+      console.log('[updateOrderStatus] total:', total, 'items:', order.order_items?.length, 'baseTotal:', baseTotal, 'tip:', tip)
+
+      // Check for existing entry by user_id (works even without reference_id column)
+      const { data: existingByRef } = await supabase
+        .from('cash_flow').select('id').eq('user_id', user.id).eq('reference_id', id).eq('type', 'income').maybeSingle()
+
+      // Fallback: also check by description if reference_id column doesn't exist
+      const { data: existingByDesc } = existingByRef ? { data: null } : await supabase
+        .from('cash_flow').select('id').eq('user_id', user.id).eq('description', desc).eq('type', 'income').maybeSingle()
+
+      const existing = existingByRef ?? existingByDesc
 
       if (!existing && total > 0) {
-        await supabase.from('cash_flow').insert({
-          user_id:      user.id,
-          company_id:   companyId ?? null,
-          type:         'income',
-          category:     'order',
-          description:  desc,
-          amount:       parseFloat(total.toFixed(2)),
-          date:         new Date().toISOString().slice(0, 10),
-          reference_id: id,
-        })
+        const insertPayload: Record<string, unknown> = {
+          user_id:     user.id,
+          type:        'income',
+          category:    'order',
+          description: desc,
+          amount:      parseFloat(total.toFixed(2)),
+          date:        new Date().toISOString().slice(0, 10),
+        }
+        // Include optional columns only if they exist (graceful)
+        if (companyId) insertPayload.company_id = companyId
+        try { insertPayload.reference_id = id } catch { /* column may not exist */ }
+
+        const { error: cfError } = await supabase.from('cash_flow').insert(insertPayload)
+        if (cfError) console.error('[updateOrderStatus] cash_flow insert error:', cfError)
+        else console.log('[updateOrderStatus] cash_flow entry created ✓')
+      } else {
+        console.log('[updateOrderStatus] cash_flow entry already exists or total=0, skipping')
       }
 
       // ── 2. Filament stock deduction ────────────────────────────
@@ -221,6 +237,8 @@ export async function updateOrderStatus(id: string, status: string) {
       const productIds = (order.order_items ?? [])
         .filter((i: { product_id?: string | null }) => i.product_id)
         .map((i: { product_id: string }) => i.product_id)
+
+      console.log('[updateOrderStatus] items with product_id:', productIds.length, 'of', order.order_items?.length)
 
       if (productIds.length > 0) {
         const { data: products } = await supabase

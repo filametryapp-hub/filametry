@@ -212,22 +212,22 @@ export default function DashboardPage() {
         ) : (
           <>
             <KpiCard
-              label="Revenue (this month)"
+              label={t.dashboard.revenue}
               value={fmtCurrency(data.monthlyRevenue)}
               href="/cash-flow"
             />
             <KpiCard
-              label="Active orders"
+              label={t.dashboard.activeOrders}
               value={String(data.activeOrders)}
               href="/pedidos"
             />
             <KpiCard
-              label="Expenses (this month)"
+              label={t.dashboard.expenses}
               value={fmtCurrency(data.monthlyExpenses)}
               href="/cash-flow"
             />
             <KpiCard
-              label="Filament spent"
+              label={t.dashboard.filamentSpent}
               value={fmtWeight(data.filamentSpentKg)}
               href="/filamentos"
             />
@@ -241,15 +241,15 @@ export default function DashboardPage() {
         {/* Revenue chart */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[13px] font-semibold">Revenue · last 30 days</p>
+            <p className="text-[13px] font-semibold">{t.dashboard.revenueChart}</p>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="inline-block size-2 rounded-full bg-[#2f5fff]" />
-                Revenue
+                {t.dashboard.revenueLegend}
               </span>
               <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="inline-block w-4 h-0.5 border-b border-dashed border-[#9ca0a8]" />
-                Cost
+                {t.dashboard.costLegend}
               </span>
             </div>
           </div>
@@ -265,9 +265,9 @@ export default function DashboardPage() {
         {/* Filament stock */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[13px] font-semibold">Filament stock</p>
+            <p className="text-[13px] font-semibold">{t.dashboard.filamentStock}</p>
             <Link href="/filamentos" className="text-[11px] text-[#2f5fff] hover:underline flex items-center gap-0.5">
-              All <ArrowUpRight className="size-3" />
+              {t.dashboard.viewAll} <ArrowUpRight className="size-3" />
             </Link>
           </div>
 
@@ -276,7 +276,7 @@ export default function DashboardPage() {
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
             </div>
           ) : data.filamentStock.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-8">No filament registered</p>
+            <p className="text-xs text-muted-foreground text-center py-8">{t.dashboard.noFilament}</p>
           ) : (
             <div className="space-y-3">
               {data.filamentStock.map((f, i) => {
@@ -312,9 +312,9 @@ export default function DashboardPage() {
       {/* Recent orders */}
       <div className="rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <p className="text-[13px] font-semibold">Recent orders</p>
+          <p className="text-[13px] font-semibold">{t.dashboard.recentOrders}</p>
           <Link href="/pedidos" className="text-[11px] text-[#2f5fff] hover:underline flex items-center gap-0.5">
-            View all <ArrowUpRight className="size-3" />
+            {t.dashboard.viewAll} <ArrowUpRight className="size-3" />
           </Link>
         </div>
 
@@ -331,7 +331,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : data.recentOrders.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-10">No orders yet</p>
+          <p className="text-xs text-muted-foreground text-center py-10">{t.dashboard.noOrders}</p>
         ) : (
           <div className="divide-y divide-border">
             {data.recentOrders.map(order => (

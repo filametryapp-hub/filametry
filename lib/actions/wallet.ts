@@ -159,10 +159,8 @@ export async function getCompanyWalletSummary() {
   const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
   const companyId = profile?.company_id ?? null
 
-  // Query cash_flow by company_id if available, else by user_id
-  const cfQuery = companyId
-    ? supabase.from('cash_flow').select('type, amount').eq('company_id', companyId)
-    : supabase.from('cash_flow').select('type, amount').eq('user_id', user.id)
+  // Always query cash_flow by user_id for reliability
+  const cfQuery = supabase.from('cash_flow').select('type, amount').eq('user_id', user.id)
 
   const { data: cf } = await cfQuery
   let totalRevenue = 0, totalExpenses = 0
@@ -181,9 +179,7 @@ export async function getCompanyWalletSummary() {
   // Monthly revenue avg (last 3 months)
   const now = new Date()
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().slice(0, 10)
-  const recentQuery = companyId
-    ? supabase.from('cash_flow').select('amount').eq('company_id', companyId).eq('type', 'income').gte('date', threeMonthsAgo)
-    : supabase.from('cash_flow').select('amount').eq('user_id', user.id).eq('type', 'income').gte('date', threeMonthsAgo)
+  const recentQuery = supabase.from('cash_flow').select('amount').eq('user_id', user.id).eq('type', 'income').gte('date', threeMonthsAgo)
   const { data: recent } = await recentQuery
   const avgMonthlyRevenue = (recent ?? []).reduce((s: number, e: { amount: number }) => s + Number(e.amount), 0) / 3
 

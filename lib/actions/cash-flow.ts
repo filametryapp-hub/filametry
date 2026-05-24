@@ -17,8 +17,6 @@ export async function getCashFlow(month?: number, year?: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const companyId = await getCompanyId(supabase, user.id)
-
   const now = new Date()
   const m = month ?? now.getMonth() + 1
   const y = year ?? now.getFullYear()
@@ -27,8 +25,8 @@ export async function getCashFlow(month?: number, year?: number) {
   const lastDay = new Date(y, m, 0).getDate()
   const to = `${y}-${String(m).padStart(2, '0')}-${lastDay}`
 
-  // Always query by user_id so entries with null company_id are always visible
-  let q = supabase
+  // Always query by user_id — simplest and most reliable
+  const { data, error } = await supabase
     .from('cash_flow')
     .select('*')
     .eq('user_id', user.id)
@@ -36,19 +34,6 @@ export async function getCashFlow(month?: number, year?: number) {
     .lte('date', to)
     .order('date', { ascending: false })
 
-  // If the user has a company, also accept entries tied to that company
-  // (entries from other users in the same company)
-  if (companyId) {
-    q = supabase
-      .from('cash_flow')
-      .select('*')
-      .eq('company_id', companyId)
-      .gte('date', from)
-      .lte('date', to)
-      .order('date', { ascending: false })
-  }
-
-  const { data, error } = await q
   if (error) { console.error('[getCashFlow] error:', error); return [] }
   return data ?? []
 }
