@@ -244,17 +244,18 @@ export async function updateOrderStatus(id: string, status: string) {
       const productNames = allItems.filter(i => !i.product_id && i.product_name).map(i => i.product_name as string)
 
       if (allItems.length > 0) {
-        type ProductRow = { id: string; name: string; weight_g: number; material: string; pricing_session_id?: string | null }
+        type FilamentColor = { color: string; type: string; weightG: number; spoolId?: string }
+        type ProductRow = { id: string; name: string; weight_g: number; material: string; pricing_session_id?: string | null; filament_colors?: FilamentColor[] | null }
         type SpoolRow   = { id: string; material: string; remaining_g: number }
         type BatchFilament = { catalogSpoolId?: string; weightG: number; type: string }
         type Batch = { filaments: BatchFilament[] }
 
-        // Load products
+        // Load products (include filament_colors for direct deduction)
         const { data: productsByIdRaw } = productIds.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id').eq('user_id', user.id).in('id', productIds)
+          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id, filament_colors').eq('user_id', user.id).in('id', productIds)
           : { data: [] }
         const { data: productsByNameRaw } = productNames.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id').eq('user_id', user.id)
+          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id, filament_colors').eq('user_id', user.id)
           : { data: [] }
 
         const productsById   = (productsByIdRaw   ?? []) as ProductRow[]
@@ -301,29 +302,36 @@ export async function updateOrderStatus(id: string, status: string) {
 
           const qty = item.quantity
 
-          // ── Try to use pricing session for per-filament breakdown ──
+          // ── 1st choice: filament_colors saved on product (most reliable) ──
+          if (prod.filament_colors && prod.filament_colors.length > 0) {
+            for (const fil of prod.filament_colors) {
+              const grams = fil.weightG * qty
+              if (grams <= 0) continue
+              if (fil.spoolId) {
+                await deductFromSpool(fil.spoolId, grams)
+              } else {
+                await deductByMaterial(fil.type, grams)
+              }
+            }
+            console.log('[deduction] used filament_colors for', prod.name, '—', prod.filament_colors.length, 'filaments')
+            continue
+          }
+
+          // ── 2nd choice: pricing session batches ──
           if (prod.pricing_session_id) {
             const session = await getPricingSession(prod.pricing_session_id)
             const batches = session?.batches as Batch[] | undefined
-
             if (batches && batches.length > 0) {
-              // All filaments across all batches × quantity
               for (const batch of batches) {
                 for (const fil of batch.filaments) {
                   const grams = fil.weightG * qty
                   if (grams <= 0) continue
-
-                  if (fil.catalogSpoolId) {
-                    // Exact spool known → deduct directly
-                    await deductFromSpool(fil.catalogSpoolId, grams)
-                  } else {
-                    // No spool ID → match by material type
-                    await deductByMaterial(fil.type, grams)
-                  }
+                  if (fil.catalogSpoolId) await deductFromSpool(fil.catalogSpoolId, grams)
+                  else await deductByMaterial(fil.type, grams)
                 }
               }
               console.log('[deduction] used session', prod.pricing_session_id, 'for', prod.name)
-              continue // skip fallback
+              continue
             }
           }
 

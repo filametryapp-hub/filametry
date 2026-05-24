@@ -172,6 +172,7 @@ function SaveProductModal({
   unitsPerRun,
   batchCount,
   sessionId,
+  batches,
   onClose,
 }: {
   costUSD: number
@@ -182,6 +183,7 @@ function SaveProductModal({
   unitsPerRun: number
   batchCount: number
   sessionId?: string | null
+  batches: Batch[]
   onClose: () => void
 }) {
   const { t } = useT()
@@ -199,6 +201,16 @@ function SaveProductModal({
     if (!name.trim()) return
     setSaving(true)
     try {
+      // Flatten all filaments from all batches into the filament_colors array
+      const filamentColors = batches.flatMap(b =>
+        b.filaments.map(f => ({
+          color:   f.color,
+          type:    f.type,
+          weightG: f.weightG,
+          spoolId: f.catalogSpoolId ?? undefined,
+        }))
+      )
+
       await upsertProduct({
         name: name.trim(),
         material: mat,
@@ -210,6 +222,7 @@ function SaveProductModal({
         units_per_run: unitsPerRun,
         batches: batchCount > 1 ? batchCount : undefined,
         pricing_session_id: sessionId ?? null,
+        filament_colors: filamentColors.length > 0 ? filamentColors : null,
       })
       setSaved(true)
       setTimeout(onClose, 1200)
@@ -1316,6 +1329,7 @@ export function PricingCalculator() {
           unitsPerRun={unitsPerRun}
           batchCount={batches.length}
           sessionId={activeSessionId}
+          batches={batches}
           onClose={() => setShowSaveModal(false)}
         />
       )}

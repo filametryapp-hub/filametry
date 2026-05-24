@@ -38,6 +38,7 @@ export async function upsertProduct(product: {
   printer_count?: number
   plates_per_unit?: boolean
   pricing_session_id?: string | null
+  filament_colors?: { color: string; type: string; weightG: number; spoolId?: string }[] | null
   consumables?: { consumable_id: string; quantity_per_unit: number }[]
 }): Promise<string> {
   const supabase = await createClient()

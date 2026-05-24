@@ -69,6 +69,14 @@ export interface Product {
   consumables?: ProductConsumable[] // post-processing materials (varnish, sandpaper, etc.)
   stockQty?: number               // units currently in finished-goods stock
   pricingSessionId?: string       // linked pricing_sessions row (set when saved from calculator)
+  filamentColors?: FilamentColor[] // per-filament breakdown saved from pricing session
+}
+
+export interface FilamentColor {
+  color: string      // hex e.g. "#FF6B35"
+  type: string       // PLA / PETG / ABS …
+  weightG: number    // grams used per unit
+  spoolId?: string   // catalog spool ID if selected from stock
 }
 
 export interface OrderItem {

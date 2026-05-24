@@ -35,6 +35,9 @@ function fromRow(row: Record<string, unknown>): Product {
     printerCount:     row.printer_count      ? Number(row.printer_count)      : 1,
     platesPerUnit:    Boolean(row.plates_per_unit),
     pricingSessionId: row.pricing_session_id ? String(row.pricing_session_id) : undefined,
+    filamentColors:   Array.isArray(row.filament_colors)
+      ? (row.filament_colors as { color: string; type: string; weightG: number; spoolId?: string }[])
+      : undefined,
   }
 }
 
@@ -105,7 +108,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus,
             <span className="text-[10px] text-blue-600 bg-blue-600/10 px-1.5 py-0.5 rounded-full shrink-0">🏷️ volume</span>
           ) : null}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-[11px] text-muted-foreground">
             {product.material} · {product.weightG}g · {product.printHours}h
             {(product.printerCount ?? 1) > 1 && (
@@ -120,6 +123,18 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus,
               ? ` · ${product.unitsPerRun} un/chapa`
               : ''}
           </span>
+          {/* Filament color swatches */}
+          {product.filamentColors && product.filamentColors.length > 0 && (
+            <div className="flex items-center gap-0.5" title={product.filamentColors.map(f => `${f.type} ${f.weightG}g`).join(' · ')}>
+              {product.filamentColors.map((f, i) => (
+                <span
+                  key={i}
+                  className="inline-block size-3 rounded-full border border-black/10 shrink-0"
+                  style={{ backgroundColor: f.color }}
+                />
+              ))}
+            </div>
+          )}
           {product.tags.slice(0, 2).map(t => (
             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
           ))}
