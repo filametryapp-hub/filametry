@@ -191,7 +191,7 @@ const en = {
     moveTo: 'Move to', cancelOrder: 'Cancel order', createOrder: 'Create order',
     status: {
       all: 'All', draft: 'Draft', sent: 'Sent', accepted: 'Accepted',
-      printing: 'Printing', done: 'Done', cancelled: 'Cancelled',
+      printing: 'Printing', post: 'Post-proc.', done: 'Done', cancelled: 'Cancelled',
     },
   },
   clients: {
@@ -475,7 +475,7 @@ const pt: typeof en = {
     moveTo: 'Mover para', cancelOrder: 'Cancelar pedido', createOrder: 'Criar pedido',
     status: {
       all: 'Todos', draft: 'Rascunho', sent: 'Enviado', accepted: 'Aceito',
-      printing: 'Imprimindo', done: 'Concluído', cancelled: 'Cancelado',
+      printing: 'Imprimindo', post: 'Pós-proc.', done: 'Concluído', cancelled: 'Cancelado',
     },
   },
   clients: {
@@ -759,7 +759,7 @@ const es: typeof en = {
     moveTo: 'Mover a', cancelOrder: 'Cancelar pedido', createOrder: 'Crear pedido',
     status: {
       all: 'Todos', draft: 'Borrador', sent: 'Enviado', accepted: 'Aceptado',
-      printing: 'Imprimiendo', done: 'Completado', cancelled: 'Cancelado',
+      printing: 'Imprimiendo', post: 'Posproceso', done: 'Completado', cancelled: 'Cancelado',
     },
   },
   clients: {

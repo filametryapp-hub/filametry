@@ -367,7 +367,11 @@ export async function updateOrderStatus(id: string, status: string) {
 
 export async function deleteOrder(id: string) {
   const supabase = await createClient()
+  // Also remove associated cash flow income entry
+  await supabase.from('cash_flow').delete().eq('reference_id', id).eq('type', 'income')
   const { error } = await supabase.from('orders').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/pedidos')
+  revalidatePath('/cash-flow')
+  revalidatePath('/dashboard')
 }

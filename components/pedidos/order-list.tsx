@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, ClipboardList, ChevronRight, FileText } from 'lucide-react'
+import { Plus, ClipboardList, ChevronRight, FileText, ArrowRight } from 'lucide-react'
 import { OrderForm } from './order-form'
 import { OrderDetail } from './order-detail'
 import { getOrders, createOrder, updateOrder, updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
@@ -143,7 +143,14 @@ export function OrderList() {
     setViewing(null)
   }
 
-  const STATUSES: Array<Order['status'] | 'all'> = ['all', 'draft', 'sent', 'accepted', 'printing', 'done', 'cancelled']
+  const STATUSES: Array<Order['status'] | 'all'> = ['all', 'draft', 'sent', 'accepted', 'printing', 'post', 'done', 'cancelled']
+
+  const NEXT_STATUS: Partial<Record<Order['status'], { status: Order['status']; label: string }>> = {
+    draft:    { status: 'accepted', label: 'Aceitar' },
+    accepted: { status: 'printing', label: 'Produção' },
+    printing: { status: 'post',     label: 'Pós-proc.' },
+    post:     { status: 'done',     label: 'Concluído' },
+  }
 
   if (loading) {
     return (
@@ -230,6 +237,18 @@ export function OrderList() {
                 <div className="text-right shrink-0">
                   <p className="font-mono font-semibold text-sm">{fmtCurrency(total)}</p>
                 </div>
+                {NEXT_STATUS[order.status] && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      changeStatus(order.id, NEXT_STATUS[order.status]!.status)
+                    }}
+                    className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors shrink-0 whitespace-nowrap"
+                  >
+                    <ArrowRight className="size-3" />
+                    {NEXT_STATUS[order.status]!.label}
+                  </button>
+                )}
                 <ChevronRight className="size-4 text-muted-foreground shrink-0" />
               </button>
             )
