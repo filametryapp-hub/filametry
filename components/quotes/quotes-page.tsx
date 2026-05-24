@@ -5,6 +5,7 @@ import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'l
 import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
 import { getProducts } from '@/lib/actions/products'
 import { getPaymentMethods, type PaymentMethodRow } from '@/lib/actions/payment-methods'
+import { getCompany } from '@/lib/actions/company'
 import { useT } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
 import type { Quote, QuoteItem, QuoteTier } from '@/lib/actions/quotes'
@@ -17,10 +18,12 @@ type ProductOption = { id: string; name: string; priceUSD: number; volumePrices?
 
 // ── Quote Form ─────────────────────────────────────────────────
 function QuoteForm({
-  initial, products, onSave, onClose,
+  initial, products, companyDefaults, paymentMethods, onSave, onClose,
 }: {
   initial: Quote | null
   products: ProductOption[]
+  companyDefaults?: { name: string; email: string; phone: string } | null
+  paymentMethods: PaymentMethodRow[]
   onSave: (q: Quote) => void
   onClose: () => void
 }) {
@@ -28,10 +31,12 @@ function QuoteForm({
   const qt = t.quotes
 
   const [saving, setSaving] = useState(false)
+  // For new quotes, pre-fill company data from settings
+  const isNew = !initial
   const [form, setForm] = useState({
-    company_name:  initial?.company_name  ?? '',
-    company_email: initial?.company_email ?? '',
-    company_phone: initial?.company_phone ?? '',
+    company_name:  initial?.company_name  ?? (isNew ? companyDefaults?.name  ?? '' : ''),
+    company_email: initial?.company_email ?? (isNew ? companyDefaults?.email ?? '' : ''),
+    company_phone: initial?.company_phone ?? (isNew ? companyDefaults?.phone ?? '' : ''),
     client_name:   initial?.client_name   ?? '',
     client_address: initial?.client_address ?? '',
     discount_pct:    initial?.discount_pct    ?? 0,
@@ -282,7 +287,7 @@ function QuoteForm({
 
               {/* Payment method */}
               <div>
-                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Payment method</label>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">{t.expenses.paymentMethod}</label>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {paymentMethods.map(pm => (
                     <button
@@ -695,6 +700,7 @@ export function QuotesPage() {
   const [quotes, setQuotes]             = useState<Quote[]>([])
   const [products, setProducts]         = useState<ProductOption[]>([])
   const [paymentMethods, setPayMethods] = useState<PaymentMethodRow[]>([])
+  const [companyData, setCompanyData]   = useState<{ name: string; email: string; phone: string } | null>(null)
   const [loading, setLoading]           = useState(true)
   const [formQuote, setFormQuote]   = useState<Quote | null | 'new'>()
   const [printQuote, setPrintQuote] = useState<Quote | null>(null)
@@ -725,6 +731,11 @@ export function QuotesPage() {
       try {
         const pm = await getPaymentMethods().catch(() => [])
         setPayMethods(pm)
+      } catch { /* ignore */ }
+
+      try {
+        const co = await getCompany().catch(() => null)
+        if (co) setCompanyData({ name: co.name ?? '', email: co.email ?? '', phone: co.phone ?? '' })
       } catch { /* ignore */ }
 
       setLoading(false)
@@ -858,6 +869,8 @@ export function QuotesPage() {
         <QuoteForm
           initial={formQuote === 'new' ? null : formQuote as Quote}
           products={products}
+          companyDefaults={companyData}
+          paymentMethods={paymentMethods}
           onSave={handleSaved}
           onClose={() => setFormQuote(undefined)}
         />
