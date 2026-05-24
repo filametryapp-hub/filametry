@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Clock, FlaskConical } from 'lucide-react'
+import { X, Plus, Trash2, Clock, FlaskConical, Calculator } from 'lucide-react'
+import Link from 'next/link'
 import type { VolumeTier, ProductConsumable } from '@/lib/product-types'
 import { totalConsumablesCost } from '@/lib/product-types'
 import { Input } from '@/components/ui/input'
@@ -148,9 +149,22 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{initial ? t.common.edit : t.products.addProduct}</h2>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="size-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {initial?.pricingSessionId && (
+              <Link
+                href={`/precificacao?session=${initial.pricingSessionId}`}
+                onClick={onClose}
+                className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-500 border border-blue-600/30 bg-blue-600/5 hover:bg-blue-600/10 px-2.5 py-1.5 rounded-lg transition-colors"
+                title="Abrir cálculo de precificação deste produto"
+              >
+                <Calculator className="size-3.5" />
+                Ver precificação
+              </Link>
+            )}
+            <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X className="size-5" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

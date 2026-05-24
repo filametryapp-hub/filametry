@@ -68,6 +68,7 @@ export interface Product {
   platesPerUnit?: boolean         // true = N chapas needed to make 1 unit (large multi-part prints)
   consumables?: ProductConsumable[] // post-processing materials (varnish, sandpaper, etc.)
   stockQty?: number               // units currently in finished-goods stock
+  pricingSessionId?: string       // linked pricing_sessions row (set when saved from calculator)
 }
 
 export interface OrderItem {

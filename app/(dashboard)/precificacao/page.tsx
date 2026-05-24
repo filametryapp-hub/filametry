@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { PricingCalculator } from '@/components/pricing/calculator'
 
 export default function PrecificacaoPage() {
@@ -9,7 +10,9 @@ export default function PrecificacaoPage() {
           Fill in your print parameters and get the suggested sale price instantly.
         </p>
       </div>
-      <PricingCalculator />
+      <Suspense>
+        <PricingCalculator />
+      </Suspense>
     </div>
   )
 }

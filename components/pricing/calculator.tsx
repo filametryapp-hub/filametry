@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -169,6 +170,7 @@ function SaveProductModal({
   material,
   unitsPerRun,
   batchCount,
+  sessionId,
   onClose,
 }: {
   costUSD: number
@@ -178,6 +180,7 @@ function SaveProductModal({
   material: string
   unitsPerRun: number
   batchCount: number
+  sessionId?: string | null
   onClose: () => void
 }) {
   const { t } = useT()
@@ -205,6 +208,7 @@ function SaveProductModal({
         tags: [],
         units_per_run: unitsPerRun,
         batches: batchCount > 1 ? batchCount : undefined,
+        pricing_session_id: sessionId ?? null,
       })
       setSaved(true)
       setTimeout(onClose, 1200)
@@ -658,6 +662,7 @@ function BatchRow({
 export function PricingCalculator() {
   const { t, fmtCurrency } = useT()
   const pr = t.pricing
+  const searchParams = useSearchParams()
 
   const [shared, setShared]         = useState<SharedValues>(DEFAULT_SHARED)
   const [batches, setBatches]       = useState<Batch[]>([newBatch()])
@@ -681,6 +686,7 @@ export function PricingCalculator() {
   const [savingSession,   setSavingSession]  = useState(false)
   const [sessionName,     setSessionName]    = useState('')
   const [editingName,     setEditingName]    = useState(false)
+  const autoLoadedRef = useRef(false)
 
   // ── Auto-load test overhead + filament catalog on mount ───
   useEffect(() => {
@@ -694,6 +700,23 @@ export function PricingCalculator() {
           getPricingSessions(),
         ])
         setSessions(savedSessions)
+
+        // Auto-load session from URL param ?session=<id> (opened from product page)
+        const sessionParam = searchParams.get('session')
+        if (sessionParam && !autoLoadedRef.current) {
+          autoLoadedRef.current = true
+          const target = savedSessions.find(s => s.id === sessionParam)
+          if (target) {
+            setBatches((target.batches as Batch[]).map(b => ({ ...b, id: b.id || crypto.randomUUID() })))
+            setShared(target.shared as SharedValues)
+            setPriceOverride(target.price_override)
+            setPriceInput(target.price_override ? target.price_override.toFixed(2) : '')
+            setUnitsPerRun(target.units_per_run ?? 1)
+            setQuantityTiers(Array.isArray(target.quantity_tiers) ? target.quantity_tiers : [1, 3, 5, 10])
+            setActiveSessionId(target.id)
+            setSessionName(target.name)
+          }
+        }
         const totalCost = tests.reduce((s: number, t: { amount: number }) => s + t.amount, 0)
         if (totalCost > 0) {
           // Use user-defined payback period if set, otherwise fall back to product hours
@@ -1290,6 +1313,7 @@ export function PricingCalculator() {
           material={batches[0]?.filaments[0]?.type ?? 'PLA'}
           unitsPerRun={unitsPerRun}
           batchCount={batches.length}
+          sessionId={activeSessionId}
           onClose={() => setShowSaveModal(false)}
         />
       )}

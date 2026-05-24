@@ -31,9 +31,10 @@ function fromRow(row: Record<string, unknown>): Product {
     stockQty:     Number(row.stock_qty ?? 0),
     unitsPerRun:  row.units_per_run ? Number(row.units_per_run) : 1,
     batches:      row.batches ? Number(row.batches) : undefined,
-    printerId:     row.printer_id    ? String(row.printer_id)    : undefined,
-    printerCount:  row.printer_count ? Number(row.printer_count) : 1,
-    platesPerUnit: Boolean(row.plates_per_unit),
+    printerId:        row.printer_id         ? String(row.printer_id)         : undefined,
+    printerCount:     row.printer_count      ? Number(row.printer_count)      : 1,
+    platesPerUnit:    Boolean(row.plates_per_unit),
+    pricingSessionId: row.pricing_session_id ? String(row.pricing_session_id) : undefined,
   }
 }
 

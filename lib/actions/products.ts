@@ -37,6 +37,7 @@ export async function upsertProduct(product: {
   printer_id?: string | null
   printer_count?: number
   plates_per_unit?: boolean
+  pricing_session_id?: string | null
   consumables?: { consumable_id: string; quantity_per_unit: number }[]
 }): Promise<string> {
   const supabase = await createClient()
