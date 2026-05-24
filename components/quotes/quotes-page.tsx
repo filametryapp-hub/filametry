@@ -702,8 +702,12 @@ export function QuotesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [qs, prods] = await Promise.all([getQuotes(), getProducts()])
+        const qs = await getQuotes().catch(() => [] as Awaited<ReturnType<typeof getQuotes>>)
         setQuotes(qs)
+      } catch { /* ignore */ }
+
+      try {
+        const prods = await getProducts().catch(() => [])
         setProducts((prods ?? []).map((p: Record<string, unknown>) => ({
           id: String(p.id),
           name: String(p.name ?? ''),
@@ -714,11 +718,9 @@ export function QuotesPage() {
               }))
             : undefined,
         })))
-      } catch (e) {
-        console.error('[QuotesPage] load error:', e)
-      } finally {
-        setLoading(false)
-      }
+      } catch { /* ignore */ }
+
+      setLoading(false)
     }
     load()
   }, [])

@@ -52,17 +52,26 @@ export type Quote = QuoteData & {
 }
 
 export async function getQuotes(): Promise<Quote[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
 
-  const { data } = await supabase
-    .from('quotes')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
 
-  return (data ?? []) as Quote[]
+    if (error) {
+      console.error('[getQuotes] Supabase error:', error)
+      return []
+    }
+    return (data ?? []) as Quote[]
+  } catch (e) {
+    console.error('[getQuotes] unexpected error:', e)
+    return []
+  }
 }
 
 export async function upsertQuote(id: string | null, payload: QuoteData): Promise<string> {
