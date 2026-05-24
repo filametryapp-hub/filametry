@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'lucide-react'
-import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
+import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight, Check } from 'lucide-react'
+import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder, updateQuoteStatus } from '@/lib/actions/quotes'
 import { getProducts } from '@/lib/actions/products'
 import { getPaymentMethods, type PaymentMethodRow } from '@/lib/actions/payment-methods'
 import { getCompany } from '@/lib/actions/company'
@@ -764,6 +764,7 @@ export function QuotesPage() {
   const [printQuote, setPrintQuote] = useState<Quote | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
   const [converting, setConverting] = useState<string | null>(null)
+  const [updating, setUpdating]     = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -817,6 +818,18 @@ export function QuotesPage() {
     await deleteQuote(id)
     setQuotes(prev => prev.filter(q => q.id !== id))
     setDeleting(null)
+  }
+
+  async function handleStatusChange(quoteId: string, status: Quote['status']) {
+    setUpdating(quoteId)
+    try {
+      await updateQuoteStatus(quoteId, status)
+      setQuotes(prev => prev.map(q => q.id === quoteId ? { ...q, status } : q))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUpdating(null)
+    }
   }
 
   async function handleConvert(quoteId: string) {
@@ -877,16 +890,43 @@ export function QuotesPage() {
                     <p className="text-xs text-muted-foreground">{q.items.length} item{q.items.length !== 1 ? 's' : ''}</p>
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status ?? 'draft']}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[q.status ?? 'draft']}`}>
                         {qt.statuses[q.status as keyof typeof qt.statuses] ?? q.status}
                       </span>
+
+                      {/* draft → mark as sent or accepted */}
+                      {(q.status === 'draft' || q.status === 'sent') && (
+                        <button
+                          onClick={() => handleStatusChange(q.id, 'accepted')}
+                          disabled={updating === q.id}
+                          className="flex items-center gap-1 text-xs font-medium text-green-400 hover:text-green-300 border border-green-500/30 bg-green-500/10 rounded-full px-2 py-0.5 transition-colors disabled:opacity-50"
+                        >
+                          {updating === q.id
+                            ? <span className="size-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
+                            : <Check className="size-3" />}
+                          Aceito
+                        </button>
+                      )}
+
+                      {/* draft/sent → mark as rejected */}
+                      {(q.status === 'draft' || q.status === 'sent') && (
+                        <button
+                          onClick={() => handleStatusChange(q.id, 'rejected')}
+                          disabled={updating === q.id}
+                          className="flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/5 rounded-full px-2 py-0.5 transition-colors disabled:opacity-50"
+                        >
+                          <X className="size-3" /> Recusado
+                        </button>
+                      )}
+
+                      {/* accepted → convert to order */}
                       {q.status === 'accepted' && !q.notes?.includes('[order:') && (
                         <button
                           onClick={() => handleConvert(q.id)}
                           disabled={converting === q.id}
                           className="flex items-center gap-1 text-xs font-medium text-green-400 hover:text-green-300 border border-green-500/30 bg-green-500/10 rounded-full px-2 py-0.5 transition-colors disabled:opacity-50"
-                          title="Send to Orders pipeline">
+                        >
                           {converting === q.id
                             ? <span className="size-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
                             : <ArrowRight className="size-3" />}
