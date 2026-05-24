@@ -14,8 +14,6 @@ export type QuoteTier = {
   unitPrice: number
 }
 
-export { PAYMENT_METHODS } from '@/lib/constants'
-export type { PaymentMethod } from '@/lib/constants'
 
 export type QuoteData = {
   company_name?: string
