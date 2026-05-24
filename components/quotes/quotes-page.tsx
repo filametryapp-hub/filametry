@@ -581,15 +581,15 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
                 {quote.company_phone && <p className="text-sm text-gray-500">{quote.company_phone}</p>}
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-400">QUOTE</p>
+                <p className="text-sm text-gray-400">ORÇAMENTO</p>
                 <p className="text-xs text-gray-400 mt-1">{new Date(quote.created_at).toLocaleDateString()}</p>
-                {quote.valid_days && <p className="text-xs text-gray-400">Valid {quote.valid_days} days</p>}
+                {quote.valid_days && <p className="text-xs text-gray-400">Válido {quote.valid_days} dias</p>}
               </div>
             </div>
 
             {/* Client */}
             <div className="border-t border-gray-100 pt-6">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">To</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Para</p>
               <p className="font-semibold text-gray-900">{quote.client_name}</p>
               {quote.client_address && <p className="text-sm text-gray-500">{quote.client_address}</p>}
             </div>
@@ -599,10 +599,10 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-2 text-gray-500 font-semibold">Product / Service</th>
-                    <th className="text-right py-2 text-gray-500 font-semibold w-16">Qty</th>
-                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Unit Price</th>
-                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Amount</th>
+                    <th className="text-left py-2 text-gray-500 font-semibold">Produto / Serviço</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-16">Qtd</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Preço Unit.</th>
+                    <th className="text-right py-2 text-gray-500 font-semibold w-28">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -626,19 +626,19 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
                   </div>
                   {(quote.discount_pct ?? 0) > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>Discount ({quote.discount_pct}%)</span>
+                      <span>Desconto ({quote.discount_pct}%)</span>
                       <span className="font-mono text-green-600">−{fmtCurrency(discount)}</span>
                     </div>
                   )}
                   {(quote.packaging ?? 0) > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>Packaging</span>
+                      <span>Embalagem</span>
                       <span className="font-mono">{fmtCurrency(quote.packaging ?? 0)}</span>
                     </div>
                   )}
                   {(quote.shipping ?? 0) > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>Shipping</span>
+                      <span>Frete</span>
                       <span className="font-mono">{fmtCurrency(quote.shipping ?? 0)}</span>
                     </div>
                   )}
@@ -657,15 +657,15 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
               const basePriceForDiscount = quote.items[0]?.unit_price ?? 0
               return (
                 <div className="border-t border-gray-100 pt-6">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Volume Pricing</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Preços por Volume</p>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b-2 border-gray-200">
-                        <th className="text-left py-2 text-gray-500 font-semibold w-24">Qty</th>
-                        <th className="text-right py-2 text-gray-500 font-semibold w-32">Unit Price</th>
+                        <th className="text-left py-2 text-gray-500 font-semibold w-24">Qtd</th>
+                        <th className="text-right py-2 text-gray-500 font-semibold w-32">Preço Unit.</th>
                         <th className="text-right py-2 text-gray-500 font-semibold w-32">Total</th>
                         {quote.show_discount_on_print && (
-                          <th className="text-right py-2 text-gray-500 font-semibold w-24">Discount</th>
+                          <th className="text-right py-2 text-gray-500 font-semibold w-24">Desconto</th>
                         )}
                       </tr>
                     </thead>
@@ -677,7 +677,7 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
                           : 0
                         return (
                           <tr key={i} className="border-b border-gray-100">
-                            <td className="py-2.5 font-semibold text-gray-900">{tier.qty} units</td>
+                            <td className="py-2.5 font-semibold text-gray-900">{tier.qty} un.</td>
                             <td className="py-2.5 text-right text-gray-700 font-mono">{fmtCurrency(tier.unitPrice)}</td>
                             <td className="py-2.5 text-right text-gray-900 font-mono font-medium">{fmtCurrency(total)}</td>
                             {quote.show_discount_on_print && (
@@ -697,22 +697,22 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
             {/* Footer info */}
             <div className="border-t border-gray-100 pt-6 grid grid-cols-2 gap-4 text-xs text-gray-500">
               {quote.delivery_days && (
-                <p>Estimated delivery: <span className="font-medium text-gray-700">{quote.delivery_days} business days after approval</span></p>
+                <p>Prazo estimado: <span className="font-medium text-gray-700">{quote.delivery_days} dias úteis após aprovação</span></p>
               )}
               {quote.valid_days && (
-                <p>Quote valid for: <span className="font-medium text-gray-700">{quote.valid_days} days</span></p>
+                <p>Válido por: <span className="font-medium text-gray-700">{quote.valid_days} dias</span></p>
               )}
               {quote.payment_method && (
-                <p>Payment: <span className="font-medium text-gray-700">
+                <p>Pagamento: <span className="font-medium text-gray-700">
                   {quote.payment_method}
                 </span></p>
               )}
               {quote.notes && (
-                <p className="col-span-2">Notes: <span className="text-gray-700">{quote.notes}</span></p>
+                <p className="col-span-2">Obs.: <span className="text-gray-700">{quote.notes}</span></p>
               )}
             </div>
 
-            <p className="text-center text-xs text-gray-300 pt-4">Generated with Filametry · filametry.com</p>
+            <p className="text-center text-xs text-gray-300 pt-4">Gerado com Filametry · filametry.com</p>
           </div>
         </div>
       </div>

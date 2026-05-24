@@ -148,17 +148,17 @@ function pct(part: number, total: number) {
 interface Field { id: keyof SharedValues; label: string; unit: string; min: number; step: number; tip: string }
 
 const SHARED_FIELDS: Field[] = [
-  { id: 'printerWatts',      label: 'Printer power',          unit: 'W',    min: 10,   step: 5,     tip: 'Average wattage. Bambu A1 ≈ 120W during printing.' },
-  { id: 'electricityCost',   label: 'Electricity cost',       unit: '$/kWh',min: 0.01, step: 0.01,  tip: 'Your electricity rate per kilowatt-hour.' },
-  { id: 'hourlyRate',        label: 'Equipment amortization', unit: '$/h',  min: 0,    step: 0.001, tip: 'Auto-filled from equipment value ÷ lifespan when you select a printer.' },
-  { id: 'failureRate',       label: 'Failure / waste',        unit: '%',    min: 0,    step: 1,     tip: 'Buffer for failed prints and material waste.' },
-  { id: 'marginPct',         label: 'Profit margin',          unit: '%',    min: 0,    step: 5,     tip: 'Your desired profit margin on top of all costs.' },
-  { id: 'testOverheadRate',  label: 'Test overhead',          unit: '$/h',  min: 0,    step: 0.001, tip: 'Waste cost spread across production hours. Auto-filled from test print logs in Equipment.' },
+  { id: 'printerWatts',      label: 'Potência da impressora',    unit: 'W',    min: 10,   step: 5,     tip: 'Potência média em watts. Bambu A1 ≈ 120W durante impressão.' },
+  { id: 'electricityCost',   label: 'Custo de energia',          unit: '$/kWh',min: 0.01, step: 0.01,  tip: 'Tarifa de energia elétrica por quilowatt-hora.' },
+  { id: 'hourlyRate',        label: 'Amortização do equipamento', unit: '$/h',  min: 0,    step: 0.001, tip: 'Preenchido automaticamente pelo valor do equipamento ÷ vida útil.' },
+  { id: 'failureRate',       label: 'Falhas / desperdício',       unit: '%',    min: 0,    step: 1,     tip: 'Margem para falhas de impressão e desperdício de material.' },
+  { id: 'marginPct',         label: 'Margem de lucro',            unit: '%',    min: 0,    step: 5,     tip: 'Margem de lucro desejada sobre todos os custos.' },
+  { id: 'testOverheadRate',  label: 'Overhead de testes',         unit: '$/h',  min: 0,    step: 0.001, tip: 'Custo de desperdício distribuído nas horas de produção. Preenchido automaticamente pelo log de testes.' },
 ]
 
 const SPOOL_DEFAULTS: Field[] = [
-  { id: 'defaultSpoolPrice',  label: 'Default spool price',  unit: '$',  min: 0.01, step: 0.5, tip: 'Default price used when adding a new filament.' },
-  { id: 'defaultSpoolWeight', label: 'Default spool weight', unit: 'g',  min: 100,  step: 50,  tip: 'Default spool weight in grams (usually 1000 g).' },
+  { id: 'defaultSpoolPrice',  label: 'Preço padrão do carretel',  unit: '$',  min: 0.01, step: 0.5, tip: 'Preço padrão ao adicionar um novo filamento.' },
+  { id: 'defaultSpoolWeight', label: 'Peso padrão do carretel',   unit: 'g',  min: 100,  step: 50,  tip: 'Peso padrão do carretel em gramas (geralmente 1000 g).' },
 ]
 
 // ── SaveProductModal ────────────────────────────────────────────
@@ -319,7 +319,7 @@ function SaveProductModal({
             <span className="bg-muted/50 rounded-full px-2 py-0.5">{printHours.toFixed(2)}h</span>
             {price > 0 && cost > 0 && (
               <span className="bg-blue-600/10 text-blue-500 rounded-full px-2 py-0.5">
-                {(((price - cost) / price) * 100).toFixed(1)}% margin
+                {(((price - cost) / price) * 100).toFixed(1)}% margem
               </span>
             )}
           </div>
@@ -477,7 +477,7 @@ function FilamentRow({
 
       {/* Weight */}
       <div className="flex-1 space-y-1">
-        <Label className="text-[10px] text-muted-foreground">Weight (g)</Label>
+        <Label className="text-[10px] text-muted-foreground">Peso (g)</Label>
         <Input
           type="number" min={0} step={1}
           value={filament.weightG}
@@ -488,7 +488,7 @@ function FilamentRow({
 
       {/* Spool price */}
       <div className="flex-1 space-y-1">
-        <Label className="text-[10px] text-muted-foreground">Spool $</Label>
+        <Label className="text-[10px] text-muted-foreground">Carretel $</Label>
         <div className="relative">
           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">$</span>
           <Input
@@ -502,7 +502,7 @@ function FilamentRow({
 
       {/* Spool weight */}
       <div className="w-16 space-y-1">
-        <Label className="text-[10px] text-muted-foreground">Spool g</Label>
+        <Label className="text-[10px] text-muted-foreground">Carretel g</Label>
         <Input
           type="number" min={100} step={50}
           value={filament.spoolWeightG}
@@ -602,7 +602,7 @@ function BatchRow({
       {/* Print time */}
       <div className="flex items-end gap-3">
         <div className="w-32 space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Print time (h)</Label>
+          <Label className="text-xs text-muted-foreground">Tempo de impressão (h)</Label>
           <Input
             type="number" min={0.1} step={0.25}
             value={batch.printHours}

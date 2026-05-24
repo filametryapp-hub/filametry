@@ -170,16 +170,16 @@ export function ProductForm({ initial, onSave, onClose, saving }: Props) {
         <div className="grid grid-cols-2 gap-4">
           {/* Name */}
           <div className="col-span-2 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Product name</Label>
+            <Label className="text-xs text-muted-foreground">{t.products.name ?? 'Nome do produto'}</Label>
             <Input value={form.name} onChange={e => set('name', e.target.value)}
-              placeholder="e.g. Phone Stand" required />
+              placeholder="ex.: Suporte de Celular" required />
           </div>
 
           {/* Description */}
           <div className="col-span-2 space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t.products.description}</Label>
             <Input value={form.description} onChange={e => set('description', e.target.value)}
-              placeholder="Short product description" />
+              placeholder="Breve descrição do produto" />
           </div>
 
           {/* Material */}
