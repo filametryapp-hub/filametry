@@ -8,7 +8,7 @@ import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@
 import { useT } from '@/lib/i18n'
 import { getProducts } from '@/lib/actions/products'
 import { getClients, upsertClient } from '@/lib/actions/clients'
-import { PAYMENT_METHODS } from '@/lib/actions/quotes'
+import { PAYMENT_METHODS } from '@/lib/constants'
 
 interface CatalogProduct {
   id: string

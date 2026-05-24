@@ -14,16 +14,8 @@ export type QuoteTier = {
   unitPrice: number
 }
 
-export const PAYMENT_METHODS = [
-  { value: 'pix',      label: 'PIX' },
-  { value: 'card',     label: 'Credit card' },
-  { value: 'debit',    label: 'Debit card' },
-  { value: 'transfer', label: 'Bank transfer' },
-  { value: 'cash',     label: 'Cash' },
-  { value: 'installments', label: 'Installments' },
-  { value: 'other',    label: 'Other' },
-] as const
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number]['value']
+export { PAYMENT_METHODS } from '@/lib/constants'
+export type { PaymentMethod } from '@/lib/constants'
 
 export type QuoteData = {
   company_name?: string

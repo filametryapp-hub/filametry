@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'lucide-react'
-import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder, PAYMENT_METHODS } from '@/lib/actions/quotes'
+import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
+import { PAYMENT_METHODS } from '@/lib/constants'
 import { getProducts } from '@/lib/actions/products'
 import { useT } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
