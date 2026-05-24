@@ -139,22 +139,17 @@ export function Sidebar() {
     <aside className="w-52 shrink-0 border-r border-[#ececea] bg-[#fafafa] flex flex-col h-screen sticky top-0">
 
       {/* Company header */}
-      <div className="px-4 py-4 border-b border-[#ececea]">
-        {displayName ? (
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.1em] text-[#9ca0a8] uppercase leading-none mb-0.5">
-              {displayName}{displayCity ? ` · ${displayCity}` : ''}
-            </p>
-          </div>
-        ) : (
-          <div className="flex items-center">
-            <img
-              src="/filametry-lockup.svg"
-              alt="Filametry"
-              height={32}
-              style={{ height: 32, width: 'auto' }}
-            />
-          </div>
+      <div className="px-4 py-3 border-b border-[#ececea] flex flex-col gap-1">
+        <img
+          src="/filametry-lockup.svg"
+          alt="Filametry"
+          height={28}
+          style={{ height: 28, width: 'auto' }}
+        />
+        {displayName && (
+          <p className="text-[9px] font-semibold tracking-[0.1em] text-[#9ca0a8] uppercase leading-none">
+            {displayName}{displayCity ? ` · ${displayCity}` : ''}
+          </p>
         )}
       </div>
 

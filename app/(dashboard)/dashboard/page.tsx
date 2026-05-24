@@ -166,14 +166,14 @@ function StatusBadge({ status }: { status: string }) {
 export default function DashboardPage() {
   const { t, fmtCurrency } = useT()
   const [data, setData]   = useState<DashboardData | null>(null)
+  const [today, setToday] = useState('')
 
   useEffect(() => {
     getDashboardData().then(setData).catch(() => setData(null))
+    setToday(new Date().toLocaleDateString(undefined, {
+      weekday: 'long', day: 'numeric', month: 'long',
+    }))
   }, [])
-
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
 
   return (
     <div className="max-w-[1100px] space-y-6">
