@@ -72,6 +72,9 @@ export function OrderList() {
     try {
       const rows = await getOrders()
       setOrders((rows ?? []).map(r => fromRow(r as Record<string, unknown>)))
+    } catch (e) {
+      console.error('[OrderList] load error:', e)
+      setOrders([])
     } finally {
       setLoading(false)
     }
@@ -113,12 +116,14 @@ export function OrderList() {
   }
 
   async function save(order: Order) {
-    if (order.id) {
-      // Edit mode
-      await updateOrder(order.id, buildPayload(order))
-    } else {
-      // Create mode
-      await createOrder(buildPayload(order))
+    try {
+      if (order.id) {
+        await updateOrder(order.id, buildPayload(order))
+      } else {
+        await createOrder(buildPayload(order))
+      }
+    } catch (e) {
+      console.error('[OrderList] save error:', e)
     }
     await load()
     setShowForm(false)

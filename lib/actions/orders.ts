@@ -4,14 +4,22 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function getOrders() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*, order_items(*)')
-    .order('created_at', { ascending: false })
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data
+    if (error) {
+      console.error('[getOrders] Supabase error:', error)
+      return []
+    }
+    return data ?? []
+  } catch (e) {
+    console.error('[getOrders] unexpected error:', e)
+    return []
+  }
 }
 
 export async function getOrderById(id: string) {
@@ -94,7 +102,8 @@ export async function updateOrder(id: string, order: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { error: orderError } = await supabase
+  // Try full update first (with new optional columns)
+  let { error: orderError } = await supabase
     .from('orders')
     .update({
       client_name:            order.client_name,
@@ -108,7 +117,22 @@ export async function updateOrder(id: string, order: {
     })
     .eq('id', id)
 
-  if (orderError) throw orderError
+  // Fallback: column may not exist yet (migration pending) — retry without new columns
+  if (orderError) {
+    const { error: fallbackError } = await supabase
+      .from('orders')
+      .update({
+        client_name:            order.client_name,
+        client_email:           order.client_email ?? null,
+        notes:                  order.notes ?? null,
+        quote_tiers:            order.quote_tiers ?? null,
+        show_discount_on_print: order.show_discount_on_print ?? false,
+        updated_at:             new Date().toISOString(),
+      })
+      .eq('id', id)
+    if (fallbackError) throw fallbackError
+    orderError = null
+  }
 
   // Replace order items: delete existing, insert new
   await supabase.from('order_items').delete().eq('order_id', id)

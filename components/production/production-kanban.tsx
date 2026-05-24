@@ -55,10 +55,10 @@ export function ProductionKanban() {
   }
 
   useEffect(() => {
-    getOrders().then(data => {
-      setOrders((data ?? []) as Order[])
-      setLoading(false)
-    })
+    getOrders()
+      .then(data => setOrders((data ?? []) as Order[]))
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const productionOrders = orders.filter(o =>
