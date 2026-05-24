@@ -102,36 +102,27 @@ export async function updateOrder(id: string, order: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Try full update first (with new optional columns)
-  let { error: orderError } = await supabase
-    .from('orders')
-    .update({
-      client_name:            order.client_name,
-      client_email:           order.client_email ?? null,
-      notes:                  order.notes ?? null,
-      quote_tiers:            order.quote_tiers ?? null,
-      show_discount_on_print: order.show_discount_on_print ?? false,
-      tip:                    order.tip ?? 0,
-      payment_method:         order.payment_method ?? null,
-      updated_at:             new Date().toISOString(),
-    })
-    .eq('id', id)
+  // Base fields (always exist)
+  const baseFields = {
+    client_name:            order.client_name,
+    client_email:           order.client_email ?? null,
+    notes:                  order.notes ?? null,
+    quote_tiers:            order.quote_tiers ?? null,
+    show_discount_on_print: order.show_discount_on_print ?? false,
+    updated_at:             new Date().toISOString(),
+  }
 
-  // Fallback: column may not exist yet (migration pending) — retry without new columns
-  if (orderError) {
-    const { error: fallbackError } = await supabase
-      .from('orders')
-      .update({
-        client_name:            order.client_name,
-        client_email:           order.client_email ?? null,
-        notes:                  order.notes ?? null,
-        quote_tiers:            order.quote_tiers ?? null,
-        show_discount_on_print: order.show_discount_on_print ?? false,
-        updated_at:             new Date().toISOString(),
-      })
-      .eq('id', id)
-    if (fallbackError) throw fallbackError
-    orderError = null
+  // Try full update first (with new optional columns tip/payment_method)
+  const result1 = await supabase.from('orders').update({
+    ...baseFields,
+    tip:            order.tip ?? 0,
+    payment_method: order.payment_method ?? null,
+  }).eq('id', id)
+
+  // Fallback: if columns don't exist yet (migration pending), retry base only
+  if (result1.error) {
+    const result2 = await supabase.from('orders').update(baseFields).eq('id', id)
+    if (result2.error) throw result2.error
   }
 
   // Replace order items: delete existing, insert new
