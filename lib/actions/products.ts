@@ -11,8 +11,11 @@ export async function getProducts() {
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('[getProducts] Supabase error:', error)
+    return []
+  }
+  return data ?? []
 }
 
 export async function upsertProduct(product: {

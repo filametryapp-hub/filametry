@@ -701,19 +701,24 @@ export function QuotesPage() {
 
   useEffect(() => {
     async function load() {
-      const [qs, prods] = await Promise.all([getQuotes(), getProducts()])
-      setQuotes(qs)
-      setProducts((prods ?? []).map((p: Record<string, unknown>) => ({
-        id: String(p.id),
-        name: String(p.name ?? ''),
-        priceUSD: Number(p.price_usd ?? p.priceUSD ?? 0),
-        volumePrices: Array.isArray(p.volume_prices)
-          ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
-              minQty: t.min_qty, priceUSD: t.price_usd,
-            }))
-          : undefined,
-      })))
-      setLoading(false)
+      try {
+        const [qs, prods] = await Promise.all([getQuotes(), getProducts()])
+        setQuotes(qs)
+        setProducts((prods ?? []).map((p: Record<string, unknown>) => ({
+          id: String(p.id),
+          name: String(p.name ?? ''),
+          priceUSD: Number(p.price_usd ?? p.priceUSD ?? 0),
+          volumePrices: Array.isArray(p.volume_prices)
+            ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
+                minQty: t.min_qty, priceUSD: t.price_usd,
+              }))
+            : undefined,
+        })))
+      } catch (e) {
+        console.error('[QuotesPage] load error:', e)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
