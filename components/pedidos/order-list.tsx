@@ -38,6 +38,7 @@ function fromRow(row: Record<string, unknown>): Order {
     clientEmail:         row.client_email ? String(row.client_email) : undefined,
     status:              String(row.status) as Order['status'],
     notes:               row.notes ? String(row.notes) : undefined,
+    tip:                 row.tip ? Number(row.tip) : undefined,
     items,
     quoteTiers,
     showDiscountOnPrint: Boolean(row.show_discount_on_print ?? false),
@@ -84,7 +85,7 @@ export function OrderList() {
 
   const totalRevenue = orders
     .filter(o => o.status === 'done')
-    .reduce((s, o) => s + orderTotal(o), 0)
+    .reduce((s, o) => s + orderTotal(o) + (o.tip ?? 0), 0)
 
   const pending = orders.filter(o =>
     ['sent', 'accepted', 'printing'].includes(o.status)
@@ -95,6 +96,7 @@ export function OrderList() {
       client_name:            order.clientName,
       client_email:           order.clientEmail,
       notes:                  order.notes,
+      tip:                    order.tip ?? 0,
       quote_tiers:            order.quoteTiers?.map(t => ({
         qty:        t.qty,
         unit_price: t.unitPrice,

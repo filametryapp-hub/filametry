@@ -165,6 +165,18 @@ export function OrderDetail({ order, onStatusChange, onDelete, onEdit, onClose }
               <span>{t.common.total}</span>
               <span className="font-mono text-blue-600">{fmtCurrency(total)}</span>
             </div>
+            {(order.tip ?? 0) > 0 && (
+              <>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Gorjeta</span>
+                  <span className="font-mono text-green-500">+{fmtCurrency(order.tip!)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t border-border pt-2 mt-1">
+                  <span>Total recebido</span>
+                  <span className="font-mono text-green-500">{fmtCurrency(total + (order.tip ?? 0))}</span>
+                </div>
+              </>
+            )}
             {(order as { payment_method?: string }).payment_method && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                 <CreditCard className="size-3" />

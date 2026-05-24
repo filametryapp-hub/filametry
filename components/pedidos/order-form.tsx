@@ -47,6 +47,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   const [clientName,  setClientName]  = useState(initial?.clientName ?? '')
   const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? '')
   const [notes,       setNotes]       = useState(initial?.notes ?? '')
+  const [tip,         setTip]         = useState(initial?.tip ?? 0)
 
   // Selected product — pre-fill from first item
   const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)
@@ -199,6 +200,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
         clientName,
         clientEmail: clientEmail || undefined,
         notes:       notes || undefined,
+        tip:         tip || undefined,
         items: validItems.map(it => ({
           productId:   '',
           productName: it.product_name,
@@ -222,6 +224,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
       clientName,
       clientEmail: clientEmail || undefined,
       notes:       notes || undefined,
+      tip:         tip || undefined,
       items: [{
         productId:   selectedProd.id,
         productName: selectedProd.name,
@@ -588,6 +591,22 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             onChange={e => setNotes(e.target.value)}
             placeholder="Prazo de entrega, instruções especiais…"
           />
+        </div>
+
+        {/* Tip / extra received */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Gorjeta / valor extra recebido</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={tip || ''}
+            onChange={e => setTip(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Valor adicional ao total (tips, arredondamento). Vai direto para o fluxo de caixa.
+          </p>
         </div>
 
         <div className="flex gap-3 pt-1">

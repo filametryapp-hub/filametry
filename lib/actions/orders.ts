@@ -82,6 +82,7 @@ export async function updateOrder(id: string, order: {
   notes?: string
   quote_tiers?: { qty: number; unit_price: number }[] | null
   show_discount_on_print?: boolean
+  tip?: number
   items: Array<{
     product_id?: string
     product_name: string
@@ -90,6 +91,7 @@ export async function updateOrder(id: string, order: {
   }>
 }) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { error: orderError } = await supabase
     .from('orders')
@@ -99,6 +101,7 @@ export async function updateOrder(id: string, order: {
       notes:                  order.notes ?? null,
       quote_tiers:            order.quote_tiers ?? null,
       show_discount_on_print: order.show_discount_on_print ?? false,
+      tip:                    order.tip ?? 0,
       updated_at:             new Date().toISOString(),
     })
     .eq('id', id)
@@ -121,7 +124,29 @@ export async function updateOrder(id: string, order: {
     if (itemsError) throw itemsError
   }
 
+  // If order is done, sync the cash flow entry amount (tip may have changed)
+  if (user) {
+    const { data: existing } = await supabase
+      .from('cash_flow').select('id').eq('reference_id', id).eq('type', 'income').maybeSingle()
+
+    if (existing) {
+      const { data: ord } = await supabase
+        .from('orders').select('*, order_items(*)').eq('id', id).single()
+
+      if (ord && ord.status === 'done') {
+        const itemsTotal = (ord.order_items ?? []).reduce(
+          (s: number, i: { quantity: number; unit_price: number }) => s + i.quantity * i.unit_price, 0
+        )
+        const discount  = itemsTotal * ((ord.discount_pct ?? 0) / 100)
+        const baseTotal = ord.total ?? (itemsTotal - discount + (ord.shipping ?? 0))
+        const newAmount = parseFloat((baseTotal + (order.tip ?? 0)).toFixed(2))
+        await supabase.from('cash_flow').update({ amount: newAmount }).eq('id', existing.id)
+      }
+    }
+  }
+
   revalidatePath('/pedidos')
+  revalidatePath('/cash-flow')
 }
 
 export async function updateOrderStatus(id: string, status: string) {
@@ -151,10 +176,12 @@ export async function updateOrderStatus(id: string, status: string) {
       const itemsTotal = (order.order_items ?? []).reduce(
         (s: number, i: { quantity: number; unit_price: number }) => s + i.quantity * i.unit_price, 0
       )
-      const discount = itemsTotal * ((order.discount_pct ?? 0) / 100)
-      const total    = order.total ?? (itemsTotal - discount + (order.shipping ?? 0))
-      const method   = order.payment_method ?? ''
-      const desc     = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}`
+      const discount    = itemsTotal * ((order.discount_pct ?? 0) / 100)
+      const baseTotal   = order.total ?? (itemsTotal - discount + (order.shipping ?? 0))
+      const tip         = Number(order.tip ?? 0)
+      const total       = baseTotal + tip
+      const method      = order.payment_method ?? ''
+      const desc        = `${order.client_name}${method ? ` · ${method.toUpperCase()}` : ''}${tip > 0 ? ' · +tip' : ''}`
 
       const { data: existing } = await supabase
         .from('cash_flow').select('id').eq('reference_id', id).eq('type', 'income').maybeSingle()
