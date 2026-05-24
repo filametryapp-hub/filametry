@@ -19,6 +19,12 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Filametry — Print smarter. Price better.",
   description: "Manage your 3D printing business. Track filaments, price your prints, and handle orders — all in one place.",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: { url: '/filametry-appicon-1024.svg', type: 'image/svg+xml' },
+  },
 };
 
 export default function RootLayout({

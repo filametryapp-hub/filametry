@@ -147,9 +147,13 @@ export function Sidebar() {
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <FilametryMark />
-            <span className="font-semibold text-[14px] tracking-[-0.02em] text-foreground">Filametry</span>
+          <div className="flex items-center">
+            <img
+              src="/filametry-lockup.svg"
+              alt="Filametry"
+              height={32}
+              style={{ height: 32, width: 'auto' }}
+            />
           </div>
         )}
       </div>
@@ -205,23 +209,3 @@ export function Sidebar() {
   )
 }
 
-/** Filametry logomark */
-function FilametryMark() {
-  return (
-    <div
-      className="relative shrink-0"
-      style={{
-        width: 22, height: 22,
-        borderRadius: 6,
-        background: 'linear-gradient(135deg, #2f5fff 0%, #7a3cff 100%)',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute', inset: 5, borderRadius: 2,
-          border: '1.5px solid rgba(255,255,255,0.85)',
-        }}
-      />
-    </div>
-  )
-}
