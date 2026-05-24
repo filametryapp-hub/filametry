@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getPricingSession } from '@/lib/actions/pricing-sessions'
 
 export async function getOrders() {
   try {
@@ -233,84 +234,105 @@ export async function updateOrderStatus(id: string, status: string) {
       }
 
       // ── 2. Filament stock deduction ────────────────────────────
-      // Handles items both with product_id (direct lookup) and without (name match)
       const allItems = (order.order_items ?? []) as Array<{
         product_id?: string | null
         product_name?: string
         quantity: number
       }>
 
-      const productIds = allItems
-        .filter(i => i.product_id)
-        .map(i => i.product_id as string)
-
-      const productNames = allItems
-        .filter(i => !i.product_id && i.product_name)
-        .map(i => i.product_name as string)
-
-      console.log('[updateOrderStatus] items with product_id:', productIds.length, '— items name-only:', productNames.length)
+      const productIds = allItems.filter(i => i.product_id).map(i => i.product_id as string)
+      const productNames = allItems.filter(i => !i.product_id && i.product_name).map(i => i.product_name as string)
 
       if (allItems.length > 0) {
-        // Load products by id
+        type ProductRow = { id: string; name: string; weight_g: number; material: string; pricing_session_id?: string | null }
+        type SpoolRow   = { id: string; material: string; remaining_g: number }
+        type BatchFilament = { catalogSpoolId?: string; weightG: number; type: string }
+        type Batch = { filaments: BatchFilament[] }
+
+        // Load products
         const { data: productsByIdRaw } = productIds.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material').eq('user_id', user.id).in('id', productIds)
+          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id').eq('user_id', user.id).in('id', productIds)
           : { data: [] }
-
-        // Load products by name (case-insensitive) for manually-typed items
         const { data: productsByNameRaw } = productNames.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material').eq('user_id', user.id)
+          ? await supabase.from('products').select('id, name, weight_g, material, pricing_session_id').eq('user_id', user.id)
           : { data: [] }
 
-        type ProductRow = { id: string; name: string; weight_g: number; material: string }
         const productsById   = (productsByIdRaw   ?? []) as ProductRow[]
         const productsByName = (productsByNameRaw ?? []) as ProductRow[]
 
-        // Fetch all spools sorted by remaining (fullest first), update in memory
+        // All spools in memory (updated after each deduction)
         const { data: spoolsRaw } = await supabase
-          .from('filaments')
-          .select('id, material, remaining_g')
-          .eq('user_id', user.id)
+          .from('filaments').select('id, material, remaining_g').eq('user_id', user.id)
           .order('remaining_g', { ascending: false })
-
-        type SpoolRow = { id: string; material: string; remaining_g: number }
         const spools = (spoolsRaw ?? []) as SpoolRow[]
+
+        async function deductFromSpool(spoolId: string, grams: number) {
+          const spool = spools.find(s => s.id === spoolId)
+          if (!spool) return
+          const newRemaining = Math.max(0, Number(spool.remaining_g) - grams)
+          await supabase.from('filaments').update({ remaining_g: newRemaining }).eq('id', spoolId)
+          spool.remaining_g = newRemaining
+          console.log('[deduction] spool', spoolId, '-', grams, 'g → remaining:', newRemaining)
+        }
+
+        async function deductByMaterial(mat: string, grams: number) {
+          const key = mat.toLowerCase().split('/')[0].trim()
+          const spool = spools.find(s => s.material.toLowerCase().includes(key) && Number(s.remaining_g) >= grams)
+            ?? spools.find(s => s.material.toLowerCase().includes(key))
+          if (spool) await deductFromSpool(spool.id, grams)
+          else console.log('[deduction] no spool found for material:', key)
+        }
 
         for (const item of allItems) {
           let prod: ProductRow | undefined
 
           if (item.product_id) {
-            // Direct match by id
             prod = productsById.find(p => p.id === item.product_id)
           } else if (item.product_name) {
-            // Fuzzy match by name (case-insensitive, partial)
             const needle = item.product_name.toLowerCase()
             prod = productsByName.find(p => p.name.toLowerCase().includes(needle))
               ?? productsByName.find(p => needle.includes(p.name.toLowerCase()))
           }
 
-          if (!prod || !prod.weight_g) {
-            console.log('[updateOrderStatus] no catalog match for item:', item.product_name ?? item.product_id, '— skipping deduction')
+          if (!prod) {
+            console.log('[deduction] no product match for:', item.product_name ?? item.product_id)
             continue
           }
 
-          const totalG = prod.weight_g * item.quantity
-          const mat    = prod.material.toLowerCase().split('/')[0].trim()
+          const qty = item.quantity
 
-          // Prefer spool with enough remaining; fallback to any matching material
-          const spool = spools.find(s =>
-            s.material.toLowerCase().includes(mat) && Number(s.remaining_g) >= totalG
-          ) ?? spools.find(s =>
-            s.material.toLowerCase().includes(mat)
-          )
+          // ── Try to use pricing session for per-filament breakdown ──
+          if (prod.pricing_session_id) {
+            const session = await getPricingSession(prod.pricing_session_id)
+            const batches = session?.batches as Batch[] | undefined
 
-          if (spool) {
-            const newRemaining = Math.max(0, Number(spool.remaining_g) - totalG)
-            await supabase.from('filaments').update({ remaining_g: newRemaining }).eq('id', spool.id)
-            spool.remaining_g = newRemaining
-            console.log('[updateOrderStatus] deducted', totalG, 'g from spool', spool.id, '→ remaining:', newRemaining)
-          } else {
-            console.log('[updateOrderStatus] no matching spool found for material:', mat)
+            if (batches && batches.length > 0) {
+              // All filaments across all batches × quantity
+              for (const batch of batches) {
+                for (const fil of batch.filaments) {
+                  const grams = fil.weightG * qty
+                  if (grams <= 0) continue
+
+                  if (fil.catalogSpoolId) {
+                    // Exact spool known → deduct directly
+                    await deductFromSpool(fil.catalogSpoolId, grams)
+                  } else {
+                    // No spool ID → match by material type
+                    await deductByMaterial(fil.type, grams)
+                  }
+                }
+              }
+              console.log('[deduction] used session', prod.pricing_session_id, 'for', prod.name)
+              continue // skip fallback
+            }
           }
+
+          // ── Fallback: single material from product weight_g ──
+          if (!prod.weight_g) {
+            console.log('[deduction] product has no weight_g:', prod.name)
+            continue
+          }
+          await deductByMaterial(prod.material, prod.weight_g * qty)
         }
       }
 

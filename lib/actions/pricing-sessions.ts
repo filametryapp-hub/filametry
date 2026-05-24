@@ -84,6 +84,17 @@ export async function savePricingSession(session: {
   return result as SavedSession
 }
 
+export async function getPricingSession(id: string): Promise<SavedSession | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('pricing_sessions')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error || !data) return null
+  return data as SavedSession
+}
+
 export async function deletePricingSession(id: string): Promise<void> {
   const supabase = await createClient()
   await supabase.from('pricing_sessions').delete().eq('id', id)

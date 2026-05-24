@@ -36,6 +36,7 @@ interface CatalogFilament {
 
 export interface BatchFilament {
   id: string
+  catalogSpoolId?: string  // actual spool ID from filaments table (set when "Do estoque" is selected)
   weightG: number
   color: string        // hex
   type: string         // PLA / PETG / …
@@ -417,10 +418,11 @@ function FilamentRow({
   function applyFromCatalog(catId: string) {
     const cat = catalog.find(c => c.id === catId)
     if (!cat) return
-    onUpdate(filament.id, 'type',          cat.material)
-    onUpdate(filament.id, 'color',         cat.colorHex)
-    onUpdate(filament.id, 'spoolPriceUSD', cat.priceUSD)
-    onUpdate(filament.id, 'spoolWeightG',  cat.weightG)
+    onUpdate(filament.id, 'catalogSpoolId', catId)   // save the actual spool ID for deduction
+    onUpdate(filament.id, 'type',           cat.material)
+    onUpdate(filament.id, 'color',          cat.colorHex)
+    onUpdate(filament.id, 'spoolPriceUSD',  cat.priceUSD)
+    onUpdate(filament.id, 'spoolWeightG',   cat.weightG)
   }
 
   return (
