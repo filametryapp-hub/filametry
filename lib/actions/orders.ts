@@ -83,6 +83,7 @@ export async function updateOrder(id: string, order: {
   quote_tiers?: { qty: number; unit_price: number }[] | null
   show_discount_on_print?: boolean
   tip?: number
+  payment_method?: string
   items: Array<{
     product_id?: string
     product_name: string
@@ -102,6 +103,7 @@ export async function updateOrder(id: string, order: {
       quote_tiers:            order.quote_tiers ?? null,
       show_discount_on_print: order.show_discount_on_print ?? false,
       tip:                    order.tip ?? 0,
+      payment_method:         order.payment_method ?? null,
       updated_at:             new Date().toISOString(),
     })
     .eq('id', id)
@@ -186,10 +188,10 @@ export async function updateOrderStatus(id: string, status: string) {
       const { data: existing } = await supabase
         .from('cash_flow').select('id').eq('reference_id', id).eq('type', 'income').maybeSingle()
 
-      if (!existing && total > 0 && companyId) {
+      if (!existing && total > 0) {
         await supabase.from('cash_flow').insert({
           user_id:      user.id,
-          company_id:   companyId,
+          company_id:   companyId ?? null,
           type:         'income',
           category:     'order',
           description:  desc,

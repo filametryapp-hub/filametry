@@ -8,6 +8,7 @@ import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@
 import { useT } from '@/lib/i18n'
 import { getProducts } from '@/lib/actions/products'
 import { getClients, upsertClient } from '@/lib/actions/clients'
+import { PAYMENT_METHODS } from '@/lib/actions/quotes'
 
 interface CatalogProduct {
   id: string
@@ -46,8 +47,9 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   // Client — pre-fill from initial if editing
   const [clientName,  setClientName]  = useState(initial?.clientName ?? '')
   const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? '')
-  const [notes,       setNotes]       = useState(initial?.notes ?? '')
-  const [tip,         setTip]         = useState(initial?.tip ?? 0)
+  const [notes,          setNotes]          = useState(initial?.notes ?? '')
+  const [tip,            setTip]            = useState(initial?.tip ?? 0)
+  const [paymentMethod,  setPaymentMethod]  = useState((initial as { payment_method?: string } | undefined)?.payment_method ?? '')
 
   // Selected product — pre-fill from first item
   const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)
@@ -200,7 +202,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
       // Simple mode: use simpleItems
       const validItems = simpleItems.filter(it => it.product_name.trim())
       if (validItems.length === 0) return
-      onSave({
+      onSave(Object.assign({
         id:          initial?.id ?? '',
         clientName,
         clientEmail: clientEmail || undefined,
@@ -217,14 +219,14 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
         status:    initial?.status ?? 'draft',
         createdAt: initial?.createdAt ?? now,
         updatedAt: now,
-      })
+      }, { payment_method: paymentMethod || undefined }))
       return
     }
 
     // Tiers mode
     if (!selectedProd || tiers.length === 0) return
     const smallestTier = tiers[0]
-    onSave({
+    onSave(Object.assign({
       id:          initial?.id ?? '',
       clientName,
       clientEmail: clientEmail || undefined,
@@ -241,7 +243,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
       status:    initial?.status ?? 'draft',
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
-    })
+    }, { payment_method: paymentMethod || undefined }))
   }
 
   return (
@@ -345,65 +347,49 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           {/* ── Simple items mode (default) ── */}
           {!showTiersTable && (
             <div className="space-y-2">
-              <div className="rounded-lg border border-border overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Produto</th>
-                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-16">Qtd</th>
-                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-28">Preço/un</th>
-                      <th className="text-right px-3 py-2 text-muted-foreground font-medium w-24">Total</th>
-                      <th className="w-8" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {simpleItems.map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="px-2 py-1.5">
-                          <div className="flex gap-1.5">
-                            {products.length > 0 && (
-                              <select
-                                value={item.product_id || ''}
-                                onChange={e => pickProductForItem(idx, e.target.value)}
-                                className="h-8 rounded border border-input bg-background px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 shrink-0">
-                                <option value="">↓</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                              </select>
-                            )}
-                            <input
-                              className="h-8 flex-1 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
-                              placeholder="Nome do produto"
-                              value={item.product_name}
-                              onChange={e => updateSimpleItem(idx, { product_name: e.target.value })} />
-                          </div>
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input type="number" min={1} step={1}
-                            className="h-8 w-16 rounded border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            value={item.qty}
-                            onChange={e => updateSimpleItem(idx, { qty: Math.max(1, +e.target.value) })} />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input type="number" min={0} step="any"
-                            className="h-8 w-28 rounded border border-input bg-background px-2 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            value={item.unit_price || ''}
-                            onChange={e => updateSimpleItem(idx, { unit_price: parseFloat(e.target.value) || 0 })} />
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-blue-600 font-medium">
-                          {fmtCurrency(item.qty * item.unit_price)}
-                        </td>
-                        <td className="px-1 py-1.5 text-center">
-                          {simpleItems.length > 1 && (
-                            <button type="button" onClick={() => removeSimpleItem(idx)}
-                              className="text-muted-foreground hover:text-red-400">
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {simpleItems.map((item, idx) => (
+                  <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
+                    {/* Row 1: product picker */}
+                    <div className="flex gap-2 items-center">
+                      {products.length > 0 && (
+                        <select
+                          value={item.product_id || ''}
+                          onChange={e => pickProductForItem(idx, e.target.value)}
+                          className="h-8 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 min-w-0 flex-1 truncate">
+                          <option value="">— selecionar produto —</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      )}
+                      {simpleItems.length > 1 && (
+                        <button type="button" onClick={() => removeSimpleItem(idx)}
+                          className="text-muted-foreground hover:text-red-400 shrink-0">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {/* Row 2: name + qty + price */}
+                    <div className="grid grid-cols-[1fr_64px_100px] gap-2 items-center">
+                      <input
+                        className="h-8 w-full rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        placeholder="Nome do produto"
+                        value={item.product_name}
+                        onChange={e => updateSimpleItem(idx, { product_name: e.target.value, product_id: '' })} />
+                      <input type="number" min={1} step={1}
+                        className="h-8 w-full rounded border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={item.qty}
+                        onChange={e => updateSimpleItem(idx, { qty: Math.max(1, +e.target.value) })} />
+                      <input type="number" min={0} step="any"
+                        className="h-8 w-full rounded border border-input bg-background px-2 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="Preço/un"
+                        value={item.unit_price || ''}
+                        onChange={e => updateSimpleItem(idx, { unit_price: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="flex justify-end text-xs font-mono text-blue-600 font-medium">
+                      Total: {fmtCurrency(item.qty * item.unit_price)}
+                    </div>
+                  </div>
+                ))}
               </div>
               <button type="button" onClick={addSimpleItem}
                 className="text-xs text-blue-600 hover:text-blue-500 flex items-center gap-1 transition-colors">
@@ -600,20 +586,34 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
           />
         </div>
 
-        {/* Tip / extra received */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Gorjeta / valor extra recebido</Label>
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={tip || ''}
-            onChange={e => setTip(parseFloat(e.target.value) || 0)}
-            placeholder="0.00"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Valor adicional ao total (tips, arredondamento). Vai direto para o fluxo de caixa.
-          </p>
+        {/* Payment section */}
+        <div className="rounded-lg border border-border p-3 space-y-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pagamento</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Forma de pagamento</Label>
+              <select
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
+                <option value="">— selecionar —</option>
+                {PAYMENT_METHODS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Gorjeta / valor extra</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={tip || ''}
+                onChange={e => setTip(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-1">

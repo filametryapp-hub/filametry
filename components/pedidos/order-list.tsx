@@ -97,6 +97,7 @@ export function OrderList() {
       client_email:           order.clientEmail,
       notes:                  order.notes,
       tip:                    order.tip ?? 0,
+      payment_method:         (order as { payment_method?: string }).payment_method ?? undefined,
       quote_tiers:            order.quoteTiers?.map(t => ({
         qty:        t.qty,
         unit_price: t.unitPrice,
