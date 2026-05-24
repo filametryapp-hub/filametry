@@ -253,12 +253,12 @@ export async function updateOrderStatus(id: string, status: string) {
       if (allItems.length > 0) {
         // Load products by id
         const { data: productsByIdRaw } = productIds.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material').in('id', productIds)
+          ? await supabase.from('products').select('id, name, weight_g, material').eq('user_id', user.id).in('id', productIds)
           : { data: [] }
 
         // Load products by name (case-insensitive) for manually-typed items
         const { data: productsByNameRaw } = productNames.length > 0
-          ? await supabase.from('products').select('id, name, weight_g, material')
+          ? await supabase.from('products').select('id, name, weight_g, material').eq('user_id', user.id)
           : { data: [] }
 
         type ProductRow = { id: string; name: string; weight_g: number; material: string }
@@ -269,6 +269,7 @@ export async function updateOrderStatus(id: string, status: string) {
         const { data: spoolsRaw } = await supabase
           .from('filaments')
           .select('id, material, remaining_g')
+          .eq('user_id', user.id)
           .order('remaining_g', { ascending: false })
 
         type SpoolRow = { id: string; material: string; remaining_g: number }
