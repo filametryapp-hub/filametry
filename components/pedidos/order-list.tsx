@@ -39,6 +39,7 @@ function fromRow(row: Record<string, unknown>): Order {
     status:              String(row.status) as Order['status'],
     notes:               row.notes ? String(row.notes) : undefined,
     tip:                 row.tip ? Number(row.tip) : undefined,
+    payment_method:      row.payment_method ? String(row.payment_method) : undefined,
     items,
     quoteTiers,
     showDiscountOnPrint: Boolean(row.show_discount_on_print ?? false),
@@ -100,7 +101,7 @@ export function OrderList() {
       client_email:           order.clientEmail,
       notes:                  order.notes,
       tip:                    order.tip ?? 0,
-      payment_method:         (order as { payment_method?: string }).payment_method ?? undefined,
+      payment_method:         order.payment_method ?? undefined,
       quote_tiers:            order.quoteTiers?.map(t => ({
         qty:        t.qty,
         unit_price: t.unitPrice,

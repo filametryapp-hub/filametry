@@ -49,7 +49,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? '')
   const [notes,          setNotes]          = useState(initial?.notes ?? '')
   const [tip,            setTip]            = useState(initial?.tip ?? 0)
-  const [paymentMethod,  setPaymentMethod]  = useState((initial as { payment_method?: string } | undefined)?.payment_method ?? '')
+  const [paymentMethod,  setPaymentMethod]  = useState(initial?.payment_method ?? '')
 
   // Selected product — pre-fill from first item
   const [selectedProd, setSelectedProd] = useState<CatalogProduct | null>(null)

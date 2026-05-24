@@ -96,6 +96,7 @@ export interface Order {
   quoteTiers?: QuoteTier[]         // multi-quantity proposal table
   showDiscountOnPrint?: boolean    // whether discount % column shows when printing
   tip?: number                     // extra amount received (tips, rounding, etc.)
+  payment_method?: string          // pix, card, cash, etc.
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
