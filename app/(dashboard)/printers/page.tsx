@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Printer, Plus, Trash2, DollarSign, Clock, Zap, TrendingDown, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BarChart3, Receipt, Pencil, Check, X } from 'lucide-react'
 import {
   getUserPrinters, addPrinter, deletePrinter, updatePrinter,
@@ -884,6 +885,12 @@ export default function PrintersPage() {
           <p className="text-muted-foreground mt-1">{eq.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/expenses?category=equipment&open=1"
+            className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-blue-600/50 hover:text-blue-600 transition-colors"
+          >
+            <Receipt className="size-3.5" /> Lançar compra
+          </Link>
           {printers.length > 0 && (
             <button onClick={() => setShowRecalc(true)}
               className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-blue-600/50 hover:text-blue-500 transition-colors">

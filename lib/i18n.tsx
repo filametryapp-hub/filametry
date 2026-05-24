@@ -206,10 +206,15 @@ const en = {
     contactName: 'Contact name', website: 'Website',
   },
   expenses: {
-    title: 'Expenses', subtitle: 'Track your business expenses.',
-    addExpense: '+ Add expense', noExpenses: 'No expenses yet.',
-    category: 'Category', amount: 'Amount ($)', paidAt: 'Paid at', supplier: 'Supplier (optional)',
+    title: 'Expenses', subtitle: 'Record all your purchases in one place.',
+    addExpense: '+ New entry', noExpenses: 'No entries yet.',
+    category: 'Category', amount: 'Amount ($)', paidAt: 'Date', supplier: 'Supplier (optional)',
     totalMonth: 'This month', totalYear: 'This year', largest: 'Largest expense',
+    paidBy: 'Paid by', paymentMethod: 'Payment method',
+    cats: {
+      all: 'All', material: 'Materials', post_processing: 'Post-processing',
+      equipment: 'Equipment', packaging: 'Packaging', other: 'Other',
+    },
   },
   cashFlow: {
     title: 'Cash Flow', subtitle: 'Track all income and expenses.',
@@ -300,7 +305,7 @@ const pt: typeof en = {
     dashboard: 'Painel', pricing: 'Precificação', materials: 'Materiais',
     equipment: 'Equipamentos', consumables: 'Consumíveis', products: 'Produtos', orders: 'Pedidos',
     quotes: 'Orçamentos', production: 'Produção',
-    clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Despesas',
+    clients: 'Clientes', suppliers: 'Fornecedores', expenses: 'Lançamentos',
     cashFlow: 'Fluxo de Caixa', wallet: 'Carteira', settings: 'Configurações', billing: 'Plano', signOut: 'Sair',
     team: 'Equipe', integrations: 'Integrações',
   },
@@ -485,10 +490,15 @@ const pt: typeof en = {
     contactName: 'Nome do contato', website: 'Site',
   },
   expenses: {
-    title: 'Despesas', subtitle: 'Controle as despesas do seu negócio.',
-    addExpense: '+ Adicionar despesa', noExpenses: 'Nenhuma despesa ainda.',
-    category: 'Categoria', amount: 'Valor (R$)', paidAt: 'Pago em', supplier: 'Fornecedor (opcional)',
-    totalMonth: 'Este mês', totalYear: 'Este ano', largest: 'Maior despesa',
+    title: 'Lançamentos', subtitle: 'Registre todas as compras e gastos em um só lugar.',
+    addExpense: '+ Novo lançamento', noExpenses: 'Nenhum lançamento ainda.',
+    category: 'Categoria', amount: 'Valor', paidAt: 'Data', supplier: 'Fornecedor (opcional)',
+    totalMonth: 'Este mês', totalYear: 'Este ano', largest: 'Maior gasto',
+    paidBy: 'Pago por', paymentMethod: 'Forma de pagamento',
+    cats: {
+      all: 'Todos', material: 'Materiais', post_processing: 'Pós-processamento',
+      equipment: 'Equipamentos', packaging: 'Embalagens', other: 'Outros',
+    },
   },
   cashFlow: {
     title: 'Fluxo de Caixa', subtitle: 'Controle todas as entradas e saídas.',
@@ -764,10 +774,15 @@ const es: typeof en = {
     contactName: 'Nombre del contacto', website: 'Sitio web',
   },
   expenses: {
-    title: 'Gastos', subtitle: 'Controla los gastos de tu negocio.',
-    addExpense: '+ Agregar gasto', noExpenses: 'Sin gastos aún.',
-    category: 'Categoría', amount: 'Monto ($)', paidAt: 'Pagado el', supplier: 'Proveedor (opcional)',
+    title: 'Lanzamientos', subtitle: 'Registra todas las compras y gastos en un solo lugar.',
+    addExpense: '+ Nuevo lanzamiento', noExpenses: 'Sin lanzamientos aún.',
+    category: 'Categoría', amount: 'Monto', paidAt: 'Fecha', supplier: 'Proveedor (opcional)',
     totalMonth: 'Este mes', totalYear: 'Este año', largest: 'Mayor gasto',
+    paidBy: 'Pagado por', paymentMethod: 'Método de pago',
+    cats: {
+      all: 'Todos', material: 'Materiales', post_processing: 'Post-procesamiento',
+      equipment: 'Equipos', packaging: 'Embalajes', other: 'Otros',
+    },
   },
   cashFlow: {
     title: 'Flujo de Caja', subtitle: 'Controla todos los ingresos y gastos.',
