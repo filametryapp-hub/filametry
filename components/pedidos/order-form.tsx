@@ -8,7 +8,7 @@ import { type Order, type VolumeTier, type QuoteTier, resolveUnitPrice } from '@
 import { useT } from '@/lib/i18n'
 import { getProducts } from '@/lib/actions/products'
 import { getClients, upsertClient } from '@/lib/actions/clients'
-import { PAYMENT_METHODS } from '@/lib/constants'
+import { getPaymentMethods, type PaymentMethodRow } from '@/lib/actions/payment-methods'
 
 interface CatalogProduct {
   id: string
@@ -40,9 +40,10 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   const { t, fmtCurrency } = useT()
   const isEditing = Boolean(initial)
 
-  const [products,    setProducts]   = useState<CatalogProduct[]>([])
-  const [clients,     setClients]    = useState<CatalogClient[]>([])
-  const [loadingCat,  setLoadingCat] = useState(true)
+  const [products,        setProducts]       = useState<CatalogProduct[]>([])
+  const [clients,         setClients]        = useState<CatalogClient[]>([])
+  const [paymentMethods,  setPaymentMethods] = useState<PaymentMethodRow[]>([])
+  const [loadingCat,      setLoadingCat]     = useState(true)
 
   // Client — pre-fill from initial if editing
   const [clientName,  setClientName]  = useState(initial?.clientName ?? '')
@@ -114,7 +115,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
   useEffect(() => {
     async function load() {
       try {
-        const [prods, cls] = await Promise.all([getProducts(), getClients()])
+        const [prods, cls, pm] = await Promise.all([getProducts(), getClients(), getPaymentMethods()])
         const mapped: CatalogProduct[] = (prods ?? []).map((p: Record<string, unknown>) => ({
           id:           String(p.id),
           name:         String(p.name),
@@ -135,6 +136,7 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
             email: c.email ? String(c.email) : null,
           }))
         )
+        setPaymentMethods(pm)
         // In edit mode: find and pre-select the product from first item
         if (initial?.items[0]?.productId) {
           const found = mapped.find(p => p.id === initial.items[0].productId)
@@ -597,8 +599,8 @@ export function OrderForm({ initial, onSave, onClose }: Props) {
                 onChange={e => setPaymentMethod(e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
                 <option value="">— selecionar —</option>
-                {PAYMENT_METHODS.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
+                {paymentMethods.map(m => (
+                  <option key={m.id} value={m.label}>{m.label}</option>
                 ))}
               </select>
             </div>

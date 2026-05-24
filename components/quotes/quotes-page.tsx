@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Printer, Trash2, FileText, X, ClipboardList, ArrowRight } from 'lucide-react'
 import { getQuotes, upsertQuote, deleteQuote, convertQuoteToOrder } from '@/lib/actions/quotes'
-import { PAYMENT_METHODS } from '@/lib/constants'
 import { getProducts } from '@/lib/actions/products'
+import { getPaymentMethods, type PaymentMethodRow } from '@/lib/actions/payment-methods'
 import { useT } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
 import type { Quote, QuoteItem, QuoteTier } from '@/lib/actions/quotes'
@@ -284,13 +284,13 @@ function QuoteForm({
               <div>
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Payment method</label>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {PAYMENT_METHODS.map(pm => (
+                  {paymentMethods.map(pm => (
                     <button
-                      key={pm.value}
+                      key={pm.id}
                       type="button"
-                      onClick={() => setForm(f => ({ ...f, payment_method: f.payment_method === pm.value ? '' : pm.value }))}
+                      onClick={() => setForm(f => ({ ...f, payment_method: f.payment_method === pm.label ? '' : pm.label }))}
                       className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors font-medium ${
-                        form.payment_method === pm.value
+                        form.payment_method === pm.label
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'border-border text-muted-foreground hover:border-blue-500/50 hover:text-blue-500'
                       }`}
@@ -642,7 +642,7 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
               )}
               {quote.payment_method && (
                 <p>Payment: <span className="font-medium text-gray-700">
-                  {PAYMENT_METHODS.find(p => p.value === quote.payment_method)?.label ?? quote.payment_method}
+                  {quote.payment_method}
                 </span></p>
               )}
               {quote.notes && (
@@ -692,9 +692,10 @@ export function QuotesPage() {
   const qt = t.quotes
   const router = useRouter()
 
-  const [quotes, setQuotes]         = useState<Quote[]>([])
-  const [products, setProducts]     = useState<ProductOption[]>([])
-  const [loading, setLoading]       = useState(true)
+  const [quotes, setQuotes]             = useState<Quote[]>([])
+  const [products, setProducts]         = useState<ProductOption[]>([])
+  const [paymentMethods, setPayMethods] = useState<PaymentMethodRow[]>([])
+  const [loading, setLoading]           = useState(true)
   const [formQuote, setFormQuote]   = useState<Quote | null | 'new'>()
   const [printQuote, setPrintQuote] = useState<Quote | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
@@ -719,6 +720,11 @@ export function QuotesPage() {
               }))
             : undefined,
         })))
+      } catch { /* ignore */ }
+
+      try {
+        const pm = await getPaymentMethods().catch(() => [])
+        setPayMethods(pm)
       } catch { /* ignore */ }
 
       setLoading(false)

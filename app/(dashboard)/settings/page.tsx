@@ -18,6 +18,14 @@ import {
   bambuDisconnect,
 } from '@/lib/actions/bambu'
 import { useT, CURRENCIES, type CurrencyCode } from '@/lib/i18n'
+import {
+  getPaymentMethods,
+  addPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  seedDefaultPaymentMethods,
+  type PaymentMethodRow,
+} from '@/lib/actions/payment-methods'
 
 type Company = {
   id: string
@@ -294,6 +302,14 @@ export default function SettingsPage() {
   const [editPartnerId, setEditPartnerId] = useState<string | null>(null)
   const [editPartnerForm, setEditPartnerForm] = useState({ name: '', email: '', percentage: '' })
 
+  // Payment methods
+  const [payMethods, setPayMethods] = useState<PaymentMethodRow[]>([])
+  const [newPayLabel, setNewPayLabel] = useState('')
+  const [addingPay, setAddingPay] = useState(false)
+  const [editPayId, setEditPayId] = useState<string | null>(null)
+  const [editPayLabel, setEditPayLabel] = useState('')
+  const [payError, setPayError] = useState('')
+
   useEffect(() => {
     async function load() {
       const [company, plist] = await Promise.all([getCompany(), getPartners()])
@@ -312,6 +328,8 @@ export default function SettingsPage() {
         })
       }
       setPartners(plist as Partner[])
+      const pm = await getPaymentMethods().catch(() => [])
+      setPayMethods(pm)
       setLoading(false)
     }
     load()
@@ -404,6 +422,62 @@ export default function SettingsPage() {
       ))
       setEditPartnerId(null)
     })
+  }
+
+  // ── Payment Methods handlers ───────────────────────────────────
+  async function handleAddPayMethod() {
+    if (!newPayLabel.trim()) return
+    setAddingPay(true)
+    setPayError('')
+    try {
+      // First-time: seed defaults into DB so the list is manageable
+      if (payMethods.length > 0 && !payMethods[0].id.includes('-')) {
+        await seedDefaultPaymentMethods()
+      }
+      await addPaymentMethod(newPayLabel.trim())
+      const updated = await getPaymentMethods()
+      setPayMethods(updated)
+      setNewPayLabel('')
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : 'Erro ao adicionar.')
+    } finally {
+      setAddingPay(false)
+    }
+  }
+
+  async function handleDeletePayMethod(id: string) {
+    // If it's a default (non-UUID id), seed first then delete
+    const isDefault = !id.includes('-')
+    try {
+      if (isDefault) {
+        await seedDefaultPaymentMethods()
+        const fresh = await getPaymentMethods()
+        const item = fresh.find(m => m.label === payMethods.find(p => p.id === id)?.label)
+        if (item) await deletePaymentMethod(item.id)
+      } else {
+        await deletePaymentMethod(id)
+      }
+      const updated = await getPaymentMethods()
+      setPayMethods(updated)
+    } catch { /* silent */ }
+  }
+
+  async function handleUpdatePayMethod(id: string) {
+    if (!editPayLabel.trim()) return
+    const isDefault = !id.includes('-')
+    try {
+      if (isDefault) {
+        await seedDefaultPaymentMethods()
+        const fresh = await getPaymentMethods()
+        const item = fresh.find(m => m.label === payMethods.find(p => p.id === id)?.label)
+        if (item) await updatePaymentMethod(item.id, editPayLabel.trim())
+      } else {
+        await updatePaymentMethod(id, editPayLabel.trim())
+      }
+      const updated = await getPaymentMethods()
+      setPayMethods(updated)
+      setEditPayId(null)
+    } catch { /* silent */ }
   }
 
   if (loading) {
@@ -655,6 +729,81 @@ export default function SettingsPage() {
           </div>
         </section>
       )}
+
+      {/* ── Payment Methods ───────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-blue-600/10">
+            <DollarSign className="size-4 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold">Formas de Pagamento</h2>
+            <p className="text-xs text-muted-foreground">Cadastre as opções que aparecem nos pedidos e orçamentos.</p>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+          {payMethods.length === 0 && (
+            <p className="text-sm text-muted-foreground px-4 py-3">Nenhuma forma cadastrada.</p>
+          )}
+          {payMethods.map(m => (
+            <div key={m.id} className="flex items-center gap-2 px-4 py-2.5">
+              {editPayId === m.id ? (
+                <>
+                  <input
+                    className={INPUT + ' flex-1 h-8 py-1'}
+                    value={editPayLabel}
+                    onChange={e => setEditPayLabel(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleUpdatePayMethod(m.id); if (e.key === 'Escape') setEditPayId(null) }}
+                    autoFocus
+                  />
+                  <button onClick={() => handleUpdatePayMethod(m.id)}
+                    className="p-1.5 rounded-lg bg-green-600/10 text-green-500 hover:bg-green-600/20 transition-colors">
+                    <Check className="size-3.5" />
+                  </button>
+                  <button onClick={() => setEditPayId(null)}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                    <X className="size-3.5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm font-medium">{m.label}</span>
+                  <button onClick={() => { setEditPayId(m.id); setEditPayLabel(m.label) }}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                    <Pencil className="size-3.5" />
+                  </button>
+                  <button onClick={() => handleDeletePayMethod(m.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-400/10 text-muted-foreground hover:text-red-400 transition-colors">
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add new */}
+        <div className="flex gap-2">
+          <input
+            className={INPUT}
+            placeholder="Nova forma de pagamento (ex: Boleto)"
+            value={newPayLabel}
+            onChange={e => setNewPayLabel(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddPayMethod()}
+          />
+          <button
+            onClick={handleAddPayMethod}
+            disabled={addingPay || !newPayLabel.trim()}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <Plus className="size-4" />
+            {addingPay ? 'Salvando…' : 'Adicionar'}
+          </button>
+        </div>
+        {payError && <p className="text-sm text-red-400">{payError}</p>}
+      </section>
     </div>
   )
 }
