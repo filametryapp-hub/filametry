@@ -28,7 +28,7 @@ export type QuoteData = {
   delivery_days?: number
   notes?: string
   valid_days?: number
-  status?: 'draft' | 'sent' | 'accepted' | 'rejected'
+  status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted'
   volume_tiers?: QuoteTier[]
   show_discount_on_print?: boolean
   payment_method?: string
@@ -147,8 +147,8 @@ export async function convertQuoteToOrder(quoteId: string): Promise<string> {
     if (itemsErr) throw itemsErr
   }
 
-  // Mark quote as converted
-  await supabase.from('quotes').update({ status: 'accepted', notes: (quote.notes ? quote.notes + '\n' : '') + `[order:${order.id}]` }).eq('id', quoteId)
+  // Mark quote as converted (status 'converted' → hides "Send to Orders" button)
+  await supabase.from('quotes').update({ status: 'converted', notes: (quote.notes ? quote.notes + '\n' : '') + `[order:${order.id}]` }).eq('id', quoteId)
 
   revalidatePath('/pedidos')
   revalidatePath('/quotes')

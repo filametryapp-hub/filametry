@@ -233,47 +233,82 @@ export async function updateOrderStatus(id: string, status: string) {
       }
 
       // ── 2. Filament stock deduction ────────────────────────────
-      // For each item that has a product_id, look up weight_g & material
-      const productIds = (order.order_items ?? [])
-        .filter((i: { product_id?: string | null }) => i.product_id)
-        .map((i: { product_id: string }) => i.product_id)
+      // Handles items both with product_id (direct lookup) and without (name match)
+      const allItems = (order.order_items ?? []) as Array<{
+        product_id?: string | null
+        product_name?: string
+        quantity: number
+      }>
 
-      console.log('[updateOrderStatus] items with product_id:', productIds.length, 'of', order.order_items?.length)
+      const productIds = allItems
+        .filter(i => i.product_id)
+        .map(i => i.product_id as string)
 
-      if (productIds.length > 0) {
-        const { data: products } = await supabase
-          .from('products')
-          .select('id, weight_g, material')
-          .in('id', productIds)
+      const productNames = allItems
+        .filter(i => !i.product_id && i.product_name)
+        .map(i => i.product_name as string)
 
-        // Fetch all spools sorted by remaining (fullest first)
-        const { data: spools } = await supabase
+      console.log('[updateOrderStatus] items with product_id:', productIds.length, '— items name-only:', productNames.length)
+
+      if (allItems.length > 0) {
+        // Load products by id
+        const { data: productsByIdRaw } = productIds.length > 0
+          ? await supabase.from('products').select('id, name, weight_g, material').in('id', productIds)
+          : { data: [] }
+
+        // Load products by name (case-insensitive) for manually-typed items
+        const { data: productsByNameRaw } = productNames.length > 0
+          ? await supabase.from('products').select('id, name, weight_g, material')
+          : { data: [] }
+
+        type ProductRow = { id: string; name: string; weight_g: number; material: string }
+        const productsById   = (productsByIdRaw   ?? []) as ProductRow[]
+        const productsByName = (productsByNameRaw ?? []) as ProductRow[]
+
+        // Fetch all spools sorted by remaining (fullest first), update in memory
+        const { data: spoolsRaw } = await supabase
           .from('filaments')
           .select('id, material, remaining_g')
           .order('remaining_g', { ascending: false })
 
-        for (const item of (order.order_items ?? [])) {
-          const itm = item as { product_id?: string | null; quantity: number }
-          if (!itm.product_id) continue
-          const prod = (products ?? []).find((p: { id: string }) => p.id === itm.product_id) as
-            { id: string; weight_g: number; material: string } | undefined
-          if (!prod) continue
+        type SpoolRow = { id: string; material: string; remaining_g: number }
+        const spools = (spoolsRaw ?? []) as SpoolRow[]
 
-          const totalG = prod.weight_g * itm.quantity
+        for (const item of allItems) {
+          let prod: ProductRow | undefined
 
-          // Find best-matching spool (material contains product material, has enough)
-          const mat = prod.material.toLowerCase().split('/')[0].trim()
-          const spool = (spools ?? []).find((s: { id: string; material: string; remaining_g: number }) =>
+          if (item.product_id) {
+            // Direct match by id
+            prod = productsById.find(p => p.id === item.product_id)
+          } else if (item.product_name) {
+            // Fuzzy match by name (case-insensitive, partial)
+            const needle = item.product_name.toLowerCase()
+            prod = productsByName.find(p => p.name.toLowerCase().includes(needle))
+              ?? productsByName.find(p => needle.includes(p.name.toLowerCase()))
+          }
+
+          if (!prod || !prod.weight_g) {
+            console.log('[updateOrderStatus] no catalog match for item:', item.product_name ?? item.product_id, '— skipping deduction')
+            continue
+          }
+
+          const totalG = prod.weight_g * item.quantity
+          const mat    = prod.material.toLowerCase().split('/')[0].trim()
+
+          // Prefer spool with enough remaining; fallback to any matching material
+          const spool = spools.find(s =>
             s.material.toLowerCase().includes(mat) && Number(s.remaining_g) >= totalG
-          ) ?? (spools ?? []).find((s: { id: string; material: string; remaining_g: number }) =>
+          ) ?? spools.find(s =>
             s.material.toLowerCase().includes(mat)
           )
 
           if (spool) {
             const newRemaining = Math.max(0, Number(spool.remaining_g) - totalG)
             await supabase.from('filaments').update({ remaining_g: newRemaining }).eq('id', spool.id)
-            // Update local cache so next iteration sees updated value
-            ;(spool as { remaining_g: number }).remaining_g = newRemaining
+            spool.remaining_g = newRemaining
+            console.log('[updateOrderStatus] deducted', totalG, 'g from spool', spool.id, '→ remaining:', newRemaining)
+          } else {
+            console.log('[updateOrderStatus] no matching spool found for material:', mat)
           }
         }
       }

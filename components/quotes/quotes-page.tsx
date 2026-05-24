@@ -14,7 +14,33 @@ import { type VolumeTier, resolveUnitPrice } from '@/lib/product-types'
 // ── Types ──────────────────────────────────────────────────────
 const DEFAULT_QTYS = [10, 20, 50, 100, 200]
 
-type ProductOption = { id: string; name: string; priceUSD: number; volumePrices?: VolumeTier[] }
+type ProductOption = {
+  id: string
+  name: string
+  priceUSD: number
+  printHours?: number     // hours to print 1 unit (1 printer)
+  printerCount?: number   // units per bed / simultaneous printers
+  volumePrices?: VolumeTier[]
+}
+
+const WORKING_HOURS_PER_DAY = 20 // default print hours/day
+const FINISHING_HOURS       = 2  // extra hours for finishing after printing
+const PACKAGING_DAYS        = 1  // extra day for packaging/shipping prep
+
+/** Calculate delivery days from items list given product catalog */
+function calcDeliveryDays(items: QuoteItem[], products: ProductOption[]): number {
+  let totalHours = 0
+  for (const item of items) {
+    const prod = products.find(p => p.name === item.product_name || p.id === (item as { product_id?: string }).product_id)
+    if (!prod?.printHours) continue
+    const perBed  = Math.max(1, prod.printerCount ?? 1)
+    const batches = Math.ceil(item.qty / perBed)
+    totalHours   += batches * prod.printHours
+  }
+  if (totalHours === 0) return 7 // default if no products matched
+  const printDays = Math.ceil((totalHours + FINISHING_HOURS) / WORKING_HOURS_PER_DAY)
+  return printDays + PACKAGING_DAYS
+}
 
 // ── Quote Form ─────────────────────────────────────────────────
 function QuoteForm({
@@ -51,6 +77,16 @@ function QuoteForm({
   const [items, setItems] = useState<QuoteItem[]>(
     initial?.items?.length ? initial.items : [{ product_name: '', qty: 1, unit_price: 0 }]
   )
+  // Track if user manually overrode the delivery estimate
+  const [deliveryManual, setDeliveryManual] = useState(!isNew)
+
+  // Auto-recalculate delivery_days whenever items change (unless user edited manually)
+  useEffect(() => {
+    if (deliveryManual) return
+    const days = calcDeliveryDays(items, products)
+    setForm(f => ({ ...f, delivery_days: days }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, deliveryManual])
 
   // ── Volume tiers ───────────────────────────────────────────
   const [tierProduct, setTierProduct] = useState<ProductOption | null>(null)
@@ -440,9 +476,30 @@ function QuoteForm({
           {/* Extra */}
           <section className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">{qt.deliveryDays}</label>
-              <input type="number" min={1} className={NUM + ' mt-1'} value={form.delivery_days}
-                onChange={e => setForm(f => ({ ...f, delivery_days: +e.target.value }))} />
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-muted-foreground">{qt.deliveryDays}</label>
+                {!deliveryManual && (
+                  <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 leading-none">
+                    auto
+                  </span>
+                )}
+                {deliveryManual && (
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryManual(false)}
+                    className="text-[9px] text-muted-foreground hover:text-blue-400 underline underline-offset-2 transition-colors"
+                  >
+                    recalcular
+                  </button>
+                )}
+              </div>
+              <input
+                type="number" min={1} className={NUM + ' mt-1'} value={form.delivery_days}
+                onChange={e => {
+                  setDeliveryManual(true)
+                  setForm(f => ({ ...f, delivery_days: +e.target.value }))
+                }}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">{qt.validDays}</label>
@@ -454,7 +511,7 @@ function QuoteForm({
               <select value={form.status}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
                 className="mt-1 w-full h-9 rounded-lg border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-600">
-                {Object.entries(qt.statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {Object.entries(qt.statuses).filter(([k]) => k !== 'converted').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div className="col-span-3">
@@ -685,10 +742,11 @@ function PrintView({ quote, onClose }: { quote: Quote; onClose: () => void }) {
 
 // ── Status badge ───────────────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = {
-  draft:    'bg-muted text-muted-foreground',
-  sent:     'bg-blue-500/10 text-blue-400',
-  accepted: 'bg-green-500/10 text-green-400',
-  rejected: 'bg-red-500/10 text-red-400',
+  draft:     'bg-muted text-muted-foreground',
+  sent:      'bg-blue-500/10 text-blue-400',
+  accepted:  'bg-green-500/10 text-green-400',
+  rejected:  'bg-red-500/10 text-red-400',
+  converted: 'bg-purple-500/10 text-purple-400',
 }
 
 // ── Main page ──────────────────────────────────────────────────
@@ -720,6 +778,8 @@ export function QuotesPage() {
           id: String(p.id),
           name: String(p.name ?? ''),
           priceUSD: Number(p.price_usd ?? p.priceUSD ?? 0),
+          printHours:   Number(p.print_hours   ?? 0) || undefined,
+          printerCount: Number(p.printer_count ?? 1) || 1,
           volumePrices: Array.isArray(p.volume_prices)
             ? (p.volume_prices as { min_qty: number; price_usd: number }[]).map(t => ({
                 minQty: t.min_qty, priceUSD: t.price_usd,
@@ -821,7 +881,7 @@ export function QuotesPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status ?? 'draft']}`}>
                         {qt.statuses[q.status as keyof typeof qt.statuses] ?? q.status}
                       </span>
-                      {q.status === 'accepted' && (
+                      {q.status === 'accepted' && !q.notes?.includes('[order:') && (
                         <button
                           onClick={() => handleConvert(q.id)}
                           disabled={converting === q.id}
@@ -830,7 +890,7 @@ export function QuotesPage() {
                           {converting === q.id
                             ? <span className="size-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
                             : <ArrowRight className="size-3" />}
-                          {converting === q.id ? 'Sending…' : 'Send to Orders'}
+                          {converting === q.id ? 'Enviando…' : 'Enviar para Pedidos'}
                         </button>
                       )}
                     </div>
