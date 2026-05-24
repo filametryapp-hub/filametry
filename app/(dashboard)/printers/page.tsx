@@ -894,7 +894,7 @@ export default function PrintersPage() {
           {printers.length > 0 && (
             <button onClick={() => setShowRecalc(true)}
               className="flex items-center gap-1.5 text-xs font-medium border border-border px-3 py-1.5 rounded-lg hover:bg-muted hover:border-blue-600/50 hover:text-blue-500 transition-colors">
-              <BarChart3 className="size-3.5" /> Recalculate products
+              <BarChart3 className="size-3.5" /> Recalcular produtos
             </button>
           )}
           <span className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full font-medium">

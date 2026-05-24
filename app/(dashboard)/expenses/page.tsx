@@ -244,7 +244,11 @@ function ExpensesInner() {
     const cat = searchParams.get('category')
     const open = searchParams.get('open')
     if (cat) { setActiveTab(cat); setDefaultCat(cat) }
-    if (open === '1') setShowForm(true)
+    if (open === '1') {
+      setShowForm(true)
+      // Clean URL so navigating back doesn't re-open the form
+      router.replace('/expenses' + (cat ? `?category=${cat}` : ''))
+    }
 
     Promise.all([
       getExpenses(),

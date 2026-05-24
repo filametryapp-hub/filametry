@@ -15,12 +15,27 @@ type Supplier = {
   address?: string | null
   city?: string | null
   state?: string | null
+  zip_code?: string | null
   country?: string | null
   website?: string | null
   notes?: string | null
 }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
+
+const US_STATES = [
+  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+  ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
+  ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],
+  ['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+  ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],
+  ['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
+  ['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],
+  ['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+  ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],
+  ['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],
+  ['DC','Washington D.C.'],
+] as const
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -45,7 +60,7 @@ function SupplierModal({
   const { t } = useT()
   const [form, setForm] = useState<Supplier>(initial ?? {
     id: '', name: '', contact_name: '', email: '', phone: '',
-    document: '', address: '', city: '', state: '', country: 'US', website: '', notes: '',
+    document: '', address: '', city: '', state: 'FL', zip_code: '', country: 'US', website: '', notes: '',
   })
   const set = (k: keyof Supplier, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -89,10 +104,15 @@ function SupplierModal({
             <input className={INPUT} value={form.city ?? ''} onChange={e => set('city', e.target.value)} />
           </Field>
           <Field label={t.common.state}>
-            <input className={INPUT} value={form.state ?? ''} onChange={e => set('state', e.target.value)} />
+            <select className={INPUT} value={form.state ?? ''} onChange={e => set('state', e.target.value)}>
+              <option value="">— estado —</option>
+              {US_STATES.map(([abbr, name]) => (
+                <option key={abbr} value={abbr}>{abbr} – {name}</option>
+              ))}
+            </select>
           </Field>
-          <Field label={t.common.country}>
-            <input className={INPUT} value={form.country ?? ''} onChange={e => set('country', e.target.value)} />
+          <Field label="ZIP Code">
+            <input className={INPUT} value={form.zip_code ?? ''} onChange={e => set('zip_code', e.target.value)} placeholder="33101" maxLength={10} />
           </Field>
         </div>
 
@@ -146,6 +166,7 @@ export default function SuppliersPage() {
         address: data.address || undefined,
         city: data.city || undefined,
         state: data.state || undefined,
+        zip_code: data.zip_code || undefined,
         country: data.country || undefined,
         website: data.website || undefined,
         notes: data.notes || undefined,

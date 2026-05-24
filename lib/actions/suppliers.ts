@@ -40,6 +40,7 @@ export async function upsertSupplier(supplier: {
   address?: string
   city?: string
   state?: string
+  zip_code?: string
   country?: string
   website?: string
   notes?: string
