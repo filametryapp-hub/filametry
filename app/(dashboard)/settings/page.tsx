@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign, Link2, Link2Off, Eye, EyeOff, Pencil, X, Check } from 'lucide-react'
+import { Building2, Users, Plus, Trash2, Save, CheckCircle2, DollarSign, Link2, Link2Off, Eye, EyeOff, Pencil, X, Check, ShieldCheck, Clock } from 'lucide-react'
 import {
   getCompany,
   updateCompany,
@@ -46,6 +46,7 @@ type Partner = {
   name: string
   email?: string | null
   percentage: number
+  user_id?: string | null
 }
 
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
@@ -597,7 +598,7 @@ export default function SettingsPage() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
         >
           {saved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
-          {saved ? 'Saved!' : saving ? 'Saving…' : 'Save changes'}
+          {saved ? 'Salvo!' : saving ? 'Salvando…' : 'Salvar alterações'}
         </button>
       </section>
 
@@ -626,14 +627,14 @@ export default function SettingsPage() {
                           className={INPUT}
                           value={editPartnerForm.name}
                           onChange={e => setEditPartnerForm(f => ({ ...f, name: e.target.value }))}
-                          placeholder="Full name *"
+                          placeholder="Nome completo *"
                           autoFocus
                         />
                         <input
                           className={INPUT}
                           value={editPartnerForm.email}
                           onChange={e => setEditPartnerForm(f => ({ ...f, email: e.target.value }))}
-                          placeholder="Email (optional)"
+                          placeholder="Email (opcional)"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -648,13 +649,13 @@ export default function SettingsPage() {
                           onClick={() => handleUpdatePartner(p.id)}
                           className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
                         >
-                          <Check className="size-3.5" /> Save
+                          <Check className="size-3.5" /> Salvar
                         </button>
                         <button
                           onClick={() => setEditPartnerId(null)}
                           className="flex items-center gap-1.5 text-xs border border-border px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
                         >
-                          <X className="size-3.5" /> Cancel
+                          <X className="size-3.5" /> Cancelar
                         </button>
                       </div>
                     </div>
@@ -663,7 +664,20 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between px-4 py-3 group">
                       <div>
                         <p className="text-sm font-medium">{p.name}</p>
-                        {p.email && <p className="text-xs text-muted-foreground">{p.email}</p>}
+                        {p.email && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            {p.email}
+                            {p.user_id ? (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-600 bg-green-600/10 px-1.5 py-0.5 rounded-full">
+                                <ShieldCheck className="size-2.5" /> Acesso ativo
+                              </span>
+                            ) : p.email ? (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                                <Clock className="size-2.5" /> Aguardando login
+                              </span>
+                            ) : null}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-mono font-semibold text-blue-600">{p.percentage}%</span>
@@ -689,17 +703,18 @@ export default function SettingsPage() {
 
           {/* Add new partner */}
           <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add partner</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adicionar sócio</p>
             <div className="grid grid-cols-2 gap-3">
               <input
                 className={INPUT}
-                placeholder="Full name *"
+                placeholder="Nome completo *"
                 value={newPartner.name}
                 onChange={e => setNewPartner(p => ({ ...p, name: e.target.value }))}
               />
               <input
                 className={INPUT}
-                placeholder="Email (optional)"
+                placeholder="Email (para acesso ao sistema)"
+                type="email"
                 value={newPartner.email}
                 onChange={e => setNewPartner(p => ({ ...p, email: e.target.value }))}
               />
@@ -708,7 +723,7 @@ export default function SettingsPage() {
               <div className="w-32">
                 <input
                   className={INPUT}
-                  placeholder="% share"
+                  placeholder="% participação"
                   type="number"
                   min="0"
                   max="100"
@@ -722,7 +737,7 @@ export default function SettingsPage() {
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 <Plus className="size-4" />
-                {addingPartner ? 'Adding…' : 'Add'}
+                {addingPartner ? 'Adicionando…' : 'Adicionar'}
               </button>
             </div>
             {partnerError && <p className="text-sm text-red-400">{partnerError}</p>}

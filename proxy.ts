@@ -57,6 +57,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Check onboarding: if user has no company yet, redirect to /onboarding
+  // Exception: if the user's email is a registered partner, auto-link them to that company
   if (user && isDashboard && !isOnboarding && !isApiRoute) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -65,6 +66,22 @@ export async function proxy(request: NextRequest) {
       .single()
 
     if (profile && !profile.company_id) {
+      // Check if this user is a registered partner of any company
+      const { data: partnerMatch } = await supabase
+        .from('partners')
+        .select('id, company_id')
+        .eq('email', user.email ?? '')
+        .maybeSingle()
+
+      if (partnerMatch?.company_id) {
+        // Auto-link this user to their partner's company
+        await supabase.from('profiles').update({ company_id: partnerMatch.company_id }).eq('id', user.id)
+        // Mark the partner record as active
+        await supabase.from('partners').update({ user_id: user.id }).eq('id', partnerMatch.id)
+        // Let them through to the dashboard
+        return supabaseResponse
+      }
+
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
   }
