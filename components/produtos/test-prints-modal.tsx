@@ -14,14 +14,17 @@ type Spool = { id: string; label: string; remaining_g: number }
 const INPUT = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors placeholder:text-muted-foreground'
 const NUM_INPUT = 'w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center font-semibold outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
+type FilamentEntry = { spoolId?: string; weightG: number; color: string; type: string }
+
 interface Props {
   prefillProduct?: string | null
   prefillCost?: number | null
   prefillWeightG?: number | null
+  prefillFilaments?: FilamentEntry[]
   onClose: () => void
 }
 
-export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, onClose }: Props) {
+export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, prefillFilaments, onClose }: Props) {
   const { t, fmtCurrency } = useT()
   const tm = t.testModal
 
@@ -99,11 +102,26 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
         notes: notesWithSpool || undefined, paid_by: form.paid_by,
       })
 
-      if (form.spoolId && form.usedG > 0) {
+      // Deduct manual spool selection (if no prefill, or if user manually picked one)
+      const hasAutoFilaments = (prefillFilaments ?? []).some(f => f.spoolId)
+      if (!hasAutoFilaments && form.spoolId && form.usedG > 0) {
         await consumeFilamentG(form.spoolId, form.usedG)
         setSpools(prev => prev.map(s =>
           s.id === form.spoolId ? { ...s, remaining_g: Math.max(0, s.remaining_g - form.usedG) } : s
         ))
+      }
+
+      // Deduct all product filaments automatically
+      if (hasAutoFilaments) {
+        await Promise.all(
+          (prefillFilaments ?? [])
+            .filter(f => f.spoolId && f.weightG > 0)
+            .map(f => consumeFilamentG(f.spoolId!, f.weightG))
+        )
+        setSpools(prev => prev.map(s => {
+          const match = (prefillFilaments ?? []).find(f => f.spoolId === s.id)
+          return match ? { ...s, remaining_g: Math.max(0, s.remaining_g - match.weightG) } : s
+        }))
       }
 
       setTestPrints(prev => [{
@@ -243,30 +261,52 @@ export function TestPrintsModal({ prefillProduct, prefillCost, prefillWeightG, o
                     <Package className="size-3 text-muted-foreground" />
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{tm.filamentUsed}</span>
                   </div>
-                  <div className="grid grid-cols-[1fr_80px] gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">{tm.spool}</label>
-                      <select value={form.spoolId}
-                        onChange={e => setForm(f => ({ ...f, spoolId: e.target.value }))}
-                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600">
-                        <option value="">{tm.noSpool}</option>
-                        {spools.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                      </select>
+
+                  {(prefillFilaments ?? []).some(f => f.spoolId) ? (
+                    /* Auto-deduct list from product filamentColors */
+                    <div className="space-y-1">
+                      {(prefillFilaments ?? []).filter(f => f.spoolId).map((f, i) => {
+                        const spool = spools.find(s => s.id === f.spoolId)
+                        return (
+                          <div key={i} className="flex items-center justify-between text-[11px]">
+                            <span className="text-muted-foreground">{f.type} · {f.color}</span>
+                            <span className="font-mono font-semibold text-blue-500">−{f.weightG}g
+                              {spool && <span className="text-muted-foreground font-normal ml-1">(→ {Math.max(0, spool.remaining_g - f.weightG).toFixed(0)}g)</span>}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      <p className="text-[10px] text-green-500 pt-0.5">Baixa automática ao registrar</p>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">{tm.grams}</label>
-                      <input type="number" min={0} step={0.1}
-                        value={form.usedG || ''} placeholder="0"
-                        onChange={e => setForm(f => ({ ...f, usedG: parseFloat(e.target.value) || 0 }))}
-                        className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-center font-semibold focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                    </div>
-                  </div>
-                  {selectedSpool && form.usedG > 0 && (
-                    <p className="text-[10px] text-blue-500">
-                      {tm.stockAfter}: <span className="font-semibold">{Math.max(0, selectedSpool.remaining_g - form.usedG).toFixed(0)}g</span>
-                    </p>
+                  ) : (
+                    /* Manual spool picker */
+                    <>
+                      <div className="grid grid-cols-[1fr_80px] gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{tm.spool}</label>
+                          <select value={form.spoolId}
+                            onChange={e => setForm(f => ({ ...f, spoolId: e.target.value }))}
+                            className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600">
+                            <option value="">{tm.noSpool}</option>
+                            {spools.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">{tm.grams}</label>
+                          <input type="number" min={0} step={0.1}
+                            value={form.usedG || ''} placeholder="0"
+                            onChange={e => setForm(f => ({ ...f, usedG: parseFloat(e.target.value) || 0 }))}
+                            className="mt-0.5 w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-center font-semibold focus:outline-none focus:ring-1 focus:ring-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        </div>
+                      </div>
+                      {selectedSpool && form.usedG > 0 && (
+                        <p className="text-[10px] text-blue-500">
+                          {tm.stockAfter}: <span className="font-semibold">{Math.max(0, selectedSpool.remaining_g - form.usedG).toFixed(0)}g</span>
+                        </p>
+                      )}
+                      {!form.spoolId && <p className="text-[10px] text-muted-foreground/50">{tm.selectSpool}</p>}
+                    </>
                   )}
-                  {!form.spoolId && <p className="text-[10px] text-muted-foreground/50">{tm.selectSpool}</p>}
                 </div>
 
                 <div className="col-span-2">

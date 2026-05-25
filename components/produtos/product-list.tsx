@@ -240,7 +240,7 @@ function ProductRow({ product, onEdit, onDelete, onRegisterTest, onToggleStatus,
   )
 }
 
-type TestModalConfig = { prefillProduct?: string; prefillCost?: number } | null
+type TestModalConfig = { prefillProduct?: string; prefillCost?: number; filamentColors?: { spoolId?: string; weightG: number; color: string; type: string }[] } | null
 
 export function ProductList() {
   const [products, setProducts]         = useState<Product[]>([])
@@ -264,8 +264,12 @@ export function ProductList() {
 
   useEffect(() => { load() }, [])
 
-  function handleRegisterTest(productName: string, productCost: number) {
-    setTestModal({ prefillProduct: productName, prefillCost: productCost })
+  function handleRegisterTest(product: Product) {
+    setTestModal({
+      prefillProduct:  product.name,
+      prefillCost:     product.costUSD,
+      filamentColors:  product.filamentColors ?? [],
+    })
   }
 
   async function handleToggleStatus(p: Product) {
@@ -447,7 +451,7 @@ export function ProductList() {
               product={p}
               onEdit={() => { setEditing(p); setShowForm(true) }}
               onDelete={() => remove(p.id)}
-              onRegisterTest={() => handleRegisterTest(p.name, p.costUSD)}
+              onRegisterTest={() => handleRegisterTest(p)}
               onToggleStatus={() => handleToggleStatus(p)}
               onStockChange={async (delta) => {
                 await adjustProductStock(p.id, delta)
@@ -462,6 +466,7 @@ export function ProductList() {
         <TestPrintsModal
           prefillProduct={testModalConfig.prefillProduct ?? null}
           prefillCost={testModalConfig.prefillCost ?? null}
+          prefillFilaments={testModalConfig.filamentColors}
           onClose={() => setTestModal(null)}
         />
       )}
